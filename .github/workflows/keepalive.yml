@@ -1,0 +1,22 @@
+# Keeps the free Supabase project awake: free projects pause after about a week with no activity.
+# Every 3 days this makes two tiny read requests. It creates no accounts and changes no data.
+name: Keep database awake
+on:
+  schedule:
+    - cron: "17 3 */3 * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Ping Supabase
+        env:
+          URL: https://pwkgtcwwincfcrtxgmag.supabase.co
+          KEY: sb_publishable_jkR7unxyo2jD__zpArlaCg_-wmVDcV6
+        run: |
+          a=$(curl -sS -o /dev/null -w "%{http_code}" "$URL/auth/v1/settings" -H "apikey: $KEY")
+          b=$(curl -sS -o /dev/null -w "%{http_code}" "$URL/rest/v1/docs?select=id&limit=1" -H "apikey: $KEY")
+          echo "auth: $a, database: $b"
+          # 401/403 from the database is expected (anonymous reads are blocked) and still counts as activity
+          if [ "$a" != "200" ]; then echo "::error::Supabase did not answer (auth $a). Is the project paused?"; exit 1; fi
