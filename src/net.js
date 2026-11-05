@@ -73,8 +73,12 @@ function onMailSnapshot(snap){if(!S||!S.P)return;const P=S.P;P.claimed=P.claimed
 
 /* ---------- init ---------- */
 async function netInit(){
-  if(typeof window==='undefined'||!window.claude||!window.claude.use){NET.ready=true;return;}
-  try{const [db,user,room,sample,dl]=await Promise.all(['db','user','room','sample','downloads'].map(n=>window.claude.use(n).catch(()=>null)));
+  const onClaude=typeof window!=='undefined'&&window.claude&&window.claude.use;
+  if(!onClaude&&!(typeof supaWanted==='function'&&supaWanted())){NET.ready=true;return;}
+  try{let db,user,room,sample=null,dl;
+    if(onClaude)[db,user,room,sample,dl]=await Promise.all(['db','user','room','sample','downloads'].map(n=>window.claude.use(n).catch(()=>null)));
+    else{NET.backend='supabase';const sv=await supaServices();if(!sv){NET.needAuth=true;NET.status='Sign in to play online';NET.ready=true;if(typeof UI!=='undefined')UI.refresh();return;}
+      NET.needAuth=false;({db,user,room,downloads:dl}=sv);NET.guest=user.guest;NET.email=user.email;}
     NET.db=db;NET.user=user;NET.room=room;NET.sample=sample;NET.downloads=dl;
     if(user){NET.uid=await user.id();try{NET.isHost=!!(await user.canEdit());}catch(e){NET.isHost=false;}try{const c=await user.can('data.write');NET.canWrite=c!==false&&!!NET.uid;}catch(e){NET.canWrite=!!NET.uid;}}
     if(db&&NET.uid){NET.mode='online';NET.status=NET.canWrite?'Connected: saves sync to your account, shared chat live':'Connected read-only: you can read shared chat, saves stay in this browser';

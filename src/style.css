@@ -447,3 +447,4 @@ body:not(.ingame){background:#05070d}
 .tmenu .soon small{display:block;letter-spacing:.3em;text-transform:uppercase;font-size:.68rem;color:#e0c890}.tmenu .soon b{display:flex;align-items:center;justify-content:center;gap:.45rem;font-family:var(--display);font-size:1.5rem;color:#ffe9a8;margin:.3rem 0}
 .tmenu .soon p{margin:0;color:#e8e2d2;font-size:.92rem;line-height:1.5}
 #combat .turnlbl{padding:.15rem .55rem;border-radius:99px;border:1px solid var(--line);transition:background .2s,color .2s}#combat .turnlbl.mine{background:color-mix(in srgb,var(--gilt) 22%,transparent);border-color:var(--gilt);color:var(--ink)}
+.tmenu.auth .soon{text-align:left}.tmenu.auth form{gap:.45rem;margin:.6rem 0}.tmenu.auth input{width:100%}.tmenu.auth .b.ghost{width:100%;margin-top:.35rem}.tmenu.auth p{margin:.4rem 0}

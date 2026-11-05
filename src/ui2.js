@@ -210,7 +210,7 @@ function renderMenu(){const st=NET.status;
   <div class="li"><span>Visual effects <small>Particles, weather, screen shake</small></span>${btn(FX.on?'Full':'Reduced','fxtoggle','',FX.on?'tiny gilt':'tiny ghost')}</div>
   <div class="li"><span>Theme</span>${['system','dark','light'].map(x=>btn(U.cap(x),'theme',x,(UI.theme||'system')===x?'tiny gilt':'tiny ghost')).join('')}</div></div>
   <h3>About this world</h3><p class="hint">The world keeps moving while nobody is playing: whenever anyone returns, the Realms fast-forward through every hour that passed (up to two weeks), and you get a summary of what happened.${NET.isHost?' Your game is the realm\'s host: it uploads the world every few minutes so friends load the same world.':S.worldFrom?` This world was last synced from ${E(S.worldFrom)}'s realm.`:''} Eternal Realms simulates ${S.npcs.length} autonomous adventurers. They level, trade, form parties and guilds, fight bosses and remember you. ${NET.mode==='online'?'Real players who open this same game link share global, trade and recruit chat, the real-player leaderboards, champion duels and courier parcels. The simulated world is shared too: the owner\'s game uploads it and everyone else picks it up when they open the game.':'Open the game from its claude.ai link to play with real people.'}</p>
-  <h3>Danger zone</h3>${btn('Delete character & start over','wipeask','','danger')}</section>`;}
+  ${NET.backend==='supabase'&&NET.uid?`<h3>Account</h3><p class="hint">${NET.guest?'Playing as a guest. Your progress is tied to this device.':'Signed in as '+E(NET.email||'')}</p><div class="row">${btn('Sign out','signout')}${btn('Delete account','delacct','','danger')}</div>`:''}<h3>Danger zone</h3>${btn('Delete character & start over','wipeask','','danger')}</section>`;}
 Object.assign(ACT,{fxtoggle(){FX.on=!FX.on;try{localStorage.setItem('er_fx',FX.on?'1':'0');}catch(e){}},save(){saveAll(true);},toggleai(){AI.enabled=!AI.enabled;try{localStorage.setItem('er_ai',AI.enabled?'1':'0');}catch(e){}},chatrate(v){UI.rate=v;try{localStorage.setItem('er_rate',v);}catch(e){}},
   theme(v){UI.theme=v;applyTheme();try{localStorage.setItem('er_theme',v);}catch(e){}},
   async export(){const s=await compress(serialize());openModal(`<h2>Export save</h2><p class="hint">Copy this code and keep it somewhere safe. Paste it into “Import save” on any device.</p><textarea id="exp" rows="8" readonly>${E(s)}</textarea><div class="row">${btn('Copy','copyexp','','gilt')}${NET.downloads?btn('Save as file','dlexp'):''}</div>`,'export');UI.exp=s;},
@@ -361,6 +361,27 @@ function isTyping(){const a=document.activeElement;return a&&(a.tagName==='INPUT
 function applyTheme(){const t=UI.theme||'system';if(t==='system')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);}
 
 /* ---------------- title & boot ---------------- */
+function needSignIn(){return typeof supaWanted==='function'&&supaWanted()&&!NET.uid;}
+function authHtml(){if(!LAUNCH.open||!needSignIn())return '';
+  if(!NET.ready)return `<div class="tmenu"><div class="soon"><b>Connecting…</b></div></div>`;
+  const up=UI.authMode==='signup';
+  return `<div class="tmenu auth"><div class="soon"><small>${up?'Create your account':'Welcome back'}</small>
+    <form data-form="auth" class="col"><label for="ae">Email</label><input id="ae" name="email" type="email" autocomplete="email" required>
+    <label for="ap">Password</label><input id="ap" name="pw" type="password" minlength="6" autocomplete="${up?'new-password':'current-password'}" required>
+    <button class="b gilt big" ${UI.authBusy?'disabled':''}>${UI.authBusy?'Please wait…':up?'Create account':'Sign in'}</button></form>
+    ${UI.authMsg?`<p class="${UI.authOk?'good':'bad'}">${E(UI.authMsg)}</p>`:''}
+    <button class="b ghost" data-a="authmode">${up?'I already have an account':'New here? Create an account'}</button>
+    <button class="b ghost" data-a="authguest">Play as guest <small>(progress stays on this device)</small></button></div></div>`;}
+async function afterSignIn(){UI.authMsg='';await netInit();await showTitle();}
+Object.assign(ACT,{authmode(){UI.authMode=UI.authMode==='signup'?'signin':'signup';UI.authMsg='';showTitle();},
+  async form_auth(fd){if(UI.authBusy)return;UI.authBusy=1;UI.authMsg='';showTitle();
+    try{if(UI.authMode==='signup'){const s=await supaSignUp(fd.email.trim(),fd.pw);if(!s){UI.authOk=1;UI.authMsg='Almost there! Check your email and tap the confirmation link, then sign in here.';UI.authMode='signin';}else await afterSignIn();}
+      else{await supaSignIn(fd.email.trim(),fd.pw);await afterSignIn();}}
+    catch(e){UI.authOk=0;UI.authMsg=e.message;}UI.authBusy=0;showTitle();},
+  async authguest(){if(UI.authBusy)return;UI.authBusy=1;UI.authMsg='';try{await supaGuest();await afterSignIn();}catch(e){UI.authOk=0;UI.authMsg=e.message;}UI.authBusy=0;showTitle();},
+  async signout(){await saveAll();await supaSignOut();NET.uid=null;NET.db=null;NET.room=null;NET.user=null;for(const u of NET.unsub)try{u&&u();}catch(e){}NET.unsub=[];NET.mode='local';markPlaying(false);location.reload();},
+  delacct(){openModal(`<h2>Delete account</h2><p>This permanently deletes your account, your character, your online save, your leaderboard entry and your messages. It cannot be undone.</p><div class="row">${btn('Cancel','close')}${btn('Delete forever','delacctgo','','danger')}</div>`,'delacct');},
+  async delacctgo(){try{await supaDeleteAccount();wipeLocal();markPlaying(false);location.reload();}catch(e){UI.toast('Could not delete: '+e.message,'bad');}}});
 async function showTitle(){UI.started=false;document.body.classList.remove('ingame');$('#game').hidden=true;$('#combat').hidden=true;
   const local=await loadLocal();const cloud=await peekCloud();UI.localSave=local;const LP=local&&local.obj&&local.obj.P;
   const W=S||{};const day=W.time?T.day(W.time):1;const on=W.npcs?W.npcs.filter(n=>!n.retired&&online(n)).length:0;const head=(W.news||[])[0];const boss=W.boss?MONSTERS[W.boss.id].n:null;
@@ -370,9 +391,9 @@ async function showTitle(){UI.started=false;document.body.classList.remove('inga
     <p class="pre">A living fantasy MMORPG</p><h1 class="logo"><span>Eternal</span><span>Realms</span></h1>
     <p class="tag">Hundreds of adventurers already roam these lands. None of them are waiting for you.</p>
     <div class="ticker" role="status"><span>${icon('clock')}Day ${day}</span>${LAUNCH.open?`<span>${icon('online')}${on} adventurers online${NET.peers?` · ${NET.peers} real`:''}</span>`:`<span class="bad">${icon('online')}Servers offline</span>`}${boss?`<span class="bad">${icon('skull')}${E(boss)} awakens</span>`:''}${head?`<span class="news">${E(head[1])}</span>`:''}</div>
-    ${!LAUNCH.open?`<div class="tmenu prelaunch"><div class="soon"><small>Servers status</small><b>${icon('clock')} Opening soon</b><p>The Realms are not open yet. No accounts or characters exist until launch day. Check back soon.</p></div>
+    ${authHtml()}${!LAUNCH.open?`<div class="tmenu prelaunch"><div class="soon"><small>Servers status</small><b>${icon('clock')} Opening soon</b><p>The Realms are not open yet. No accounts or characters exist until launch day. Check back soon.</p></div>
      <div class="row tsub"><button class="b ghost" data-a="help">How to play</button><button class="b ghost" data-a="sound" id="tsound">${AUD.on?'♪ Music on':'♪ Play music'}</button></div></div>`:''}
-    <div class="tmenu" ${!LAUNCH.open?'hidden':''}>${LP?`<button class="hero-card" data-a="cont"><span class="portrait" style="--ac:${CLS_HUE[LP.cls]}">${icon(CLS_ICON[LP.cls])}<b>${LP.level}</b></span><span><small>Continue your legend</small><b>${E(LP.name)}</b><small>${E(LP.adv?ADV_CLASSES[LP.adv].name:CLASSES[LP.cls].name)} · ${E(LOCS[LP.loc]?LOCS[LP.loc].n:'')}</small></span><i>▶</i></button>`:''}
+    <div class="tmenu" ${!LAUNCH.open||needSignIn()?'hidden':''}>${LP?`<button class="hero-card" data-a="cont"><span class="portrait" style="--ac:${CLS_HUE[LP.cls]}">${icon(CLS_ICON[LP.cls])}<b>${LP.level}</b></span><span><small>Continue your legend</small><b>${E(LP.name)}</b><small>${E(LP.adv?ADV_CLASSES[LP.adv].name:CLASSES[LP.cls].name)} · ${E(LOCS[LP.loc]?LOCS[LP.loc].n:'')}</small></span><i>▶</i></button>`:''}
      ${cloud&&(!LP||cloud.t>local.t+5000)?`<button class="b gilt big" data-a="contcloud">Continue from your account <small>${E(cloud.user)} · Lv.${cloud.level}</small></button>`:''}
      <button class="b ${LP?'':'gilt'} big" data-a="newchar">${LP?'New character':'Begin your adventure'}</button>
      <div class="row tsub"><button class="b ghost" data-a="importask">Import save</button><button class="b ghost" data-a="help">How to play</button><button class="b ghost" data-a="sound" id="tsound">${AUD.on?'♪ Music on':'♪ Play music'}</button></div></div>

@@ -457,6 +457,7 @@ body:not(.ingame){background:#05070d}
 .tmenu .soon small{display:block;letter-spacing:.3em;text-transform:uppercase;font-size:.68rem;color:#e0c890}.tmenu .soon b{display:flex;align-items:center;justify-content:center;gap:.45rem;font-family:var(--display);font-size:1.5rem;color:#ffe9a8;margin:.3rem 0}
 .tmenu .soon p{margin:0;color:#e8e2d2;font-size:.92rem;line-height:1.5}
 #combat .turnlbl{padding:.15rem .55rem;border-radius:99px;border:1px solid var(--line);transition:background .2s,color .2s}#combat .turnlbl.mine{background:color-mix(in srgb,var(--gilt) 22%,transparent);border-color:var(--gilt);color:var(--ink)}
+.tmenu.auth .soon{text-align:left}.tmenu.auth form{gap:.45rem;margin:.6rem 0}.tmenu.auth input{width:100%}.tmenu.auth .b.ghost{width:100%;margin-top:.35rem}.tmenu.auth p{margin:.4rem 0}
 
 </style>
 <div id="app" aria-live="polite"><div class="title"><h1>Eternal Realms</h1><p class="tag">The Realms are waking…</p></div></div>
@@ -3617,8 +3618,12 @@ function onMailSnapshot(snap){if(!S||!S.P)return;const P=S.P;P.claimed=P.claimed
 
 /* ---------- init ---------- */
 async function netInit(){
-  if(typeof window==='undefined'||!window.claude||!window.claude.use){NET.ready=true;return;}
-  try{const [db,user,room,sample,dl]=await Promise.all(['db','user','room','sample','downloads'].map(n=>window.claude.use(n).catch(()=>null)));
+  const onClaude=typeof window!=='undefined'&&window.claude&&window.claude.use;
+  if(!onClaude&&!(typeof supaWanted==='function'&&supaWanted())){NET.ready=true;return;}
+  try{let db,user,room,sample=null,dl;
+    if(onClaude)[db,user,room,sample,dl]=await Promise.all(['db','user','room','sample','downloads'].map(n=>window.claude.use(n).catch(()=>null)));
+    else{NET.backend='supabase';const sv=await supaServices();if(!sv){NET.needAuth=true;NET.status='Sign in to play online';NET.ready=true;if(typeof UI!=='undefined')UI.refresh();return;}
+      NET.needAuth=false;({db,user,room,downloads:dl}=sv);NET.guest=user.guest;NET.email=user.email;}
     NET.db=db;NET.user=user;NET.room=room;NET.sample=sample;NET.downloads=dl;
     if(user){NET.uid=await user.id();try{NET.isHost=!!(await user.canEdit());}catch(e){NET.isHost=false;}try{const c=await user.can('data.write');NET.canWrite=c!==false&&!!NET.uid;}catch(e){NET.canWrite=!!NET.uid;}}
     if(db&&NET.uid){NET.mode='online';NET.status=NET.canWrite?'Connected: saves sync to your account, shared chat live':'Connected read-only: you can read shared chat, saves stay in this browser';
@@ -3667,6 +3672,60 @@ function saveLocalSync(){if(!S||!S.P)return;try{localStorage.setItem(LS_KEY,'js:
 try{if(typeof window!=='undefined'&&window.claude&&window.claude.hot&&window.claude.hot.snapshot)window.claude.hot.snapshot(()=>{saveLocalSync();return {};});}catch(e){}
 
 BUS.on(t=>{if(t==='player_arrive'||t==='player_level'||t==='player_adv')netPresence();});
+
+/* ---- supa.js ---- */
+/* ETERNAL REALMS — Supabase backend. Used when the game runs outside claude.ai (own website / Android app).
+   Exposes the same small db / user / room surface the game already uses, so the rest of the code does not care
+   which backend is underneath. Security lives in the database (see supabase/migrations). */
+'use strict';
+const SUPA_CFG={url:'https://pwkgtcwwincfcrtxgmag.supabase.co',key:'sb_publishable_jkR7unxyo2jD__zpArlaCg_-wmVDcV6',lib:'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js'};
+const SUPA={client:null,session:null,channels:[]};
+function supaWanted(){if(typeof window==='undefined'||(window.claude&&window.claude.use)||!SUPA_CFG.url)return false;return location.protocol!=='file:'||/[?&]online\b/.test(location.search);}
+function supaLoadLib(){if(window.supabase&&window.supabase.createClient)return Promise.resolve();
+  return new Promise((res,rej)=>{const s=document.createElement('script');s.src=SUPA_CFG.lib;s.onload=res;s.onerror=()=>rej(new Error('Could not load the online service'));document.head.appendChild(s);});}
+async function supaClient(){if(SUPA.client)return SUPA.client;await supaLoadLib();
+  SUPA.client=window.supabase.createClient(SUPA_CFG.url,SUPA_CFG.key,{auth:{persistSession:true,autoRefreshToken:true,storageKey:'er_auth'}});return SUPA.client;}
+async function supaSession(){const c=await supaClient();const {data}=await c.auth.getSession();SUPA.session=data.session||null;return SUPA.session;}
+
+/* ---------- sign in / sign up / guest / sign out / delete ---------- */
+function supaErr(e){const m=(e&&e.message)||String(e);return /Invalid login/i.test(m)?'Wrong email or password.':/already registered/i.test(m)?'That email already has an account. Sign in instead.':/Email not confirmed/i.test(m)?'Check your inbox and tap the confirmation link first.':/Anonymous sign-ins are disabled/i.test(m)?'Guest play is not switched on yet.':m;}
+async function supaSignIn(email,pw){const c=await supaClient();const {data,error}=await c.auth.signInWithPassword({email,password:pw});if(error)throw new Error(supaErr(error));SUPA.session=data.session;return data.session;}
+async function supaSignUp(email,pw){const c=await supaClient();const {data,error}=await c.auth.signUp({email,password:pw,options:{emailRedirectTo:location.origin+location.pathname}});if(error)throw new Error(supaErr(error));SUPA.session=data.session||null;return data.session;}
+async function supaGuest(){const c=await supaClient();const {data,error}=await c.auth.signInAnonymously();if(error)throw new Error(supaErr(error));SUPA.session=data.session;return data.session;}
+async function supaSignOut(){const c=await supaClient();for(const ch of SUPA.channels)try{c.removeChannel(ch);}catch(e){}SUPA.channels=[];await c.auth.signOut();SUPA.session=null;}
+async function supaDeleteAccount(){const c=await supaClient();const {error}=await c.rpc('delete_my_account');if(error)throw new Error(supaErr(error));await supaSignOut();}
+
+/* ---------- db: doc(path).get/set/delete and collection(name).onSnapshot ---------- */
+function supaRef(path){const p=String(path).split('/');
+  if(p[0]==='data'&&p[1]==='users')return {tbl:'user_docs',id:p.slice(3).join('/'),priv:true};
+  return {tbl:'docs',col:p[0],id:p.slice(1).join('/')};}
+function supaWrap(err){const e=new Error(err.message||'database error');e.code=err.code==='42501'?'permission_denied':err.code==='P0001'?'rate_limited':'unavailable';return e;}
+function supaDoc(c,path){const r=supaRef(path);const uid=SUPA.session&&SUPA.session.user.id;
+  const q=()=>r.priv?c.from('user_docs').select('data').eq('owner',uid).eq('id',r.id):c.from('docs').select('data').eq('col',r.col).eq('id',r.id);
+  return {
+    async get(){const {data,error}=await q().maybeSingle();if(error)throw supaWrap(error);return {exists:!!data,data:()=>data?data.data:undefined,id:r.id};},
+    async set(obj){const row=r.priv?{owner:uid,id:r.id,data:obj}:{col:r.col,id:r.id,owner:uid,data:obj};
+      const {error}=await c.from(r.tbl).upsert(row,{onConflict:r.priv?'owner,id':'col,id'});if(error)throw supaWrap(error);},
+    async delete(){const {error}=r.priv?await c.from('user_docs').delete().eq('owner',uid).eq('id',r.id):await c.from('docs').delete().eq('col',r.col).eq('id',r.id);if(error)throw supaWrap(error);}};}
+function supaCollection(c,col){return {onSnapshot(cb,onErr){const rows=new Map();let alive=true;
+  const emit=()=>{if(!alive)return;const docs=[...rows.entries()].map(([id,data])=>({id,exists:true,data:()=>data}));try{cb({docs});}catch(e){console.warn(e);}};
+  c.from('docs').select('id,data').eq('col',col).limit(500).then(({data,error})=>{if(error){if(onErr)onErr(supaWrap(error));return;}for(const d of data||[])rows.set(d.id,d.data);emit();});
+  const ch=c.channel('docs-'+col).on('postgres_changes',{event:'*',schema:'public',table:'docs',filter:'col=eq.'+col},p=>{
+    if(p.eventType==='DELETE'){if(p.old&&p.old.id)rows.delete(p.old.id);}else if(p.new){rows.set(p.new.id,p.new.data);}emit();}).subscribe();
+  SUPA.channels.push(ch);return ()=>{alive=false;try{c.removeChannel(ch);}catch(e){}};}};}
+
+/* ---------- room: live presence (who is online, co-op, quick messages) ---------- */
+function supaRoom(c,uid){const ch=c.channel('realm',{config:{presence:{key:uid}}});let handler=null,ready=false,pending=null;
+  const fire=()=>{if(!handler)return;const st=ch.presenceState();const peers=Object.entries(st).map(([key,metas])=>({isMe:key===uid,presence:metas&&metas[0],by:key,peer:key,guest:false}));try{handler({peers});}catch(e){console.warn(e);}};
+  ch.on('presence',{event:'sync'},fire).subscribe(s=>{if(s==='SUBSCRIBED'){ready=true;if(pending){ch.track(pending);pending=null;}}});SUPA.channels.push(ch);
+  return {onPeers(fn){handler=fn;fire();},presence(obj){if(ready)ch.track(obj);else pending=obj;}};}
+
+/* ---------- the services netInit() asks for ---------- */
+async function supaServices(){const s=await supaSession();if(!s)return null;const c=SUPA.client;const uid=s.user.id;
+  const db={doc:p=>supaDoc(c,p),collection:n=>supaCollection(c,n)};
+  const user={id:async()=>uid,canEdit:async()=>{const {data}=await c.rpc('is_admin');return !!data;},can:async()=>true,guest:!!s.user.is_anonymous,email:s.user.email||null};
+  const downloads={save:async({filename,data})=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'text/plain'}));a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}};
+  return {db,user,room:supaRoom(c,uid),downloads};}
 
 /* ---- art.js ---- */
 /* ETERNAL REALMS — procedural art: line icons, location vistas, monster sigils, title backdrop */
@@ -4707,7 +4766,7 @@ function renderMenu(){const st=NET.status;
   <div class="li"><span>Visual effects <small>Particles, weather, screen shake</small></span>${btn(FX.on?'Full':'Reduced','fxtoggle','',FX.on?'tiny gilt':'tiny ghost')}</div>
   <div class="li"><span>Theme</span>${['system','dark','light'].map(x=>btn(U.cap(x),'theme',x,(UI.theme||'system')===x?'tiny gilt':'tiny ghost')).join('')}</div></div>
   <h3>About this world</h3><p class="hint">The world keeps moving while nobody is playing: whenever anyone returns, the Realms fast-forward through every hour that passed (up to two weeks), and you get a summary of what happened.${NET.isHost?' Your game is the realm\'s host: it uploads the world every few minutes so friends load the same world.':S.worldFrom?` This world was last synced from ${E(S.worldFrom)}'s realm.`:''} Eternal Realms simulates ${S.npcs.length} autonomous adventurers. They level, trade, form parties and guilds, fight bosses and remember you. ${NET.mode==='online'?'Real players who open this same game link share global, trade and recruit chat, the real-player leaderboards, champion duels and courier parcels. The simulated world is shared too: the owner\'s game uploads it and everyone else picks it up when they open the game.':'Open the game from its claude.ai link to play with real people.'}</p>
-  <h3>Danger zone</h3>${btn('Delete character & start over','wipeask','','danger')}</section>`;}
+  ${NET.backend==='supabase'&&NET.uid?`<h3>Account</h3><p class="hint">${NET.guest?'Playing as a guest. Your progress is tied to this device.':'Signed in as '+E(NET.email||'')}</p><div class="row">${btn('Sign out','signout')}${btn('Delete account','delacct','','danger')}</div>`:''}<h3>Danger zone</h3>${btn('Delete character & start over','wipeask','','danger')}</section>`;}
 Object.assign(ACT,{fxtoggle(){FX.on=!FX.on;try{localStorage.setItem('er_fx',FX.on?'1':'0');}catch(e){}},save(){saveAll(true);},toggleai(){AI.enabled=!AI.enabled;try{localStorage.setItem('er_ai',AI.enabled?'1':'0');}catch(e){}},chatrate(v){UI.rate=v;try{localStorage.setItem('er_rate',v);}catch(e){}},
   theme(v){UI.theme=v;applyTheme();try{localStorage.setItem('er_theme',v);}catch(e){}},
   async export(){const s=await compress(serialize());openModal(`<h2>Export save</h2><p class="hint">Copy this code and keep it somewhere safe. Paste it into “Import save” on any device.</p><textarea id="exp" rows="8" readonly>${E(s)}</textarea><div class="row">${btn('Copy','copyexp','','gilt')}${NET.downloads?btn('Save as file','dlexp'):''}</div>`,'export');UI.exp=s;},
@@ -4858,6 +4917,27 @@ function isTyping(){const a=document.activeElement;return a&&(a.tagName==='INPUT
 function applyTheme(){const t=UI.theme||'system';if(t==='system')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);}
 
 /* ---------------- title & boot ---------------- */
+function needSignIn(){return typeof supaWanted==='function'&&supaWanted()&&!NET.uid;}
+function authHtml(){if(!LAUNCH.open||!needSignIn())return '';
+  if(!NET.ready)return `<div class="tmenu"><div class="soon"><b>Connecting…</b></div></div>`;
+  const up=UI.authMode==='signup';
+  return `<div class="tmenu auth"><div class="soon"><small>${up?'Create your account':'Welcome back'}</small>
+    <form data-form="auth" class="col"><label for="ae">Email</label><input id="ae" name="email" type="email" autocomplete="email" required>
+    <label for="ap">Password</label><input id="ap" name="pw" type="password" minlength="6" autocomplete="${up?'new-password':'current-password'}" required>
+    <button class="b gilt big" ${UI.authBusy?'disabled':''}>${UI.authBusy?'Please wait…':up?'Create account':'Sign in'}</button></form>
+    ${UI.authMsg?`<p class="${UI.authOk?'good':'bad'}">${E(UI.authMsg)}</p>`:''}
+    <button class="b ghost" data-a="authmode">${up?'I already have an account':'New here? Create an account'}</button>
+    <button class="b ghost" data-a="authguest">Play as guest <small>(progress stays on this device)</small></button></div></div>`;}
+async function afterSignIn(){UI.authMsg='';await netInit();await showTitle();}
+Object.assign(ACT,{authmode(){UI.authMode=UI.authMode==='signup'?'signin':'signup';UI.authMsg='';showTitle();},
+  async form_auth(fd){if(UI.authBusy)return;UI.authBusy=1;UI.authMsg='';showTitle();
+    try{if(UI.authMode==='signup'){const s=await supaSignUp(fd.email.trim(),fd.pw);if(!s){UI.authOk=1;UI.authMsg='Almost there! Check your email and tap the confirmation link, then sign in here.';UI.authMode='signin';}else await afterSignIn();}
+      else{await supaSignIn(fd.email.trim(),fd.pw);await afterSignIn();}}
+    catch(e){UI.authOk=0;UI.authMsg=e.message;}UI.authBusy=0;showTitle();},
+  async authguest(){if(UI.authBusy)return;UI.authBusy=1;UI.authMsg='';try{await supaGuest();await afterSignIn();}catch(e){UI.authOk=0;UI.authMsg=e.message;}UI.authBusy=0;showTitle();},
+  async signout(){await saveAll();await supaSignOut();NET.uid=null;NET.db=null;NET.room=null;NET.user=null;for(const u of NET.unsub)try{u&&u();}catch(e){}NET.unsub=[];NET.mode='local';markPlaying(false);location.reload();},
+  delacct(){openModal(`<h2>Delete account</h2><p>This permanently deletes your account, your character, your online save, your leaderboard entry and your messages. It cannot be undone.</p><div class="row">${btn('Cancel','close')}${btn('Delete forever','delacctgo','','danger')}</div>`,'delacct');},
+  async delacctgo(){try{await supaDeleteAccount();wipeLocal();markPlaying(false);location.reload();}catch(e){UI.toast('Could not delete: '+e.message,'bad');}}});
 async function showTitle(){UI.started=false;document.body.classList.remove('ingame');$('#game').hidden=true;$('#combat').hidden=true;
   const local=await loadLocal();const cloud=await peekCloud();UI.localSave=local;const LP=local&&local.obj&&local.obj.P;
   const W=S||{};const day=W.time?T.day(W.time):1;const on=W.npcs?W.npcs.filter(n=>!n.retired&&online(n)).length:0;const head=(W.news||[])[0];const boss=W.boss?MONSTERS[W.boss.id].n:null;
@@ -4867,9 +4947,9 @@ async function showTitle(){UI.started=false;document.body.classList.remove('inga
     <p class="pre">A living fantasy MMORPG</p><h1 class="logo"><span>Eternal</span><span>Realms</span></h1>
     <p class="tag">Hundreds of adventurers already roam these lands. None of them are waiting for you.</p>
     <div class="ticker" role="status"><span>${icon('clock')}Day ${day}</span>${LAUNCH.open?`<span>${icon('online')}${on} adventurers online${NET.peers?` · ${NET.peers} real`:''}</span>`:`<span class="bad">${icon('online')}Servers offline</span>`}${boss?`<span class="bad">${icon('skull')}${E(boss)} awakens</span>`:''}${head?`<span class="news">${E(head[1])}</span>`:''}</div>
-    ${!LAUNCH.open?`<div class="tmenu prelaunch"><div class="soon"><small>Servers status</small><b>${icon('clock')} Opening soon</b><p>The Realms are not open yet. No accounts or characters exist until launch day. Check back soon.</p></div>
+    ${authHtml()}${!LAUNCH.open?`<div class="tmenu prelaunch"><div class="soon"><small>Servers status</small><b>${icon('clock')} Opening soon</b><p>The Realms are not open yet. No accounts or characters exist until launch day. Check back soon.</p></div>
      <div class="row tsub"><button class="b ghost" data-a="help">How to play</button><button class="b ghost" data-a="sound" id="tsound">${AUD.on?'♪ Music on':'♪ Play music'}</button></div></div>`:''}
-    <div class="tmenu" ${!LAUNCH.open?'hidden':''}>${LP?`<button class="hero-card" data-a="cont"><span class="portrait" style="--ac:${CLS_HUE[LP.cls]}">${icon(CLS_ICON[LP.cls])}<b>${LP.level}</b></span><span><small>Continue your legend</small><b>${E(LP.name)}</b><small>${E(LP.adv?ADV_CLASSES[LP.adv].name:CLASSES[LP.cls].name)} · ${E(LOCS[LP.loc]?LOCS[LP.loc].n:'')}</small></span><i>▶</i></button>`:''}
+    <div class="tmenu" ${!LAUNCH.open||needSignIn()?'hidden':''}>${LP?`<button class="hero-card" data-a="cont"><span class="portrait" style="--ac:${CLS_HUE[LP.cls]}">${icon(CLS_ICON[LP.cls])}<b>${LP.level}</b></span><span><small>Continue your legend</small><b>${E(LP.name)}</b><small>${E(LP.adv?ADV_CLASSES[LP.adv].name:CLASSES[LP.cls].name)} · ${E(LOCS[LP.loc]?LOCS[LP.loc].n:'')}</small></span><i>▶</i></button>`:''}
      ${cloud&&(!LP||cloud.t>local.t+5000)?`<button class="b gilt big" data-a="contcloud">Continue from your account <small>${E(cloud.user)} · Lv.${cloud.level}</small></button>`:''}
      <button class="b ${LP?'':'gilt'} big" data-a="newchar">${LP?'New character':'Begin your adventure'}</button>
      <div class="row tsub"><button class="b ghost" data-a="importask">Import save</button><button class="b ghost" data-a="help">How to play</button><button class="b ghost" data-a="sound" id="tsound">${AUD.on?'♪ Music on':'♪ Play music'}</button></div></div>
