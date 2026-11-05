@@ -15,7 +15,8 @@ When the owner asks "what's next for the Play Store?", start from the first unch
 - [ ] Supabase → Authentication → URL Configuration: Site URL `https://eternal-realms-26r.pages.dev`, redirect `https://eternal-realms-26r.pages.dev/**`
 
 ## Next steps, in order
-1. [ ] **"Real players only" switch** — turn off the simulated adventurers; replace with clearly-labelled hired NPC companions, solo-scaled dungeons/bosses, NPC arena champions, a merchant-stocked auction house
+1. [ ] **"Real players only" switch** — turn off the simulated adventurers; solo-scaled dungeons/bosses, NPC arena champions, a merchant-stocked auction house
+   - [ ] **Mercenary system** (owner's request): at the tavern, hire a clearly-labelled NPC mercenary to fight alongside you in quest battles. Five power tiers, **1x to 5x**, priced higher per tier; paid with in-game gold. Hire lasts a set number of battles. Open question for the owner: should players also be able to buy gold with real money? That needs Google Play Billing, store policy work and spending safeguards.
 2. [ ] **Server-side authority (anti-cheat)** — move combat results, loot, gold and XP to Supabase Edge Functions / a small Node server; the shared-world simulation runs 24/7 on a server instead of the admin's phone (~$5–20/month host)
 3. [ ] **Chat safety** — report and block players, basic moderation tools (Google Play user-generated-content policy)
 4. [ ] **Captcha** on sign-up / guest sign-in (Supabase Auth → Bot protection)
