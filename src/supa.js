@@ -2,7 +2,12 @@
    Exposes the same small db / user / room surface the game already uses, so the rest of the code does not care
    which backend is underneath. Security lives in the database (see supabase/migrations). */
 'use strict';
-const SUPA_CFG={url:'https://pwkgtcwwincfcrtxgmag.supabase.co',key:'sb_publishable_jkR7unxyo2jD__zpArlaCg_-wmVDcV6',lib:'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js'};
+// The live site uses the real database. The test site (next.<project>.pages.dev) must NEVER touch it:
+// it uses SUPA_TEST, and while that is empty the test site simply runs offline with local saves.
+const SUPA_LIVE={url:'https://pwkgtcwwincfcrtxgmag.supabase.co',key:'sb_publishable_jkR7unxyo2jD__zpArlaCg_-wmVDcV6'};
+const SUPA_TEST={url:'',key:''};
+const IS_TEST_SITE=typeof location!=='undefined'&&/^next\./.test(location.hostname);
+const SUPA_CFG=Object.assign({lib:'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js'},IS_TEST_SITE?SUPA_TEST:SUPA_LIVE);
 const SUPA={client:null,session:null,channels:[]};
 function supaWanted(){if(typeof window==='undefined'||(window.claude&&window.claude.use)||!SUPA_CFG.url)return false;return location.protocol!=='file:'||/[?&]online\b/.test(location.search);}
 function supaLoadLib(){if(window.supabase&&window.supabase.createClient)return Promise.resolve();

@@ -343,7 +343,7 @@ function render(){if(!S||!S.P||!UI.started)return;renderHeader();renderNav();con
   const side=$('#side');if(tab!=='chat'){const keep=side.querySelector('#chatmsg');const kv=keep?keep.value:'';const sel=side.querySelector('#chatsel');const sv=sel?sel.value:null;side.innerHTML=renderChat(false);const n=side.querySelector('#chatmsg');if(n){n.value=kv;}if(sv&&UI.lastChatCh===UI.chatCh&&side.querySelector('#chatsel'))side.querySelector('#chatsel').value=sv;UI.lastChatCh=UI.chatCh;}else side.innerHTML='';
   if(focus){const el=document.getElementById(focus);if(el&&el!==document.activeElement){el.focus();if(val!=null&&'value' in el&&el.value!==val&&focus!=='chatmsg')el.value=val;}}
   document.querySelectorAll('#chatlog').forEach(l=>l.scrollTop=l.scrollHeight);
-  UI.dirty=false;UI.chatDirty=false;if(UI.modalKey&&!UI.modalKey.startsWith('item')&&!['export','import','list','offer','mail','wipe','help','digest','more','rprof','gview','guilds','item','folk'].includes(UI.modalKey)&&!UI.modalKey.startsWith('svc:market'))refreshModal();}
+  UI.dirty=false;UI.chatDirty=false;if(UI.modalKey&&!UI.modalKey.startsWith('item')&&!['export','import','list','offer','mail','wipe','help','digest','more','rprof','gview','guilds','item','folk','patch'].includes(UI.modalKey)&&!UI.modalKey.startsWith('svc:market'))refreshModal();}
 function renderChatOnly(){const keepFocus=document.activeElement&&document.activeElement.id==='chatmsg';document.querySelectorAll('#chatlog').forEach(l=>{const atBottom=l.scrollHeight-l.scrollTop-l.clientHeight<60;l.innerHTML=chatMessages().map(chatLine).join('');if(atBottom)l.scrollTop=l.scrollHeight;});
   renderNav();UI.chatDirty=false;if(keepFocus){const i=document.getElementById('chatmsg');if(i)i.focus();}}
 let lastTick=Date.now(),nextAmbient=Date.now()+4000,lastSave=Date.now();
@@ -373,7 +373,7 @@ function authHtml(){if(!LAUNCH.open||!needSignIn())return '';
     <button class="b ghost" data-a="authmode">${up?'I already have an account':'New here? Create an account'}</button>
     <button class="b ghost" data-a="authguest">Play as guest <small>(progress stays on this device)</small></button></div></div>`;}
 async function afterSignIn(){UI.authMsg='';await netInit();await showTitle();}
-Object.assign(ACT,{authmode(){UI.authMode=UI.authMode==='signup'?'signin':'signup';UI.authMsg='';showTitle();},
+Object.assign(ACT,{patchnotes(){openModal(patchNotesHtml(PATCH_NOTES,'Patch notes'),'patch');},authmode(){UI.authMode=UI.authMode==='signup'?'signin':'signup';UI.authMsg='';showTitle();},
   async form_auth(fd){if(UI.authBusy)return;UI.authBusy=1;UI.authMsg='';showTitle();
     try{if(UI.authMode==='signup'){const s=await supaSignUp(fd.email.trim(),fd.pw);if(!s){UI.authOk=1;UI.authMsg='Almost there! Check your email and tap the confirmation link, then sign in here.';UI.authMode='signin';}else await afterSignIn();}
       else{await supaSignIn(fd.email.trim(),fd.pw);await afterSignIn();}}
@@ -396,7 +396,7 @@ async function showTitle(){UI.started=false;document.body.classList.remove('inga
     <div class="tmenu" ${!LAUNCH.open||needSignIn()?'hidden':''}>${LP?`<button class="hero-card" data-a="cont"><span class="portrait" style="--ac:${CLS_HUE[LP.cls]}">${icon(CLS_ICON[LP.cls])}<b>${LP.level}</b></span><span><small>Continue your legend</small><b>${E(LP.name)}</b><small>${E(LP.adv?ADV_CLASSES[LP.adv].name:CLASSES[LP.cls].name)} · ${E(LOCS[LP.loc]?LOCS[LP.loc].n:'')}</small></span><i>▶</i></button>`:''}
      ${cloud&&(!LP||cloud.t>local.t+5000)?`<button class="b gilt big" data-a="contcloud">Continue from your account <small>${E(cloud.user)} · Lv.${cloud.level}</small></button>`:''}
      <button class="b ${LP?'':'gilt'} big" data-a="newchar">${LP?'New character':'Begin your adventure'}</button>
-     <div class="row tsub"><button class="b ghost" data-a="importask">Import save</button><button class="b ghost" data-a="help">How to play</button><button class="b ghost" data-a="sound" id="tsound">${AUD.on?'♪ Music on':'♪ Play music'}</button></div></div>
+     <div class="row tsub"><button class="b ghost" data-a="importask">Import save</button><button class="b ghost" data-a="help">How to play</button><button class="b ghost" data-a="patchnotes">Patch notes</button><button class="b ghost" data-a="sound" id="tsound">${AUD.on?'♪ Music on':'♪ Play music'}</button></div><p class="ver">v${GAME_VERSION}${typeof IS_TEST_SITE!=='undefined'&&IS_TEST_SITE?' · <b class="testbadge">TEST VERSION</b>':''}</p></div>
     ${LAUNCH.open?`<p class="hint">${E(NET.status)}</p>`:''}</div>`;requestAnimationFrame(()=>startTitleScene(document.getElementById('titlebg')));
   if(AUD.on)audMood('title');}
 async function startGame(){if(!LAUNCH.open){showTitle();return;}if(!S.P){renderCreate();return;}$('#app').hidden=true;document.body.classList.add('ingame');
@@ -406,7 +406,7 @@ async function startGame(){if(!LAUNCH.open){showTitle();return;}if(!S.P){renderC
     const hrs=await fastForward(from,Date.now());S.real=Date.now();
     if(hrs>=4&&S.digest){log(`While you were away, ${hrs>=48?Math.round(hrs/24)+' days':hrs+' hours'} passed in the Realms.`,'lore');openModal(digestHtml(S.digest),'digest');}
     if(NET.isHost)uploadWorld();}$('#game').hidden=false;UI.started=true;UI.tab=UI.tab||'world';lastTick=Date.now();
-  S.real=Date.now();netPresence();publishProfile(true);UI.dirty=true;render();}
+  S.real=Date.now();netPresence();publishProfile(true);UI.dirty=true;render();if($('#modal').hidden)checkPatchNotes();else UI.pendingPatch=1;}
 setInterval(()=>{if(S)S.real=Date.now();},30000);
 window.addEventListener('beforeunload',()=>{if(S&&S.P&&UI.started){saveLocalSync();markPlaying(true);}});
 window.addEventListener('pagehide',()=>{if(S&&S.P&&UI.started){saveLocalSync();markPlaying(true);}});
@@ -417,7 +417,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&S.P){sa
 document.addEventListener('input',e=>{const v=e.target.dataset&&e.target.dataset.vol;if(!v)return;if(!AUD.on)audStart();audSetVol(v==='m'?e.target.value/100:null,v==='s'?e.target.value/100:null);});
 // music starts with the first tap (browsers require a gesture), unless the player turned it off
 document.addEventListener('pointerdown',e=>{if(e.target.closest&&e.target.closest('[data-a=sound]'))return;if(!AUD.on&&!AUD.declined){let pref=null;try{pref=localStorage.getItem('er_sound');}catch(e){}if(pref!=='0')audStart();else AUD.declined=true;const b=document.getElementById('tsound');if(b)b.textContent=AUD.on?'♪ Music on':'♪ Play music';}},{once:false,capture:true});
-async function boot(){try{FX.on=localStorage.getItem('er_fx')!=='0';const vv=JSON.parse(localStorage.getItem('er_vol')||'null');if(vv){AUD.music=vv[0];AUD.sfx=vv[1];}}catch(e){}try{UI.theme=localStorage.getItem('er_theme')||'system';UI.rate=localStorage.getItem('er_rate')||'normal';AI.enabled=localStorage.getItem('er_ai')==='1';}catch(e){}applyTheme();
+async function boot(){if(typeof IS_TEST_SITE!=='undefined'&&IS_TEST_SITE)document.body.classList.add('testsite');try{FX.on=localStorage.getItem('er_fx')!=='0';const vv=JSON.parse(localStorage.getItem('er_vol')||'null');if(vv){AUD.music=vv[0];AUD.sfx=vv[1];}}catch(e){}try{UI.theme=localStorage.getItem('er_theme')||'system';UI.rate=localStorage.getItem('er_rate')||'normal';AI.enabled=localStorage.getItem('er_ai')==='1';}catch(e){}applyTheme();
   const local=await loadLocal();if(local&&local.obj&&local.obj.npcs)hydrate(local.obj);else newWorld(20261104);
   if(LAUNCH.open&&S&&S.P&&wasPlaying()){try{await startGame();UI.toast('Welcome back. Picked up right where you left off.');}catch(e){console.warn('resume failed',e);await showTitle();}}else await showTitle();setInterval(loop,500);
   netInit().then(async()=>{if(!UI.started)await showTitle();});}

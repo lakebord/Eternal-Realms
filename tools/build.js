@@ -2,7 +2,7 @@
 // dist/eternal-realms.html : body content for the claude.ai artifact (the host adds <!doctype>, <head>, <body>)
 // index.html               : standalone page for any static host (GitHub Pages, itch.io, local file)
 const fs=require('fs'),path=require('path');const R=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
-const js=['data','expansion','classes2','engine','sim','player','combat','chat','chat2','events','net','supa','art','audio','music','fx','ui','ui2','finale','cutscene'].map(f=>`/* ---- ${f}.js ---- */\n`+R(`src/${f}.js`)).join('\n');
+const js=['data','version','expansion','classes2','engine','sim','player','combat','chat','chat2','events','net','supa','art','audio','music','fx','ui','ui2','finale','cutscene'].map(f=>`/* ---- ${f}.js ---- */\n`+R(`src/${f}.js`)).join('\n');
 const page=R('src/shell.html').replace('/*__CSS__*/',()=>R('src/style.css')).replace('/*__JS__*/',()=>js);
 fs.mkdirSync(path.join(__dirname,'../dist'),{recursive:true});
 fs.writeFileSync(path.join(__dirname,'../dist/eternal-realms.html'),page);

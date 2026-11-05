@@ -448,3 +448,7 @@ body:not(.ingame){background:#05070d}
 .tmenu .soon p{margin:0;color:#e8e2d2;font-size:.92rem;line-height:1.5}
 #combat .turnlbl{padding:.15rem .55rem;border-radius:99px;border:1px solid var(--line);transition:background .2s,color .2s}#combat .turnlbl.mine{background:color-mix(in srgb,var(--gilt) 22%,transparent);border-color:var(--gilt);color:var(--ink)}
 .tmenu.auth .soon{text-align:left}.tmenu.auth form{gap:.45rem;margin:.6rem 0}.tmenu.auth input{width:100%}.tmenu.auth .b.ghost{width:100%;margin-top:.35rem}.tmenu.auth p{margin:.4rem 0}
+.title .ver{font-family:var(--mono);font-size:.72rem;opacity:.55;margin:.4rem 0 0;text-align:center;letter-spacing:.08em}
+#modal .patch h3 small{font-family:var(--body);opacity:.7;font-size:.8rem}#modal .patch ul{margin:.3rem 0 1rem;padding-left:1.2rem;line-height:1.5}
+.testbadge{color:#1a1206;background:#ffcf5a;padding:.1rem .45rem;border-radius:6px;font-weight:700;letter-spacing:.06em}
+body.testsite::after{content:"TEST VERSION";position:fixed;left:50%;top:0;transform:translateX(-50%);z-index:90;background:#ffcf5a;color:#1a1206;font:700 .62rem/1.6 var(--mono);letter-spacing:.12em;padding:0 .6rem;border-radius:0 0 6px 6px;pointer-events:none}

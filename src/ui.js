@@ -245,7 +245,7 @@ function startRealDuel(id,p){const snap=JSON.parse(JSON.stringify(p.snap));snap.
 /* ---------------- modal ---------------- */
 function openModal(html,key){UI.modalKey=key;$('#modal-body').innerHTML=html;$('#modal').hidden=false;UI.modalStack=[key];$('#modal-body').scrollTop=0;}
 function refreshModal(){const k=UI.modalKey;if(!k||$('#modal').hidden)return;if(k.startsWith('svc:'))$('#modal-body').innerHTML=svcPanel(k.slice(4));else if(k.startsWith('craft:'))$('#modal-body').innerHTML=craftList(k.slice(6));else if(k.startsWith('prof:'))$('#modal-body').innerHTML=profileView(k.slice(5));}
-function closeModal(){$('#modal').hidden=true;UI.modalKey=null;UI.modalStack=[];}
+function closeModal(){$('#modal').hidden=true;UI.modalKey=null;UI.modalStack=[];if(UI.pendingPatch){UI.pendingPatch=0;setTimeout(checkPatchNotes,60);}}
 ACT.close=closeModal;
 
 /* ---------------- specialty shops & faction board (expansion) ---------------- */
