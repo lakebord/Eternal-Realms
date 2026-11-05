@@ -1,5 +1,11 @@
 # Eternal Realms
 
+## Play
+- Live game: https://eternal-realms-26r.pages.dev
+- Every push to `main` builds the game and publishes it to Cloudflare Pages automatically (`.github/workflows/deploy.yml`).
+- Online features (accounts, saves, chat, leaderboard, presence) run on Supabase; database setup lives in `supabase/migrations/`.
+
+
 A living fantasy text MMORPG that runs in the browser. You start as an ordinary adventurer in a world that already has 500 autonomous adventurers, 20 guilds, seven kingdoms and an economy, and it all keeps going whether or not you take part.
 
 **Play:** https://claude.ai/artifact/CMdRL8qSD4H5cnyrwFD66X (claude.ai, with real multiplayer features). You can also open `index.html` from any static host or straight from disk; that version is single-player with local saves.
