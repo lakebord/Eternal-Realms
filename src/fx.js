@@ -115,10 +115,11 @@ function startWeather(){const v=document.querySelector('#view .locard .vista');c
 /* ---------- animated title scene ---------- */
 const TS={raf:0};
 function startTitleScene(cv){cancelAnimationFrame(TS.raf);if(!cv)return;const dpr=Math.min(2,devicePixelRatio||1);let W,H;const g=cv.getContext('2d');
-  const resize=()=>{W=cv.clientWidth;H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;g.setTransform(dpr,0,0,dpr,0,0);build();};
+  // the title canvas is gone (or has no size) once you're in the game: stop listening instead of looping forever on a 0-wide canvas
+  const resize=()=>{if(!cv.isConnected){removeEventListener('resize',resize);return;}W=cv.clientWidth;H=cv.clientHeight;if(W<10||H<10)return;cv.width=W*dpr;cv.height=H*dpr;g.setTransform(dpr,0,0,dpr,0,0);build();};
   let stars=[],ridges=[],embers=[],castle=null,mx=0,my=0;
   const build=()=>{let s=42;const r=()=>{s=(s*16807)%2147483647;return s/2147483647;};stars=Array.from({length:Math.round(W*H/5000)},()=>({x:r()*W,y:r()*H*0.7,s:r()*1.4+0.3,p:r()*6}));
-    ridges=[[0.6,0.07,'#1c2338',0.15],[0.7,0.06,'#141a2b',0.3],[0.82,0.04,'#0c1019',0.5]].map(([y0,amp,c,par])=>{const pts=[];let y=H*y0;for(let x=-60;x<=W+60;x+=W/50){y+=(r()-0.5)*H*amp;y=Math.max(H*(y0-amp*1.6),Math.min(H*(y0+amp),y));pts.push([x,y]);}return {pts,c,par};});
+    ridges=[[0.6,0.07,'#1c2338',0.15],[0.7,0.06,'#141a2b',0.3],[0.82,0.04,'#0c1019',0.5]].map(([y0,amp,c,par])=>{const pts=[];let y=H*y0;for(let x=-60;x<=W+60;x+=Math.max(4,W/50)){y+=(r()-0.5)*H*amp;y=Math.max(H*(y0-amp*1.6),Math.min(H*(y0+amp),y));pts.push([x,y]);}return {pts,c,par};});
     castle={x:W*0.68,base:H*0.82,w:Math.max(80,W*0.09)};};
   addEventListener('resize',resize);cv.parentElement&&cv.parentElement.addEventListener('pointermove',e=>{mx=(e.clientX/innerWidth-0.5);my=(e.clientY/innerHeight-0.5);});
   resize();const t0=performance.now();

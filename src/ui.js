@@ -21,14 +21,16 @@ function className(a){return a.adv?ADV_CLASSES[a.adv].name:tierName(a);}
 function lvlColor(l){const d=l-S.P.level;return d>=6?'lv-red':d>=3?'lv-orange':d>=-3?'lv-yellow':d>=-8?'lv-green':'lv-grey';}
 
 /* ---------------- header ---------------- */
+// Only touch the page when the new HTML differs: rebuilding identical parts forced the phone to lay out the whole page on every tap.
+function setHTML(el,html){if(!el)return false;if(el.__h===html)return false;el.innerHTML=html;el.__h=html;return true;}
 function renderHeader(){const P=S.P,st=stats(P);
   const xpN=xpNext(P.level);
-  $('#hdr').innerHTML=`<div class="hname"><button class="portrait" data-a="tab" data-v="char" aria-label="Your hero" style="--ac:${CLS_HUE[P.cls]}">${icon(CLS_ICON[P.cls])}<b>${P.level}</b></button><div><button class="pname" data-a="tab" data-v="char">${E(P.name)}</button><small>${E(P.user)} · ${E(className(P))}</small></div></div>
+  const __hdr=`<div class="hname"><button class="portrait" data-a="tab" data-v="char" aria-label="Your hero" style="--ac:${CLS_HUE[P.cls]}">${icon(CLS_ICON[P.cls])}<b>${P.level}</b></button><div><button class="pname" data-a="tab" data-v="char">${E(P.name)}</button><small>${E(P.user)} · ${E(className(P))}</small></div></div>
   <div class="hbars">${abar(P.hp,st.mhp,'hp','HP','hdr')}${abar(P.mp,st.mmp,'mp','MP','hdr')}${abar(P.sp,st.msp,'sp','SP','hdr')}${abar(P.xp,xpN,'xp','XP','hdr')}</div>
   <div class="hmeta"><button class="snd ${AUD.on?'on':''}" data-a="sound" aria-label="${AUD.on?'Mute music':'Play music'}" title="Music & sound">${AUD.on?'♪':'♪̸'}</button><span class="gold">${icon('coin')}${U.fmt(P.gold)}</span><span class="clock">${icon('clock')}${T.str(S.time).replace('Day ','D')}</span><span class="loc">${icon('pin')}${E(LOCS[P.loc].n)}</span>
   <button class="net ${NET.mode}" data-a="tab" data-v="social" title="${E(NET.status)}">${icon('online')}${NET.mode==='online'?`${NET.peers} online`:'solo'}</button>
   ${P.pts>0?`<button class="b tiny gilt" data-a="tab" data-v="char">+${P.pts} pts</button>`:''}</div>`;
-  document.documentElement.style.setProperty('--hdr-h',$('#hdr').offsetHeight+'px');animBars($('#hdr'));
+  if(setHTML($('#hdr'),__hdr))requestAnimationFrame(()=>document.documentElement.style.setProperty('--hdr-h',$('#hdr').offsetHeight+'px'));animBars($('#hdr'));
   if(UI.prevGold!=null&&P.gold>UI.prevGold&&!S.catchup){sfx('coin');const gEl=$('#hdr .gold');if(gEl){gEl.classList.add('bump');goldBurst(gEl);}}
   if(UI.prevHp!=null&&P.hp<UI.prevHp-1&&!UI.inCombat()){const h=$('#hdr .bar.hp');if(h)h.classList.add('dmg');}UI.prevGold=P.gold;UI.prevHp=P.hp;}
 UI.refreshHeader=()=>{if(S&&S.P)renderHeader();};
@@ -38,11 +40,11 @@ const TABS=[['world','World','world'],['map','Map','map'],['char','Hero','hero']
 const BOTTOM=['world','map','char','bag','chat'];
 function badge(k){const unread=Object.values(S.pmUnread||{}).reduce((a,b)=>a+b,0);if(k==='chat'&&(unread||S.P.mentions))return `<em>${unread+S.P.mentions}</em>`;if(k==='quests'&&S.P.quests.some(q=>q.done))return '<em>!</em>';if(k==='char'&&S.P.pts>0)return '<em>+</em>';return '';}
 function renderNav(){
-  $('#nav').innerHTML=TABS.map(([k,n,ic])=>`<button class="tab ${UI.tab===k?'on':''}" data-a="tab" data-v="${k}">${icon(ic)}<span>${n}</span>${badge(k)}</button>`).join('');
+  setHTML($('#nav'),TABS.map(([k,n,ic])=>`<button class="tab ${UI.tab===k?'on':''}" data-a="tab" data-v="${k}">${icon(ic)}<span>${n}</span>${badge(k)}</button>`).join(''));
   const moreOn=!BOTTOM.includes(UI.tab);const moreBadge=TABS.filter(t=>!BOTTOM.includes(t[0])).map(t=>badge(t[0])).join('')?'<em>!</em>':'';
-  $('#bnav').innerHTML=TABS.filter(t=>BOTTOM.includes(t[0])).map(([k,n,ic])=>`<button class="bt ${UI.tab===k?'on':''}" data-a="tab" data-v="${k}">${icon(ic)}<span>${n}</span>${badge(k)}</button>`).join('')+`<button class="bt ${moreOn?'on':''}" data-a="more">${icon('more')}<span>More</span>${moreBadge}</button>`;
+  setHTML($('#bnav'),TABS.filter(t=>BOTTOM.includes(t[0])).map(([k,n,ic])=>`<button class="bt ${UI.tab===k?'on':''}" data-a="tab" data-v="${k}">${icon(ic)}<span>${n}</span>${badge(k)}</button>`).join('')+`<button class="bt ${moreOn?'on':''}" data-a="more">${icon('more')}<span>More</span>${moreBadge}</button>`);
   const last=chatMessages().filter(m=>m.ch!=='system').slice(-1)[0];
-  $('#ticker').innerHTML=last&&UI.tab!=='chat'?`<button data-a="tab" data-v="chat">${avatar(m_name(last),m_cls(last),last.real)}<span><b>${E(m_name(last))}</b> ${E(last.text)}</span></button>`:'';$('#ticker').hidden=!last||UI.tab==='chat';}
+  setHTML($('#ticker'),last&&UI.tab!=='chat'?`<button data-a="tab" data-v="chat">${avatar(m_name(last),m_cls(last),last.real)}<span><b>${E(m_name(last))}</b> ${E(last.text)}</span></button>`:'');$('#ticker').hidden=!last||UI.tab==='chat';}
 function m_name(m){return m.from==='P'?S.P.user:m.real?m.name:m.from==='SYS'?'System':(npc(m.from)||{}).user||'?';}
 function m_cls(m){return m.from==='P'?S.P.cls:m.real?(m.cls||'warrior'):(npc(m.from)||{}).cls;}
 
@@ -188,7 +190,7 @@ const ACT={};
 function act(name,v,el){const f=ACT[name];if(!f)return;const P=S&&S.P,n0=P?P.log.length:0;try{f(v,el);}catch(e){console.error(e);UI.toast('Something went wrong: '+e.message,'bad');}
   if(P&&P.log.length>n0&&!UI.inCombat()){UI.lastResult={lines:P.log.slice(n0).slice(-6),t:Date.now()};if(!$('#modal').hidden||UI.tab!=='world'){const L=P.log[P.log.length-1];UI.toast(L[1].length>110?L[1].slice(0,108)+'…':L[1],L[2]==='bad'?'bad':L[2]==='epic'?'epic':'');}}
   UI.dirty=true;render();if(UI.inCombat()&&!$('#combat').hidden)renderCombat();}
-document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el)return;if(el.tagName==='A')e.preventDefault();act(el.dataset.a,el.dataset.v,el);});
+document.addEventListener('click',e=>{UI.lastTap=Date.now();const el=e.target.closest('[data-a]');if(!el)return;if(el.tagName==='A')e.preventDefault();act(el.dataset.a,el.dataset.v,el);});
 document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('g[data-a]')){e.preventDefault();act(e.target.dataset.a,e.target.dataset.v,e.target);}if(e.key==='Escape'&&UI.modalStack.length)closeModal();});
 document.addEventListener('submit',e=>{const f=e.target.closest('[data-form]');if(!f)return;e.preventDefault();const fd=Object.fromEntries(new FormData(f).entries());act('form_'+f.dataset.form,fd,f);});
 function needIdle(){if(UI.inCombat()){UI.toast('You are in combat!','bad');return false;}return true;}

@@ -14,15 +14,15 @@ async function compress(str){try{if(typeof CompressionStream==='undefined')throw
 async function decompress(s){if(s.startsWith('js:'))return s.slice(3);if(s.startsWith('{'))return s;const bin=atob(s.slice(3));const b=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)b[i]=bin.charCodeAt(i);
   const ds=new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'));return await new Response(ds).text();}
 function hydrate(obj){S=obj;if(S.P&&S.P.diff!=='normal')S.P.diff='normal';if(S.P&&!S.P.tiers)S.P.tiers={};for(const n of S.npcs){n.inParty=S.P&&S.P.party.includes(n.id);}reindex();if(!S.pmUnread)S.pmUnread={};if(!S.chat.pm)S.chat.pm={};if(!S.hall)S.hall=[];return S;}
-async function saveLocal(){if(!S||!S.P)return false;try{const str=await compress(serialize());localStorage.setItem(LS_KEY,str);localStorage.setItem(LS_KEY+'_t',String(Date.now()));return true;}catch(e){console.warn('local save failed',e);return false;}}
+async function saveLocal(pre){if(!S||!S.P)return false;try{const str=pre||await compress(serialize());localStorage.setItem(LS_KEY,str);localStorage.setItem(LS_KEY+'_t',String(Date.now()));return true;}catch(e){console.warn('local save failed',e);return false;}}
 async function loadLocal(){try{const s=localStorage.getItem(LS_KEY);if(!s)return null;const t=+localStorage.getItem(LS_KEY+'_t')||0;return {t,obj:JSON.parse(await decompress(s))};}catch(e){console.warn('local load failed',e);return null;}}
 function hasLocal(){try{return !!localStorage.getItem(LS_KEY);}catch(e){return false;}}
 function wipeLocal(){try{localStorage.removeItem(LS_KEY);localStorage.removeItem(LS_KEY+'_t');}catch(e){}}
 
 /* ---------- cloud (db) ---------- */
 const CHUNK=180000;
-async function saveCloud(){if(!NET.db||!NET.uid||!NET.canWrite||!S||!S.P)return false;
-  try{const str=await compress(serialize());const parts=[];for(let i=0;i<str.length;i+=CHUNK)parts.push(str.slice(i,i+CHUNK));const base='data/users/'+NET.uid;
+async function saveCloud(pre){if(!NET.db||!NET.uid||!NET.canWrite||!S||!S.P)return false;
+  try{const str=pre||await compress(serialize());const parts=[];for(let i=0;i<str.length;i+=CHUNK)parts.push(str.slice(i,i+CHUNK));const base='data/users/'+NET.uid;
     for(let i=0;i<parts.length;i++)await NET.db.doc(`${base}/save${i}`).set({d:parts[i]});
     const t=Date.now();await NET.db.doc(`${base}/meta`).set({chunks:parts.length,t,user:S.P.user,level:S.P.level,v:S.v});NET.cloudT=t;return true;}
   catch(e){console.warn('cloud save failed',e);if(e&&e.code==='invalid_argument'){NET.canWrite=false;NET.status='Read-only access: progress saves in this browser only';}return false;}}
@@ -31,7 +31,8 @@ async function loadCloud(){if(!NET.db||!NET.uid)return null;try{const base='data
   return {t:meta.t,obj:JSON.parse(await decompress(str)),meta};}catch(e){console.warn('cloud load failed',e);return null;}}
 async function peekCloud(){if(!NET.db||!NET.uid)return null;try{const m=await NET.db.doc('data/users/'+NET.uid+'/meta').get();const d=m.exists?m.data():null;return d&&d.t>=LAUNCH.resetEpoch?d:null;}catch(e){return null;}}
 async function wipeCloud(){if(!NET.db||!NET.uid||!NET.canWrite)return;try{await NET.db.doc('data/users/'+NET.uid+'/meta').delete();await NET.db.doc('players/'+NET.uid).delete();}catch(e){}}
-async function saveAll(manual){const a=await saveLocal();const b=await saveCloud();if(NET.uid&&NET.canWrite)publishProfile(true);if(manual&&typeof UI!=='undefined')UI.toast(b?'Saved to your account and this browser':a?'Saved in this browser':'Save failed',b||a?'':'bad');return a||b;}
+async function saveAll(manual){if(!S||!S.P)return false;const pre=await compress(serialize());   // build the save once, store it twice
+  const a=await saveLocal(pre);const b=await saveCloud(pre);if(NET.uid&&NET.canWrite)publishProfile(true);if(manual&&typeof UI!=='undefined')UI.toast(b?'Saved to your account and this browser':a?'Saved in this browser':'Save failed',b||a?'':'bad');return a||b;}
 
 /* ---------- public profile & real leaderboard ---------- */
 function snapshotChar(P){const m={};for(const k in P.mastery)m[k]=P.mastery[k].lv;return {race:P.race,cls:P.cls,adv:P.adv,level:P.level,attr:P.attr,equip:P.equip,mastery:m,user:P.user};}

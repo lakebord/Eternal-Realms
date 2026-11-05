@@ -3559,15 +3559,15 @@ async function compress(str){try{if(typeof CompressionStream==='undefined')throw
 async function decompress(s){if(s.startsWith('js:'))return s.slice(3);if(s.startsWith('{'))return s;const bin=atob(s.slice(3));const b=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)b[i]=bin.charCodeAt(i);
   const ds=new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'));return await new Response(ds).text();}
 function hydrate(obj){S=obj;if(S.P&&S.P.diff!=='normal')S.P.diff='normal';if(S.P&&!S.P.tiers)S.P.tiers={};for(const n of S.npcs){n.inParty=S.P&&S.P.party.includes(n.id);}reindex();if(!S.pmUnread)S.pmUnread={};if(!S.chat.pm)S.chat.pm={};if(!S.hall)S.hall=[];return S;}
-async function saveLocal(){if(!S||!S.P)return false;try{const str=await compress(serialize());localStorage.setItem(LS_KEY,str);localStorage.setItem(LS_KEY+'_t',String(Date.now()));return true;}catch(e){console.warn('local save failed',e);return false;}}
+async function saveLocal(pre){if(!S||!S.P)return false;try{const str=pre||await compress(serialize());localStorage.setItem(LS_KEY,str);localStorage.setItem(LS_KEY+'_t',String(Date.now()));return true;}catch(e){console.warn('local save failed',e);return false;}}
 async function loadLocal(){try{const s=localStorage.getItem(LS_KEY);if(!s)return null;const t=+localStorage.getItem(LS_KEY+'_t')||0;return {t,obj:JSON.parse(await decompress(s))};}catch(e){console.warn('local load failed',e);return null;}}
 function hasLocal(){try{return !!localStorage.getItem(LS_KEY);}catch(e){return false;}}
 function wipeLocal(){try{localStorage.removeItem(LS_KEY);localStorage.removeItem(LS_KEY+'_t');}catch(e){}}
 
 /* ---------- cloud (db) ---------- */
 const CHUNK=180000;
-async function saveCloud(){if(!NET.db||!NET.uid||!NET.canWrite||!S||!S.P)return false;
-  try{const str=await compress(serialize());const parts=[];for(let i=0;i<str.length;i+=CHUNK)parts.push(str.slice(i,i+CHUNK));const base='data/users/'+NET.uid;
+async function saveCloud(pre){if(!NET.db||!NET.uid||!NET.canWrite||!S||!S.P)return false;
+  try{const str=pre||await compress(serialize());const parts=[];for(let i=0;i<str.length;i+=CHUNK)parts.push(str.slice(i,i+CHUNK));const base='data/users/'+NET.uid;
     for(let i=0;i<parts.length;i++)await NET.db.doc(`${base}/save${i}`).set({d:parts[i]});
     const t=Date.now();await NET.db.doc(`${base}/meta`).set({chunks:parts.length,t,user:S.P.user,level:S.P.level,v:S.v});NET.cloudT=t;return true;}
   catch(e){console.warn('cloud save failed',e);if(e&&e.code==='invalid_argument'){NET.canWrite=false;NET.status='Read-only access: progress saves in this browser only';}return false;}}
@@ -3576,7 +3576,8 @@ async function loadCloud(){if(!NET.db||!NET.uid)return null;try{const base='data
   return {t:meta.t,obj:JSON.parse(await decompress(str)),meta};}catch(e){console.warn('cloud load failed',e);return null;}}
 async function peekCloud(){if(!NET.db||!NET.uid)return null;try{const m=await NET.db.doc('data/users/'+NET.uid+'/meta').get();const d=m.exists?m.data():null;return d&&d.t>=LAUNCH.resetEpoch?d:null;}catch(e){return null;}}
 async function wipeCloud(){if(!NET.db||!NET.uid||!NET.canWrite)return;try{await NET.db.doc('data/users/'+NET.uid+'/meta').delete();await NET.db.doc('players/'+NET.uid).delete();}catch(e){}}
-async function saveAll(manual){const a=await saveLocal();const b=await saveCloud();if(NET.uid&&NET.canWrite)publishProfile(true);if(manual&&typeof UI!=='undefined')UI.toast(b?'Saved to your account and this browser':a?'Saved in this browser':'Save failed',b||a?'':'bad');return a||b;}
+async function saveAll(manual){if(!S||!S.P)return false;const pre=await compress(serialize());   // build the save once, store it twice
+  const a=await saveLocal(pre);const b=await saveCloud(pre);if(NET.uid&&NET.canWrite)publishProfile(true);if(manual&&typeof UI!=='undefined')UI.toast(b?'Saved to your account and this browser':a?'Saved in this browser':'Save failed',b||a?'':'bad');return a||b;}
 
 /* ---------- public profile & real leaderboard ---------- */
 function snapshotChar(P){const m={};for(const k in P.mastery)m[k]=P.mastery[k].lv;return {race:P.race,cls:P.cls,adv:P.adv,level:P.level,attr:P.attr,equip:P.equip,mastery:m,user:P.user};}
@@ -4204,10 +4205,11 @@ function startWeather(){const v=document.querySelector('#view .locard .vista');c
 /* ---------- animated title scene ---------- */
 const TS={raf:0};
 function startTitleScene(cv){cancelAnimationFrame(TS.raf);if(!cv)return;const dpr=Math.min(2,devicePixelRatio||1);let W,H;const g=cv.getContext('2d');
-  const resize=()=>{W=cv.clientWidth;H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;g.setTransform(dpr,0,0,dpr,0,0);build();};
+  // the title canvas is gone (or has no size) once you're in the game: stop listening instead of looping forever on a 0-wide canvas
+  const resize=()=>{if(!cv.isConnected){removeEventListener('resize',resize);return;}W=cv.clientWidth;H=cv.clientHeight;if(W<10||H<10)return;cv.width=W*dpr;cv.height=H*dpr;g.setTransform(dpr,0,0,dpr,0,0);build();};
   let stars=[],ridges=[],embers=[],castle=null,mx=0,my=0;
   const build=()=>{let s=42;const r=()=>{s=(s*16807)%2147483647;return s/2147483647;};stars=Array.from({length:Math.round(W*H/5000)},()=>({x:r()*W,y:r()*H*0.7,s:r()*1.4+0.3,p:r()*6}));
-    ridges=[[0.6,0.07,'#1c2338',0.15],[0.7,0.06,'#141a2b',0.3],[0.82,0.04,'#0c1019',0.5]].map(([y0,amp,c,par])=>{const pts=[];let y=H*y0;for(let x=-60;x<=W+60;x+=W/50){y+=(r()-0.5)*H*amp;y=Math.max(H*(y0-amp*1.6),Math.min(H*(y0+amp),y));pts.push([x,y]);}return {pts,c,par};});
+    ridges=[[0.6,0.07,'#1c2338',0.15],[0.7,0.06,'#141a2b',0.3],[0.82,0.04,'#0c1019',0.5]].map(([y0,amp,c,par])=>{const pts=[];let y=H*y0;for(let x=-60;x<=W+60;x+=Math.max(4,W/50)){y+=(r()-0.5)*H*amp;y=Math.max(H*(y0-amp*1.6),Math.min(H*(y0+amp),y));pts.push([x,y]);}return {pts,c,par};});
     castle={x:W*0.68,base:H*0.82,w:Math.max(80,W*0.09)};};
   addEventListener('resize',resize);cv.parentElement&&cv.parentElement.addEventListener('pointermove',e=>{mx=(e.clientX/innerWidth-0.5);my=(e.clientY/innerHeight-0.5);});
   resize();const t0=performance.now();
@@ -4264,14 +4266,16 @@ function className(a){return a.adv?ADV_CLASSES[a.adv].name:tierName(a);}
 function lvlColor(l){const d=l-S.P.level;return d>=6?'lv-red':d>=3?'lv-orange':d>=-3?'lv-yellow':d>=-8?'lv-green':'lv-grey';}
 
 /* ---------------- header ---------------- */
+// Only touch the page when the new HTML differs: rebuilding identical parts forced the phone to lay out the whole page on every tap.
+function setHTML(el,html){if(!el)return false;if(el.__h===html)return false;el.innerHTML=html;el.__h=html;return true;}
 function renderHeader(){const P=S.P,st=stats(P);
   const xpN=xpNext(P.level);
-  $('#hdr').innerHTML=`<div class="hname"><button class="portrait" data-a="tab" data-v="char" aria-label="Your hero" style="--ac:${CLS_HUE[P.cls]}">${icon(CLS_ICON[P.cls])}<b>${P.level}</b></button><div><button class="pname" data-a="tab" data-v="char">${E(P.name)}</button><small>${E(P.user)} · ${E(className(P))}</small></div></div>
+  const __hdr=`<div class="hname"><button class="portrait" data-a="tab" data-v="char" aria-label="Your hero" style="--ac:${CLS_HUE[P.cls]}">${icon(CLS_ICON[P.cls])}<b>${P.level}</b></button><div><button class="pname" data-a="tab" data-v="char">${E(P.name)}</button><small>${E(P.user)} · ${E(className(P))}</small></div></div>
   <div class="hbars">${abar(P.hp,st.mhp,'hp','HP','hdr')}${abar(P.mp,st.mmp,'mp','MP','hdr')}${abar(P.sp,st.msp,'sp','SP','hdr')}${abar(P.xp,xpN,'xp','XP','hdr')}</div>
   <div class="hmeta"><button class="snd ${AUD.on?'on':''}" data-a="sound" aria-label="${AUD.on?'Mute music':'Play music'}" title="Music & sound">${AUD.on?'♪':'♪̸'}</button><span class="gold">${icon('coin')}${U.fmt(P.gold)}</span><span class="clock">${icon('clock')}${T.str(S.time).replace('Day ','D')}</span><span class="loc">${icon('pin')}${E(LOCS[P.loc].n)}</span>
   <button class="net ${NET.mode}" data-a="tab" data-v="social" title="${E(NET.status)}">${icon('online')}${NET.mode==='online'?`${NET.peers} online`:'solo'}</button>
   ${P.pts>0?`<button class="b tiny gilt" data-a="tab" data-v="char">+${P.pts} pts</button>`:''}</div>`;
-  document.documentElement.style.setProperty('--hdr-h',$('#hdr').offsetHeight+'px');animBars($('#hdr'));
+  if(setHTML($('#hdr'),__hdr))requestAnimationFrame(()=>document.documentElement.style.setProperty('--hdr-h',$('#hdr').offsetHeight+'px'));animBars($('#hdr'));
   if(UI.prevGold!=null&&P.gold>UI.prevGold&&!S.catchup){sfx('coin');const gEl=$('#hdr .gold');if(gEl){gEl.classList.add('bump');goldBurst(gEl);}}
   if(UI.prevHp!=null&&P.hp<UI.prevHp-1&&!UI.inCombat()){const h=$('#hdr .bar.hp');if(h)h.classList.add('dmg');}UI.prevGold=P.gold;UI.prevHp=P.hp;}
 UI.refreshHeader=()=>{if(S&&S.P)renderHeader();};
@@ -4281,11 +4285,11 @@ const TABS=[['world','World','world'],['map','Map','map'],['char','Hero','hero']
 const BOTTOM=['world','map','char','bag','chat'];
 function badge(k){const unread=Object.values(S.pmUnread||{}).reduce((a,b)=>a+b,0);if(k==='chat'&&(unread||S.P.mentions))return `<em>${unread+S.P.mentions}</em>`;if(k==='quests'&&S.P.quests.some(q=>q.done))return '<em>!</em>';if(k==='char'&&S.P.pts>0)return '<em>+</em>';return '';}
 function renderNav(){
-  $('#nav').innerHTML=TABS.map(([k,n,ic])=>`<button class="tab ${UI.tab===k?'on':''}" data-a="tab" data-v="${k}">${icon(ic)}<span>${n}</span>${badge(k)}</button>`).join('');
+  setHTML($('#nav'),TABS.map(([k,n,ic])=>`<button class="tab ${UI.tab===k?'on':''}" data-a="tab" data-v="${k}">${icon(ic)}<span>${n}</span>${badge(k)}</button>`).join(''));
   const moreOn=!BOTTOM.includes(UI.tab);const moreBadge=TABS.filter(t=>!BOTTOM.includes(t[0])).map(t=>badge(t[0])).join('')?'<em>!</em>':'';
-  $('#bnav').innerHTML=TABS.filter(t=>BOTTOM.includes(t[0])).map(([k,n,ic])=>`<button class="bt ${UI.tab===k?'on':''}" data-a="tab" data-v="${k}">${icon(ic)}<span>${n}</span>${badge(k)}</button>`).join('')+`<button class="bt ${moreOn?'on':''}" data-a="more">${icon('more')}<span>More</span>${moreBadge}</button>`;
+  setHTML($('#bnav'),TABS.filter(t=>BOTTOM.includes(t[0])).map(([k,n,ic])=>`<button class="bt ${UI.tab===k?'on':''}" data-a="tab" data-v="${k}">${icon(ic)}<span>${n}</span>${badge(k)}</button>`).join('')+`<button class="bt ${moreOn?'on':''}" data-a="more">${icon('more')}<span>More</span>${moreBadge}</button>`);
   const last=chatMessages().filter(m=>m.ch!=='system').slice(-1)[0];
-  $('#ticker').innerHTML=last&&UI.tab!=='chat'?`<button data-a="tab" data-v="chat">${avatar(m_name(last),m_cls(last),last.real)}<span><b>${E(m_name(last))}</b> ${E(last.text)}</span></button>`:'';$('#ticker').hidden=!last||UI.tab==='chat';}
+  setHTML($('#ticker'),last&&UI.tab!=='chat'?`<button data-a="tab" data-v="chat">${avatar(m_name(last),m_cls(last),last.real)}<span><b>${E(m_name(last))}</b> ${E(last.text)}</span></button>`:'');$('#ticker').hidden=!last||UI.tab==='chat';}
 function m_name(m){return m.from==='P'?S.P.user:m.real?m.name:m.from==='SYS'?'System':(npc(m.from)||{}).user||'?';}
 function m_cls(m){return m.from==='P'?S.P.cls:m.real?(m.cls||'warrior'):(npc(m.from)||{}).cls;}
 
@@ -4431,7 +4435,7 @@ const ACT={};
 function act(name,v,el){const f=ACT[name];if(!f)return;const P=S&&S.P,n0=P?P.log.length:0;try{f(v,el);}catch(e){console.error(e);UI.toast('Something went wrong: '+e.message,'bad');}
   if(P&&P.log.length>n0&&!UI.inCombat()){UI.lastResult={lines:P.log.slice(n0).slice(-6),t:Date.now()};if(!$('#modal').hidden||UI.tab!=='world'){const L=P.log[P.log.length-1];UI.toast(L[1].length>110?L[1].slice(0,108)+'…':L[1],L[2]==='bad'?'bad':L[2]==='epic'?'epic':'');}}
   UI.dirty=true;render();if(UI.inCombat()&&!$('#combat').hidden)renderCombat();}
-document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el)return;if(el.tagName==='A')e.preventDefault();act(el.dataset.a,el.dataset.v,el);});
+document.addEventListener('click',e=>{UI.lastTap=Date.now();const el=e.target.closest('[data-a]');if(!el)return;if(el.tagName==='A')e.preventDefault();act(el.dataset.a,el.dataset.v,el);});
 document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('g[data-a]')){e.preventDefault();act(e.target.dataset.a,e.target.dataset.v,e.target);}if(e.key==='Escape'&&UI.modalStack.length)closeModal();});
 document.addEventListener('submit',e=>{const f=e.target.closest('[data-form]');if(!f)return;e.preventDefault();const fd=Object.fromEntries(new FormData(f).entries());act('form_'+f.dataset.form,fd,f);});
 function needIdle(){if(UI.inCombat()){UI.toast('You are in combat!','bad');return false;}return true;}
@@ -4894,11 +4898,13 @@ function render(){if(!S||!S.P||!UI.started)return;renderHeader();renderNav();con
   const views={world:renderWorld,map:renderMap,char:renderChar,bag:renderBag,quests:renderQuests,chat:()=>renderChat(true),social:renderSocial,ranks:renderRanks,market:renderMarket,codex:renderCodex,menu:renderMenu};
   const focus=document.activeElement&&document.activeElement.id;const val=focus&&document.activeElement.value;
   if(tab==='chat'){if(!v.querySelector('.chat.full')||UI.chatDirty||UI.dirty){const keep=v.querySelector('#chatmsg');const kv=keep?keep.value:'';v.innerHTML=views.chat();const n=v.querySelector('#chatmsg');if(n&&kv)n.value=kv;}}
-  else v.innerHTML=(views[tab]||renderWorld)();
-  if(tab==='world')requestAnimationFrame(startWeather);
-  const side=$('#side');if(tab!=='chat'){const keep=side.querySelector('#chatmsg');const kv=keep?keep.value:'';const sel=side.querySelector('#chatsel');const sv=sel?sel.value:null;side.innerHTML=renderChat(false);const n=side.querySelector('#chatmsg');if(n){n.value=kv;}if(sv&&UI.lastChatCh===UI.chatCh&&side.querySelector('#chatsel'))side.querySelector('#chatsel').value=sv;UI.lastChatCh=UI.chatCh;}else side.innerHTML='';
+  else UI.viewChanged=setHTML(v,(views[tab]||renderWorld)());
+  if(tab==='world'&&UI.viewChanged!==false)requestAnimationFrame(startWeather);
+  // the chat side panel is hidden on phones (max-width 999px): don't build it there at all
+  const side=$('#side');const sideShown=!(UI.sideMQ=UI.sideMQ||matchMedia('(max-width:999px)')).matches;if(tab!=='chat'&&sideShown){const keep=side.querySelector('#chatmsg');const kv=keep?keep.value:'';const sel=side.querySelector('#chatsel');const sv=sel?sel.value:null;const sideChanged=setHTML(side,renderChat(false));const n=side.querySelector('#chatmsg');if(n&&sideChanged){n.value=kv;}if(sv&&UI.lastChatCh===UI.chatCh&&side.querySelector('#chatsel'))side.querySelector('#chatsel').value=sv;UI.lastChatCh=UI.chatCh;}else setHTML(side,'');
+  if(!UI.sideMQL&&UI.sideMQ){UI.sideMQL=1;UI.sideMQ.addEventListener('change',()=>{UI.dirty=true;render();});}
   if(focus){const el=document.getElementById(focus);if(el&&el!==document.activeElement){el.focus();if(val!=null&&'value' in el&&el.value!==val&&focus!=='chatmsg')el.value=val;}}
-  document.querySelectorAll('#chatlog').forEach(l=>l.scrollTop=l.scrollHeight);
+  const logs=document.querySelectorAll('#chatlog');if(logs.length)requestAnimationFrame(()=>logs.forEach(l=>{if(l.__n!==l.childElementCount){l.__n=l.childElementCount;l.scrollTop=l.scrollHeight;}}));
   UI.dirty=false;UI.chatDirty=false;if(UI.modalKey&&!UI.modalKey.startsWith('item')&&!['export','import','list','offer','mail','wipe','help','digest','more','rprof','gview','guilds','item','folk'].includes(UI.modalKey)&&!UI.modalKey.startsWith('svc:market'))refreshModal();}
 function renderChatOnly(){const keepFocus=document.activeElement&&document.activeElement.id==='chatmsg';document.querySelectorAll('#chatlog').forEach(l=>{const atBottom=l.scrollHeight-l.scrollTop-l.clientHeight<60;l.innerHTML=chatMessages().map(chatLine).join('');if(atBottom)l.scrollTop=l.scrollHeight;});
   renderNav();UI.chatDirty=false;if(keepFocus){const i=document.getElementById('chatmsg');if(i)i.focus();}}
@@ -4910,7 +4916,8 @@ function loop(){if(!S||!S.P||!UI.started)return;const now=Date.now();
   if(!UI.nThread||now>=UI.nThread){if(UI.nThread)thread();UI.nThread=now+U.ri(14000,32000)*rate;}
   if(!UI.nGuild||now>=UI.nGuild){if(UI.nGuild)guildChatter();UI.nGuild=now+U.ri(9000,22000)*rate;}
   if(!UI.nParty||now>=UI.nParty){if(UI.nParty)partyChatter();UI.nParty=now+U.ri(25000,50000)*rate;}
-  if(now-lastSave>60000){lastSave=now;saveAll();}if(!UI.lastMark||now-UI.lastMark>5000){UI.lastMark=now;markPlaying(true);}if(NET.isHost&&(!NET.lastUpload||now-NET.lastUpload>600000)){NET.lastUpload=now;uploadWorld();}if(!UI.lastPres||now-UI.lastPres>20000){UI.lastPres=now;netPresence(true);}
+  // autosave once a minute, but never in the middle of a tap: wait for 1.5s of quiet (or 20s at most)
+  if(now-lastSave>60000&&(now-(UI.lastTap||0)>1500||now-lastSave>80000)){lastSave=now;(window.requestIdleCallback||setTimeout)(()=>saveAll(),{timeout:2000});}if(!UI.lastMark||now-UI.lastMark>5000){UI.lastMark=now;markPlaying(true);}if(NET.isHost&&(!NET.lastUpload||now-NET.lastUpload>600000)){NET.lastUpload=now;uploadWorld();}if(!UI.lastPres||now-UI.lastPres>20000){UI.lastPres=now;netPresence(true);}
   if(UI.dirty&&!isTyping())render();else{if(UI.chatDirty)renderChatOnly();if(UI.dirty)renderHeader();}
 }
 function isTyping(){const a=document.activeElement;return a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT')&&a.id!=='chatmsg';}

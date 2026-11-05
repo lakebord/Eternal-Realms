@@ -338,11 +338,13 @@ function render(){if(!S||!S.P||!UI.started)return;renderHeader();renderNav();con
   const views={world:renderWorld,map:renderMap,char:renderChar,bag:renderBag,quests:renderQuests,chat:()=>renderChat(true),social:renderSocial,ranks:renderRanks,market:renderMarket,codex:renderCodex,menu:renderMenu};
   const focus=document.activeElement&&document.activeElement.id;const val=focus&&document.activeElement.value;
   if(tab==='chat'){if(!v.querySelector('.chat.full')||UI.chatDirty||UI.dirty){const keep=v.querySelector('#chatmsg');const kv=keep?keep.value:'';v.innerHTML=views.chat();const n=v.querySelector('#chatmsg');if(n&&kv)n.value=kv;}}
-  else v.innerHTML=(views[tab]||renderWorld)();
-  if(tab==='world')requestAnimationFrame(startWeather);
-  const side=$('#side');if(tab!=='chat'){const keep=side.querySelector('#chatmsg');const kv=keep?keep.value:'';const sel=side.querySelector('#chatsel');const sv=sel?sel.value:null;side.innerHTML=renderChat(false);const n=side.querySelector('#chatmsg');if(n){n.value=kv;}if(sv&&UI.lastChatCh===UI.chatCh&&side.querySelector('#chatsel'))side.querySelector('#chatsel').value=sv;UI.lastChatCh=UI.chatCh;}else side.innerHTML='';
+  else UI.viewChanged=setHTML(v,(views[tab]||renderWorld)());
+  if(tab==='world'&&UI.viewChanged!==false)requestAnimationFrame(startWeather);
+  // the chat side panel is hidden on phones (max-width 999px): don't build it there at all
+  const side=$('#side');const sideShown=!(UI.sideMQ=UI.sideMQ||matchMedia('(max-width:999px)')).matches;if(tab!=='chat'&&sideShown){const keep=side.querySelector('#chatmsg');const kv=keep?keep.value:'';const sel=side.querySelector('#chatsel');const sv=sel?sel.value:null;const sideChanged=setHTML(side,renderChat(false));const n=side.querySelector('#chatmsg');if(n&&sideChanged){n.value=kv;}if(sv&&UI.lastChatCh===UI.chatCh&&side.querySelector('#chatsel'))side.querySelector('#chatsel').value=sv;UI.lastChatCh=UI.chatCh;}else setHTML(side,'');
+  if(!UI.sideMQL&&UI.sideMQ){UI.sideMQL=1;UI.sideMQ.addEventListener('change',()=>{UI.dirty=true;render();});}
   if(focus){const el=document.getElementById(focus);if(el&&el!==document.activeElement){el.focus();if(val!=null&&'value' in el&&el.value!==val&&focus!=='chatmsg')el.value=val;}}
-  document.querySelectorAll('#chatlog').forEach(l=>l.scrollTop=l.scrollHeight);
+  const logs=document.querySelectorAll('#chatlog');if(logs.length)requestAnimationFrame(()=>logs.forEach(l=>{if(l.__n!==l.childElementCount){l.__n=l.childElementCount;l.scrollTop=l.scrollHeight;}}));
   UI.dirty=false;UI.chatDirty=false;if(UI.modalKey&&!UI.modalKey.startsWith('item')&&!['export','import','list','offer','mail','wipe','help','digest','more','rprof','gview','guilds','item','folk'].includes(UI.modalKey)&&!UI.modalKey.startsWith('svc:market'))refreshModal();}
 function renderChatOnly(){const keepFocus=document.activeElement&&document.activeElement.id==='chatmsg';document.querySelectorAll('#chatlog').forEach(l=>{const atBottom=l.scrollHeight-l.scrollTop-l.clientHeight<60;l.innerHTML=chatMessages().map(chatLine).join('');if(atBottom)l.scrollTop=l.scrollHeight;});
   renderNav();UI.chatDirty=false;if(keepFocus){const i=document.getElementById('chatmsg');if(i)i.focus();}}
@@ -354,7 +356,8 @@ function loop(){if(!S||!S.P||!UI.started)return;const now=Date.now();
   if(!UI.nThread||now>=UI.nThread){if(UI.nThread)thread();UI.nThread=now+U.ri(14000,32000)*rate;}
   if(!UI.nGuild||now>=UI.nGuild){if(UI.nGuild)guildChatter();UI.nGuild=now+U.ri(9000,22000)*rate;}
   if(!UI.nParty||now>=UI.nParty){if(UI.nParty)partyChatter();UI.nParty=now+U.ri(25000,50000)*rate;}
-  if(now-lastSave>60000){lastSave=now;saveAll();}if(!UI.lastMark||now-UI.lastMark>5000){UI.lastMark=now;markPlaying(true);}if(NET.isHost&&(!NET.lastUpload||now-NET.lastUpload>600000)){NET.lastUpload=now;uploadWorld();}if(!UI.lastPres||now-UI.lastPres>20000){UI.lastPres=now;netPresence(true);}
+  // autosave once a minute, but never in the middle of a tap: wait for 1.5s of quiet (or 20s at most)
+  if(now-lastSave>60000&&(now-(UI.lastTap||0)>1500||now-lastSave>80000)){lastSave=now;(window.requestIdleCallback||setTimeout)(()=>saveAll(),{timeout:2000});}if(!UI.lastMark||now-UI.lastMark>5000){UI.lastMark=now;markPlaying(true);}if(NET.isHost&&(!NET.lastUpload||now-NET.lastUpload>600000)){NET.lastUpload=now;uploadWorld();}if(!UI.lastPres||now-UI.lastPres>20000){UI.lastPres=now;netPresence(true);}
   if(UI.dirty&&!isTyping())render();else{if(UI.chatDirty)renderChatOnly();if(UI.dirty)renderHeader();}
 }
 function isTyping(){const a=document.activeElement;return a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT')&&a.id!=='chatmsg';}
