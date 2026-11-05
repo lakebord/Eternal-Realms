@@ -4,7 +4,7 @@ const {chromium,devices}=require('playwright');
 await p.goto('file://'+require('path').resolve(__dirname,'../index.html')+'?online');await p.waitForFunction(()=>!!document.querySelector('[data-a=authguest]'),null,{timeout:45000});
 await p.click('[data-a=authguest]');await p.waitForFunction(()=>NET.uid&&NET.mode==='online',null,{timeout:45000});
 console.log('1 guest signed in:',await p.evaluate(()=>({uid:NET.uid.slice(0,8),guest:NET.guest,host:NET.isHost,canWrite:NET.canWrite})));
-await p.click('[data-a=newchar]');await p.fill('#cc_user','TestGuest');await p.fill('#cc_name','TestGuest');await p.click('.ccside .b.gilt');await p.waitForTimeout(3000);
+await p.waitForTimeout(1500);await p.click('[data-a=newchar]');await p.waitForSelector('#cc_user',{timeout:15000});await p.fill('#cc_user','TG'+String(Date.now()).slice(-6));await p.fill('#cc_name','TG'+String(Date.now()).slice(-6));await p.click('.ccside .b.gilt');await p.waitForTimeout(3000);
 console.log('2 in game:',await p.evaluate(()=>UI.started&&S.P.name));
 const saved=await p.evaluate(async()=>{const ok=await saveCloud();await publishProfile(true);return ok;});
 const meta=await p.evaluate(async()=>{const c=await peekCloud();return c&&{level:c.level,chunks:c.chunks};});

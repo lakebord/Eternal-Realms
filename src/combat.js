@@ -38,7 +38,7 @@ function startCombat(enemies,opts={}){
   if(enemies.length>1){const k=1-0.08*Math.min(3,enemies.length-1);for(const e of enemies)if(!e.packAdj){e.packAdj=1;e.atk*=k;e.matk*=k;}}
   const allies=[actorFromChar(P,'a')];
   if(!opts.noParty)for(const n of partyMembers())allies.push(actorFromChar(n,'a',{ai:1}));
-  if(!opts.noParty&&typeof coopPartner==='function'){const cp=coopPartner();if(cp&&cp.loc===P.loc&&cp.cs){const a=actorFromSnap(cp.cs,cp.user+' ●','a');a.coop=1;allies.push(a);opts.coop=cp;}}
+  if(!opts.noParty&&typeof partyMates==='function'){const mates=partyMates().filter(m=>m.loc===P.loc&&m.cs);for(const m of mates){const a=actorFromSnap(m.cs,m.user+' ●','a');a.coop=1;allies.push(a);}if(mates.length)opts.partyLive=mates.map(m=>({key:m.key,user:m.user}));}
   C={allies,enemies:enemies.map(e=>e.side?e:(e.mon?actorFromMon(e):e)),round:0,order:[],oi:0,log:[],opts,ended:false,waiting:false,target:0,tactic:P.tactic||'free',inspected:{},startHp:P.hp,dmgDealt:0,dmgByP:0};
   for(const e of C.enemies)e.side='e';
   if(opts.ambush){for(const a of allies)a.fx.ambushed={d:1};clog('You were caught off guard!','bad');}
@@ -306,7 +306,7 @@ function finishCombat(result){
     const lv=C.enemies.reduce((m,e)=>Math.max(m,e.level),1);const gap=lv-P.level;xp*=gap<-8?0.25:gap<-4?0.6:gap>4?1.25:1;
     const myXp=Math.round(xp*(size>1?1.25/size:1));gold=Math.round(gold);const myGold=Math.round(gold/size);
     gainXp(myXp);P.gold+=myGold;C.summary.push(`+${U.fmt(myXp)} XP`,`+${U.fmt(myGold)} gold`);
-    if(o.coop){coopReward(myXp,myGold);C.summary.push(`${o.coop.user} earns their share too`);}
+    if(o.partyLive&&o.partyLive.length){partyReward(o.partyLive.map(m=>m.key),myXp,myGold);C.summary.push(`${o.partyLive.map(m=>m.user).join(', ')} earn${o.partyLive.length>1?'':'s'} their share too`);}
     for(const n of party){npcGainXp(n,xp*1.25/size);n.gold+=myGold;n.kills+=C.enemies.length;remember(n,null,1);}
     // loot distribution
     let rr=Math.floor(U.r()*size);

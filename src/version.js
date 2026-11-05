@@ -4,6 +4,12 @@
 'use strict';
 const GAME_VERSION='1.0.0';
 const PATCH_NOTES=[
+  {v:'1.1.0',date:'',title:'Friends & parties',notes:[
+    'Friends list: add real players by username or from their profile. Requests, accept or decline, and see who is online.',
+    'Parties: team up with up to 4 real players. Party members in the same place fight in each other\'s battles, and everyone earns XP and gold.',
+    'Party chat that only your party can read.',
+    'A more reliable online connection: players no longer flicker in and out, and the game reconnects by itself if the connection drops.'
+  ]},
   {v:'1.0.0',date:'2026-11-05',title:'The Realms open',notes:[
     'Eternal Realms is live on its own website, with real accounts: sign in with email or play as a guest.',
     'Cloud saves, live chat, the leaderboard, parcels and co-op now run on our own servers.',

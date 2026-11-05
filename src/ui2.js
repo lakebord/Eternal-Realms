@@ -77,7 +77,7 @@ function renderChat(full){const ch=UI.chatCh;const pmKeys=Object.keys(S.chat.pm)
 Object.assign(ACT,{chch(v){UI.chatCh=v;if(v==='pm'&&!UI.pmWith){UI.pmWith=Object.keys(S.chat.pm)[0]||null;}if(UI.pmWith)delete S.pmUnread[UI.pmWith];},pmwith(k){UI.pmWith=k;delete S.pmUnread[k];},
   form_chat(fd,f){const text=(fd.msg||'').trim();if(!text)return;const ch=fd.ch;
     if(ch==='pm'&&UI.pmWith){if(UI.pmWith.startsWith('R:')){chatPush('pm','P',text,{with:UI.pmWith});netSendChat('pm',text,UI.pmWith.slice(2));}else playerChat('pm',text,UI.pmWith);}
-    else{playerChat(ch,text);if(['global','trade','recruit','local'].includes(ch)&&!text.startsWith('/'))netSendChat(ch,text);}
+    else{playerChat(ch,text);if((['global','trade','recruit','local'].includes(ch)||(ch==='party'&&partyMates().length))&&!text.startsWith('/'))netSendChat(ch,text);}
     f.reset();setTimeout(()=>{const i=document.getElementById('chatmsg');if(i)i.focus();},0);UI.chatDirty=true;}});
 UI.openPM=(id)=>{UI.chatCh='pm';UI.pmWith=id;delete S.pmUnread[id];if(window.innerWidth<1000)UI.tab='chat';};
 
@@ -96,12 +96,10 @@ function profileView(id){const n=npc(id);if(!n)return '';const P=S.P;const st=st
    ${g&&!P.guild&&!g.isPlayer?btn(`Apply to ${E(g.tag)}`,'gapply',g.id):''}${P.guild&&guild(P.guild).isPlayer&&n.guild!==P.guild?btn('Recruit to guild','grecruit',n.id):''}
    ${P.blocked.includes(n.id)?btn('Unblock','unblock',n.id,'ghost'):btn('Block','block',n.id,'ghost')}</div>`;}
 function rprofileView(id){const p=realPlayer(id);if(!p)return '<p>This player is not around right now.</p>';const live=p.live;const me=id===NET.myKey;const cp=NET.live.coop;
-  const coopState=cp.with===id?(live&&live.coop.with===NET.myKey?'active':'waiting'):live&&live.coop.inv===NET.myKey?'invited':cp.inv===id?'sent':'none';
   return `<div class="phead">${avatar(p.user,p.cls,1)}<div><h2>${E(p.user)} <sup class="realdot">●</sup></h2><p class="hint">Real player · ${live?'<span class="good">online now</span>':'last seen '+new Date(p.t).toLocaleString()}</p></div></div>
   <p><b>Lv.${p.level} ${E(p.adv&&ADV_CLASSES[p.adv]?ADV_CLASSES[p.adv].name:CLASSES[p.cls]?CLASSES[p.cls].name:'')}</b> · ${RACES[p.race]?RACES[p.race].name:''}${p.guild?' · '+E(p.guild):''} · in ${E(LOCS[p.loc]?LOCS[p.loc].n:'?')}</p>
   <div class="derived">${[['Fame',U.fmt(p.fame||0)],['Power',U.fmt(p.power||0)],['PvP',`${p.pvp?p.pvp.r:1000}`],['Kills',U.fmt(p.kills||0)],['Dungeons',p.dungeons||0],['Achievements',p.ach||0]].map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>
-  ${me?'<p>This is you.</p>':`${live?`<div class="coop ${coopState}"><h3>${icon('party')} Adventure together</h3><p>${({active:`You're in co-op. When you're both in the same place, ${E(p.user)}'s hero joins your fights (and yours joins theirs). You both earn XP and gold.`,waiting:`Waiting for ${E(p.user)} to accept.`,invited:`${E(p.user)} wants to adventure with you.`,sent:`Invite sent. Waiting for ${E(p.user)}.`,none:`Team up: while you're both online and in the same place, each of your heroes fights in the other's battles.`})[coopState]}</p>
-    <div class="row">${coopState==='active'||coopState==='waiting'?btn('End co-op','coopend','','ghost'):btn(coopState==='invited'?'Accept':'Invite to co-op','coopinv',id,'gilt')}${coopState==='active'&&p.loc!==S.P.loc?btn(`Find them in ${E(LOCS[p.loc].n)}`,'mapfocus',p.loc):''}</div></div>`:''}
+  ${me?'<p>This is you.</p>':`${realProfileButtons(id)}
   <div class="grid-btn">${btn('Whisper','rpm',id)}${btn('Duel their champion','rduel',id,'danger')}${NET.canWrite&&NET.players[id]?btn('Send a parcel','mailask',id):''}${btn(NET.muted.includes(id)?'Unmute':'Mute','rmute',id,'ghost')}</div>
   <p class="hint">Whispers to real players travel through the shared room, so others could technically see them. Don't share anything private.</p>`}`;}
 Object.assign(ACT,{profile(id){openModal(profileView(id),'prof:'+id);},rprofile(id){openModal(rprofileView(id),'rprof');},pmopen(id){closeModal();UI.openPM(id);},
@@ -122,8 +120,8 @@ function tradeView(id){const n=npc(id),P=S.P;if(!online(n))return `<h2>Trade</h2
   <h3>Sell to them</h3><div class="list">${P.inv.map((it,i)=>isGear(it)?`<div class="li"><span>${rarityName(it)} <small>Lv.${it.l}</small></span>${btn('Offer','tsell',`${id}|${i}`,'tiny')}</div>`:'').join('')||'<p class="hint">You have no gear to sell.</p>'}</div>`;}
 
 /* ---------------- party & guild ---------------- */
-function renderSocial(){const P=S.P;const pm=partyMembers();const cp=coopPartner();
-  let h=`<section class="panel"><h3>Party <small>${1+pm.length}/4</small></h3><div class="list"><div class="li"><span><b>${E(P.user)}</b> (you) <small>Lv.${P.level} ${E(className(P))} · ${CLASSES[P.cls].role}</small></span></div>
+function renderSocial(){const P=S.P;const pm=partyMembers();const cp=null;
+  let h=realSocialHtml()+`<section class="panel"><h3>Adventuring companions <small>${1+pm.length}/4</small></h3><div class="list"><div class="li"><span><b>${E(P.user)}</b> (you) <small>Lv.${P.level} ${E(className(P))} · ${CLASSES[P.cls].role}</small></span></div>
   ${cp&&cp.loc===P.loc?`<div class="li"><span>${avatar(cp.user,cp.cls,1)} <b>${E(cp.user)}</b><sup class="realdot">●</sup> <small>Lv.${cp.lvl} ${E(CLASSES[cp.cls].name)} · co-op partner</small></span></div>`:''}
   ${pm.map(n=>`<div class="li"><span>${avatar(n.user,n.cls)} ${userLink(n.id)} <small>Lv.${n.level} ${E(className(n))} · ${CLASSES[n.cls].role} · ${Math.round(n.hpPct*100)}% HP</small></span>${btn('Remove','kick',n.id,'tiny ghost')}</div>`).join('')}</div>
   <p class="hint">Find groups in Global or Recruit chat (“anyone want to help me clear the abandoned mine?”), or invite people from their profile. Members fight on their own and share XP and loot.</p>

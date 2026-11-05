@@ -44,10 +44,36 @@ function supaCollection(c,col){return {onSnapshot(cb,onErr){const rows=new Map()
   SUPA.channels.push(ch);return ()=>{alive=false;try{c.removeChannel(ch);}catch(e){}};}};}
 
 /* ---------- room: live presence (who is online, co-op, quick messages) ---------- */
-function supaRoom(c,uid){const ch=c.channel('realm',{config:{presence:{key:uid}}});let handler=null,ready=false,pending=null;
-  const fire=()=>{if(!handler)return;const st=ch.presenceState();const peers=Object.entries(st).map(([key,metas])=>({isMe:key===uid,presence:metas&&metas[0],by:key,peer:key,guest:false}));try{handler({peers});}catch(e){console.warn(e);}};
-  ch.on('presence',{event:'sync'},fire).subscribe(s=>{if(s==='SUBSCRIBED'){ready=true;if(pending){ch.track(pending);pending=null;}}});SUPA.channels.push(ch);
-  return {onPeers(fn){handler=fn;fire();},presence(obj){if(ready)ch.track(obj);else pending=obj;}};}
+function supaRoom(c,uid){
+  // Supabase limits how often one player may update their presence (too often and the server closes the channel).
+  // So: every state change is BROADCAST instantly (cheap, meant for frequent messages), while presence itself is
+  // re-tracked at most every PRES_GAP ms with the latest state, so late joiners still see everyone.
+  const PRES_GAP=8000,BC_GAP=350,GRACE=12000;
+  let ch=null,handler=null,ready=false,latest=null,lastTrack=0,trackT=0,lastBc=0,bcT=0,lastSig='',closedT=0;
+  const known=new Map();   // key -> {meta, seen}
+  const fire=(force)=>{if(!handler)return;const now=Date.now();const st=ch&&ready?ch.presenceState():{};
+    for(const [key,metas] of Object.entries(st)){const meta=metas&&metas[metas.length-1];const k=known.get(key);
+      if(meta&&(!k||(meta.t||0)>=(k.meta.t||0)))known.set(key,{meta,seen:now});else if(k)k.seen=now;}
+    for(const [key,v] of known)if(key!==uid&&now-v.seen>GRACE)known.delete(key);
+    const peers=[...known.entries()].map(([key,v])=>({isMe:key===uid,presence:v.meta,by:key,peer:key,guest:false}));
+    const sig=JSON.stringify(peers.map(p=>[p.by,p.presence&&p.presence.t]));if(!force&&sig===lastSig)return;lastSig=sig;
+    try{handler({peers});}catch(e){console.warn(e);}};
+  const doTrack=()=>{trackT=0;if(!ready||!latest)return;lastTrack=Date.now();ch.track(latest).catch(()=>{});};
+  const doBroadcast=()=>{bcT=0;if(!ready||!latest)return;lastBc=Date.now();ch.send({type:'broadcast',event:'p',payload:{k:uid,m:latest}}).catch(()=>{});};
+  const join=()=>{ready=false;ch=c.channel('realm',{config:{presence:{key:uid},broadcast:{self:false}}});
+    ch.on('presence',{event:'sync'},()=>fire(false))
+      .on('broadcast',{event:'p'},({payload})=>{if(!payload||!payload.k||!payload.m||payload.k===uid)return;const k=known.get(payload.k);
+        if(!k||(payload.m.t||0)>=(k.meta.t||0)){known.set(String(payload.k).slice(0,64),{meta:payload.m,seen:Date.now()});fire(true);}else k.seen=Date.now();})
+      .on('system',{},m=>{if(m&&m.status&&m.status!=='ok')console.warn('realm system',JSON.stringify(m).slice(0,200));})
+      .subscribe((s,err)=>{if(s==='SUBSCRIBED'){ready=true;closedT=0;doTrack();doBroadcast();}
+        else if(s==='CLOSED'||s==='CHANNEL_ERROR'||s==='TIMED_OUT'){ready=false;if(!closedT){closedT=Date.now();   // reconnect on our own
+          setTimeout(()=>{try{c.removeChannel(ch);}catch(e){}SUPA.channels=SUPA.channels.filter(x=>x!==ch);closedT=0;join();},5000);}}});
+    SUPA.channels.push(ch);};
+  join();setInterval(()=>{fire(false);if(ready&&latest&&Date.now()-lastTrack>30000)doTrack();},4000);
+  return {onPeers(fn){handler=fn;fire(true);},
+    presence(obj){latest=obj;known.set(uid,{meta:obj,seen:Date.now()});const now=Date.now();
+      if(!bcT){const wait=Math.max(0,BC_GAP-(now-lastBc));bcT=setTimeout(doBroadcast,wait);}
+      if(!trackT){const wait=Math.max(0,PRES_GAP-(now-lastTrack));trackT=setTimeout(doTrack,wait);}}};}
 
 /* ---------- the services netInit() asks for ---------- */
 async function supaServices(){const s=await supaSession();if(!s)return null;const c=SUPA.client;const uid=s.user.id;

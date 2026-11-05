@@ -466,6 +466,9 @@ body:not(.ingame){background:#05070d}
 #modal .patch h3 small{font-family:var(--body);opacity:.7;font-size:.8rem}#modal .patch ul{margin:.3rem 0 1rem;padding-left:1.2rem;line-height:1.5}
 .testbadge{color:#1a1206;background:#ffcf5a;padding:.1rem .45rem;border-radius:6px;font-weight:700;letter-spacing:.06em}
 body.testsite::after{content:"TEST VERSION";position:fixed;left:50%;top:0;transform:translateX(-50%);z-index:90;background:#ffcf5a;color:#1a1206;font:700 .62rem/1.6 var(--mono);letter-spacing:.12em;padding:0 .6rem;border-radius:0 0 6px 6px;pointer-events:none}
+.li.invite{background:color-mix(in srgb,var(--gilt) 14%,transparent);border-radius:10px;padding:.45rem .6rem}
+.linkish{background:none;border:0;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer;display:flex;align-items:center;gap:.4rem}
+.realp form.row input{flex:1;min-width:0}
 
 </style>
 <div id="app" aria-live="polite"><div class="title"><h1>Eternal Realms</h1><p class="tag">The Realms are waking…</p></div></div>
@@ -1218,6 +1221,12 @@ const PERSONALITY = ['friendly','competitive','arrogant','cautious','helpful','g
 'use strict';
 const GAME_VERSION='1.0.0';
 const PATCH_NOTES=[
+  {v:'1.1.0',date:'',title:'Friends & parties',notes:[
+    'Friends list: add real players by username or from their profile. Requests, accept or decline, and see who is online.',
+    'Parties: team up with up to 4 real players. Party members in the same place fight in each other\'s battles, and everyone earns XP and gold.',
+    'Party chat that only your party can read.',
+    'A more reliable online connection: players no longer flicker in and out, and the game reconnects by itself if the connection drops.'
+  ]},
   {v:'1.0.0',date:'2026-11-05',title:'The Realms open',notes:[
     'Eternal Realms is live on its own website, with real accounts: sign in with email or play as a guest.',
     'Cloud saves, live chat, the leaderboard, parcels and co-op now run on our own servers.',
@@ -2718,7 +2727,7 @@ function startCombat(enemies,opts={}){
   if(enemies.length>1){const k=1-0.08*Math.min(3,enemies.length-1);for(const e of enemies)if(!e.packAdj){e.packAdj=1;e.atk*=k;e.matk*=k;}}
   const allies=[actorFromChar(P,'a')];
   if(!opts.noParty)for(const n of partyMembers())allies.push(actorFromChar(n,'a',{ai:1}));
-  if(!opts.noParty&&typeof coopPartner==='function'){const cp=coopPartner();if(cp&&cp.loc===P.loc&&cp.cs){const a=actorFromSnap(cp.cs,cp.user+' ●','a');a.coop=1;allies.push(a);opts.coop=cp;}}
+  if(!opts.noParty&&typeof partyMates==='function'){const mates=partyMates().filter(m=>m.loc===P.loc&&m.cs);for(const m of mates){const a=actorFromSnap(m.cs,m.user+' ●','a');a.coop=1;allies.push(a);}if(mates.length)opts.partyLive=mates.map(m=>({key:m.key,user:m.user}));}
   C={allies,enemies:enemies.map(e=>e.side?e:(e.mon?actorFromMon(e):e)),round:0,order:[],oi:0,log:[],opts,ended:false,waiting:false,target:0,tactic:P.tactic||'free',inspected:{},startHp:P.hp,dmgDealt:0,dmgByP:0};
   for(const e of C.enemies)e.side='e';
   if(opts.ambush){for(const a of allies)a.fx.ambushed={d:1};clog('You were caught off guard!','bad');}
@@ -2986,7 +2995,7 @@ function finishCombat(result){
     const lv=C.enemies.reduce((m,e)=>Math.max(m,e.level),1);const gap=lv-P.level;xp*=gap<-8?0.25:gap<-4?0.6:gap>4?1.25:1;
     const myXp=Math.round(xp*(size>1?1.25/size:1));gold=Math.round(gold);const myGold=Math.round(gold/size);
     gainXp(myXp);P.gold+=myGold;C.summary.push(`+${U.fmt(myXp)} XP`,`+${U.fmt(myGold)} gold`);
-    if(o.coop){coopReward(myXp,myGold);C.summary.push(`${o.coop.user} earns their share too`);}
+    if(o.partyLive&&o.partyLive.length){partyReward(o.partyLive.map(m=>m.key),myXp,myGold);C.summary.push(`${o.partyLive.map(m=>m.user).join(', ')} earn${o.partyLive.length>1?'':'s'} their share too`);}
     for(const n of party){npcGainXp(n,xp*1.25/size);n.gold+=myGold;n.kills+=C.enemies.length;remember(n,null,1);}
     // loot distribution
     let rr=Math.floor(U.r()*size);
@@ -3623,6 +3632,7 @@ function cleanText(t){return String(t).slice(0,220).replace(BAD,m=>m[0]+'*'.repe
 async function netSendChat(ch,text,to){if(!NET.room&&!(NET.db&&NET.canWrite))return false;const now=Date.now();if(now-NET.lastSend<2500){if(typeof UI!=='undefined')UI.toast('Slow down — one message every few seconds in shared chat.','bad');return false;}
   NET.lastSend=now;const msg={id:U.uid(),t:now,ch,text:cleanText(text).slice(0,200)};if(to)msg.to=to;NET.realChat[msg.id]=1;
   if(NET.room){NET.live.msgs.push(msg);NET.live.msgs=NET.live.msgs.slice(-5);netPresence(true);}
+  if(ch==='party')return !!NET.room;
   if(!NET.db||!NET.uid||!NET.canWrite)return true;NET.myChat.push(msg);NET.myChat=NET.myChat.filter(m=>now-m.t<6*3600000).slice(-25);
   try{await NET.db.doc('chat/'+NET.uid).set({user:S.P.user,lvl:S.P.level,cls:S.P.cls,msgs:NET.myChat});return true;}catch(e){if(e&&e.code==='invalid_argument'){NET.canWrite=false;}return false;}}
 function onChatSnapshot(snap){const now=Date.now();
@@ -3661,7 +3671,8 @@ async function netInit(){
       const t=setTimeout(()=>{if(!NET.chatOk)NET.status+=' (shared data not reachable yet)';},10000);
       NET.unsub.push(db.collection('chat').onSnapshot(s=>{NET.chatOk=1;clearTimeout(t);onChatSnapshot(s);},e=>console.warn('chat',e)));
       NET.unsub.push(db.collection('players').onSnapshot(onPlayersSnapshot,e=>console.warn('players',e)));
-      NET.unsub.push(db.collection('mail').onSnapshot(onMailSnapshot,e=>console.warn('mail',e)));}
+      NET.unsub.push(db.collection('mail').onSnapshot(onMailSnapshot,e=>console.warn('mail',e)));
+      if(typeof onFriendsSnapshot==='function')NET.unsub.push(db.collection('friends').onSnapshot(onFriendsSnapshot,e=>{console.warn('friends',e);NET.friendsOff=1;}));}
     NET.myKey=NET.uid||('anon-'+U.uid());
     if(room){try{room.onPeers(onPeers);if(NET.mode!=='online'){NET.mode='online';NET.status='Live room connected: chat and co-op with friends who are online now. Saves stay in this browser.';}}catch(e){console.warn('room',e);}}
     if(sample){AI.fn=async(prompt)=>{const r=await sample(prompt,{modelTier:'quick',cache:false});return r.text;};}
@@ -3676,20 +3687,20 @@ let presT=0,presPending=false;
 function netPresence(force){if(!NET.room||!S||!S.P)return;const now=Date.now();if(!force&&now-presT<1200){if(!presPending){presPending=true;setTimeout(()=>{presPending=false;netPresence(true);},1300);}return;}presT=now;
   const P=S.P;const g=guild(P.guild);
   try{NET.room.presence({uid:NET.myKey,user:P.user,lvl:P.level,cls:P.cls,race:P.race,adv:P.adv||null,loc:P.loc,hp:Math.round(P.hp/stats(P).mhp*100),fame:P.fame,pvp:P.pvp.r,guild:g?g.name:null,
-    cs:combatSnap(P),msgs:NET.live.msgs.slice(-5),rw:NET.live.rw.slice(-5),coop:NET.live.coop,t:now});}catch(e){}}
+    cs:combatSnap(P),msgs:NET.live.msgs.slice(-5),rw:NET.live.rw.slice(-5),coop:NET.live.coop,party:typeof NET.live.party==='object'?{lead:NET.live.party.lead,members:NET.live.party.members,inv:NET.live.party.inv}:null,t:now});}catch(e){}}
 function onPeers(ch){const map={};
   for(const p of ch.peers){if(p.isMe||!p.presence||!p.presence.user)continue;const v=p.presence;const key=String(v.uid||p.by||p.peer).slice(0,64);
     map[key]={key,guest:p.guest,user:String(v.user).slice(0,24),lvl:v.lvl|0,cls:CLASSES[v.cls]?v.cls:'warrior',race:RACES[v.race]?v.race:'human',adv:ADV_CLASSES[v.adv]?v.adv:null,loc:LOCS[v.loc]?v.loc:'crossroads',
-      hp:v.hp|0,fame:v.fame|0,pvp:{r:v.pvp|0||1000},guild:v.guild?String(v.guild).slice(0,30):null,cs:v.cs,coop:v.coop||{},live:1,t:Date.now()};
+      hp:v.hp|0,fame:v.fame|0,pvp:{r:v.pvp|0||1000},guild:v.guild?String(v.guild).slice(0,30):null,cs:v.cs,coop:v.coop||{},party:v.party&&typeof v.party==='object'?{lead:v.party.lead?String(v.party.lead).slice(0,64):null,members:Array.isArray(v.party.members)?v.party.members.slice(0,PARTY_MAX).map(String):[],inv:Array.isArray(v.party.inv)?v.party.inv.slice(0,6).map(String):[]}:{},live:1,t:Date.now()};
     for(const m of (Array.isArray(v.msgs)?v.msgs:[])){if(!m||!m.id||NET.realChat[m.id])continue;NET.realChat[m.id]=1;if(NET.muted.includes(key))continue;const text=cleanText(m.text||'');
       if(m.ch==='pm'){if(m.to===NET.myKey)chatPush('pm','R:'+key,text,{with:'R:'+key,real:1,name:map[key].user});}
-      else if(['global','trade','recruit','local'].includes(m.ch)){if(m.ch==='local'&&S&&S.P&&map[key].loc!==S.P.loc)continue;chatPush(m.ch,'R:'+key,text,{real:1,name:map[key].user});}}
+      else if(['global','trade','recruit','local','party'].includes(m.ch)){if(m.ch==='local'&&S&&S.P&&map[key].loc!==S.P.loc)continue;if(m.ch==='party'&&!(typeof partyMates==='function'&&(partyMates().some(p=>p.key===key)||NET.live.party.lead===key||(NET.live.party.members||[]).includes(key))))continue;chatPush(m.ch,'R:'+key,text,{real:1,name:map[key].user});}}
     for(const r of (Array.isArray(v.rw)?v.rw:[])){if(!r||r.to!==NET.myKey||NET.claimedRw[r.id]||!S||!S.P)continue;NET.claimedRw[r.id]=1;S.P.claimedRw=S.P.claimedRw||[];if(S.P.claimedRw.includes(r.id))continue;S.P.claimedRw.push(r.id);if(S.P.claimedRw.length>200)S.P.claimedRw.shift();
       const xp=Math.max(0,Math.min(5e6,r.xp|0)),gold=Math.max(0,Math.min(1e6,r.gold|0));gainXp(xp);S.P.gold+=gold;log(`⚔ Fought alongside ${map[key].user}: +${U.fmt(xp)} XP, +${U.fmt(gold)}g.`,'good');}
     const old=NET.peerMap[key];if(map[key].coop.inv===NET.myKey&&(!old||old.coop.inv!==NET.myKey)&&NET.live.coop.with!==key){chatPush('system','SYS',`${map[key].user} invites you to adventure together. Open their profile to accept.`);if(typeof UI!=='undefined')UI.toast(`${map[key].user} invites you to co-op`,'epic');}
     if(old&&old.coop.with===NET.myKey&&map[key].coop.with!==NET.myKey&&NET.live.coop.with===key){NET.live.coop.with=null;chatPush('system','SYS',`${map[key].user} ended your co-op.`);netPresence();}}
   for(const k in NET.peerMap)if(!map[k]&&NET.live.coop.with===k)chatPush('system','SYS',`${NET.peerMap[k].user} left the realm. Your co-op pauses until they return.`);
-  NET.peerMap=map;NET.peers=Object.keys(map).length;if(typeof UI!=='undefined'){UI.dirty=true;}}
+  NET.peerMap=map;NET.peers=Object.keys(map).length;if(typeof partyMaintain==='function')partyMaintain();if(typeof UI!=='undefined'){UI.dirty=true;}}
 function coopPartner(){const k=NET.live.coop.with;if(!k)return null;const p=NET.peerMap[k];if(!p||p.coop.with!==NET.myKey)return null;return p;}
 function coopInvite(key){NET.live.coop.inv=key;const p=NET.peerMap[key];if(p&&p.coop.inv===NET.myKey){NET.live.coop.with=key;NET.live.coop.inv=null;chatPush('system','SYS',`You and ${p.user} are now adventuring together.`);}else chatPush('system','SYS',`Co-op invite sent to ${p?p.user:'them'}.`);netPresence(true);}
 function coopEnd(){NET.live.coop={inv:null,with:null};netPresence(true);}
@@ -3751,10 +3762,36 @@ function supaCollection(c,col){return {onSnapshot(cb,onErr){const rows=new Map()
   SUPA.channels.push(ch);return ()=>{alive=false;try{c.removeChannel(ch);}catch(e){}};}};}
 
 /* ---------- room: live presence (who is online, co-op, quick messages) ---------- */
-function supaRoom(c,uid){const ch=c.channel('realm',{config:{presence:{key:uid}}});let handler=null,ready=false,pending=null;
-  const fire=()=>{if(!handler)return;const st=ch.presenceState();const peers=Object.entries(st).map(([key,metas])=>({isMe:key===uid,presence:metas&&metas[0],by:key,peer:key,guest:false}));try{handler({peers});}catch(e){console.warn(e);}};
-  ch.on('presence',{event:'sync'},fire).subscribe(s=>{if(s==='SUBSCRIBED'){ready=true;if(pending){ch.track(pending);pending=null;}}});SUPA.channels.push(ch);
-  return {onPeers(fn){handler=fn;fire();},presence(obj){if(ready)ch.track(obj);else pending=obj;}};}
+function supaRoom(c,uid){
+  // Supabase limits how often one player may update their presence (too often and the server closes the channel).
+  // So: every state change is BROADCAST instantly (cheap, meant for frequent messages), while presence itself is
+  // re-tracked at most every PRES_GAP ms with the latest state, so late joiners still see everyone.
+  const PRES_GAP=8000,BC_GAP=350,GRACE=12000;
+  let ch=null,handler=null,ready=false,latest=null,lastTrack=0,trackT=0,lastBc=0,bcT=0,lastSig='',closedT=0;
+  const known=new Map();   // key -> {meta, seen}
+  const fire=(force)=>{if(!handler)return;const now=Date.now();const st=ch&&ready?ch.presenceState():{};
+    for(const [key,metas] of Object.entries(st)){const meta=metas&&metas[metas.length-1];const k=known.get(key);
+      if(meta&&(!k||(meta.t||0)>=(k.meta.t||0)))known.set(key,{meta,seen:now});else if(k)k.seen=now;}
+    for(const [key,v] of known)if(key!==uid&&now-v.seen>GRACE)known.delete(key);
+    const peers=[...known.entries()].map(([key,v])=>({isMe:key===uid,presence:v.meta,by:key,peer:key,guest:false}));
+    const sig=JSON.stringify(peers.map(p=>[p.by,p.presence&&p.presence.t]));if(!force&&sig===lastSig)return;lastSig=sig;
+    try{handler({peers});}catch(e){console.warn(e);}};
+  const doTrack=()=>{trackT=0;if(!ready||!latest)return;lastTrack=Date.now();ch.track(latest).catch(()=>{});};
+  const doBroadcast=()=>{bcT=0;if(!ready||!latest)return;lastBc=Date.now();ch.send({type:'broadcast',event:'p',payload:{k:uid,m:latest}}).catch(()=>{});};
+  const join=()=>{ready=false;ch=c.channel('realm',{config:{presence:{key:uid},broadcast:{self:false}}});
+    ch.on('presence',{event:'sync'},()=>fire(false))
+      .on('broadcast',{event:'p'},({payload})=>{if(!payload||!payload.k||!payload.m||payload.k===uid)return;const k=known.get(payload.k);
+        if(!k||(payload.m.t||0)>=(k.meta.t||0)){known.set(String(payload.k).slice(0,64),{meta:payload.m,seen:Date.now()});fire(true);}else k.seen=Date.now();})
+      .on('system',{},m=>{if(m&&m.status&&m.status!=='ok')console.warn('realm system',JSON.stringify(m).slice(0,200));})
+      .subscribe((s,err)=>{if(s==='SUBSCRIBED'){ready=true;closedT=0;doTrack();doBroadcast();}
+        else if(s==='CLOSED'||s==='CHANNEL_ERROR'||s==='TIMED_OUT'){ready=false;if(!closedT){closedT=Date.now();   // reconnect on our own
+          setTimeout(()=>{try{c.removeChannel(ch);}catch(e){}SUPA.channels=SUPA.channels.filter(x=>x!==ch);closedT=0;join();},5000);}}});
+    SUPA.channels.push(ch);};
+  join();setInterval(()=>{fire(false);if(ready&&latest&&Date.now()-lastTrack>30000)doTrack();},4000);
+  return {onPeers(fn){handler=fn;fire(true);},
+    presence(obj){latest=obj;known.set(uid,{meta:obj,seen:Date.now()});const now=Date.now();
+      if(!bcT){const wait=Math.max(0,BC_GAP-(now-lastBc));bcT=setTimeout(doBroadcast,wait);}
+      if(!trackT){const wait=Math.max(0,PRES_GAP-(now-lastTrack));trackT=setTimeout(doTrack,wait);}}};}
 
 /* ---------- the services netInit() asks for ---------- */
 async function supaServices(){const s=await supaSession();if(!s)return null;const c=SUPA.client;const uid=s.user.id;
@@ -4669,7 +4706,7 @@ function renderChat(full){const ch=UI.chatCh;const pmKeys=Object.keys(S.chat.pm)
 Object.assign(ACT,{chch(v){UI.chatCh=v;if(v==='pm'&&!UI.pmWith){UI.pmWith=Object.keys(S.chat.pm)[0]||null;}if(UI.pmWith)delete S.pmUnread[UI.pmWith];},pmwith(k){UI.pmWith=k;delete S.pmUnread[k];},
   form_chat(fd,f){const text=(fd.msg||'').trim();if(!text)return;const ch=fd.ch;
     if(ch==='pm'&&UI.pmWith){if(UI.pmWith.startsWith('R:')){chatPush('pm','P',text,{with:UI.pmWith});netSendChat('pm',text,UI.pmWith.slice(2));}else playerChat('pm',text,UI.pmWith);}
-    else{playerChat(ch,text);if(['global','trade','recruit','local'].includes(ch)&&!text.startsWith('/'))netSendChat(ch,text);}
+    else{playerChat(ch,text);if((['global','trade','recruit','local'].includes(ch)||(ch==='party'&&partyMates().length))&&!text.startsWith('/'))netSendChat(ch,text);}
     f.reset();setTimeout(()=>{const i=document.getElementById('chatmsg');if(i)i.focus();},0);UI.chatDirty=true;}});
 UI.openPM=(id)=>{UI.chatCh='pm';UI.pmWith=id;delete S.pmUnread[id];if(window.innerWidth<1000)UI.tab='chat';};
 
@@ -4688,12 +4725,10 @@ function profileView(id){const n=npc(id);if(!n)return '';const P=S.P;const st=st
    ${g&&!P.guild&&!g.isPlayer?btn(`Apply to ${E(g.tag)}`,'gapply',g.id):''}${P.guild&&guild(P.guild).isPlayer&&n.guild!==P.guild?btn('Recruit to guild','grecruit',n.id):''}
    ${P.blocked.includes(n.id)?btn('Unblock','unblock',n.id,'ghost'):btn('Block','block',n.id,'ghost')}</div>`;}
 function rprofileView(id){const p=realPlayer(id);if(!p)return '<p>This player is not around right now.</p>';const live=p.live;const me=id===NET.myKey;const cp=NET.live.coop;
-  const coopState=cp.with===id?(live&&live.coop.with===NET.myKey?'active':'waiting'):live&&live.coop.inv===NET.myKey?'invited':cp.inv===id?'sent':'none';
   return `<div class="phead">${avatar(p.user,p.cls,1)}<div><h2>${E(p.user)} <sup class="realdot">●</sup></h2><p class="hint">Real player · ${live?'<span class="good">online now</span>':'last seen '+new Date(p.t).toLocaleString()}</p></div></div>
   <p><b>Lv.${p.level} ${E(p.adv&&ADV_CLASSES[p.adv]?ADV_CLASSES[p.adv].name:CLASSES[p.cls]?CLASSES[p.cls].name:'')}</b> · ${RACES[p.race]?RACES[p.race].name:''}${p.guild?' · '+E(p.guild):''} · in ${E(LOCS[p.loc]?LOCS[p.loc].n:'?')}</p>
   <div class="derived">${[['Fame',U.fmt(p.fame||0)],['Power',U.fmt(p.power||0)],['PvP',`${p.pvp?p.pvp.r:1000}`],['Kills',U.fmt(p.kills||0)],['Dungeons',p.dungeons||0],['Achievements',p.ach||0]].map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>
-  ${me?'<p>This is you.</p>':`${live?`<div class="coop ${coopState}"><h3>${icon('party')} Adventure together</h3><p>${({active:`You're in co-op. When you're both in the same place, ${E(p.user)}'s hero joins your fights (and yours joins theirs). You both earn XP and gold.`,waiting:`Waiting for ${E(p.user)} to accept.`,invited:`${E(p.user)} wants to adventure with you.`,sent:`Invite sent. Waiting for ${E(p.user)}.`,none:`Team up: while you're both online and in the same place, each of your heroes fights in the other's battles.`})[coopState]}</p>
-    <div class="row">${coopState==='active'||coopState==='waiting'?btn('End co-op','coopend','','ghost'):btn(coopState==='invited'?'Accept':'Invite to co-op','coopinv',id,'gilt')}${coopState==='active'&&p.loc!==S.P.loc?btn(`Find them in ${E(LOCS[p.loc].n)}`,'mapfocus',p.loc):''}</div></div>`:''}
+  ${me?'<p>This is you.</p>':`${realProfileButtons(id)}
   <div class="grid-btn">${btn('Whisper','rpm',id)}${btn('Duel their champion','rduel',id,'danger')}${NET.canWrite&&NET.players[id]?btn('Send a parcel','mailask',id):''}${btn(NET.muted.includes(id)?'Unmute':'Mute','rmute',id,'ghost')}</div>
   <p class="hint">Whispers to real players travel through the shared room, so others could technically see them. Don't share anything private.</p>`}`;}
 Object.assign(ACT,{profile(id){openModal(profileView(id),'prof:'+id);},rprofile(id){openModal(rprofileView(id),'rprof');},pmopen(id){closeModal();UI.openPM(id);},
@@ -4714,8 +4749,8 @@ function tradeView(id){const n=npc(id),P=S.P;if(!online(n))return `<h2>Trade</h2
   <h3>Sell to them</h3><div class="list">${P.inv.map((it,i)=>isGear(it)?`<div class="li"><span>${rarityName(it)} <small>Lv.${it.l}</small></span>${btn('Offer','tsell',`${id}|${i}`,'tiny')}</div>`:'').join('')||'<p class="hint">You have no gear to sell.</p>'}</div>`;}
 
 /* ---------------- party & guild ---------------- */
-function renderSocial(){const P=S.P;const pm=partyMembers();const cp=coopPartner();
-  let h=`<section class="panel"><h3>Party <small>${1+pm.length}/4</small></h3><div class="list"><div class="li"><span><b>${E(P.user)}</b> (you) <small>Lv.${P.level} ${E(className(P))} · ${CLASSES[P.cls].role}</small></span></div>
+function renderSocial(){const P=S.P;const pm=partyMembers();const cp=null;
+  let h=realSocialHtml()+`<section class="panel"><h3>Adventuring companions <small>${1+pm.length}/4</small></h3><div class="list"><div class="li"><span><b>${E(P.user)}</b> (you) <small>Lv.${P.level} ${E(className(P))} · ${CLASSES[P.cls].role}</small></span></div>
   ${cp&&cp.loc===P.loc?`<div class="li"><span>${avatar(cp.user,cp.cls,1)} <b>${E(cp.user)}</b><sup class="realdot">●</sup> <small>Lv.${cp.lvl} ${E(CLASSES[cp.cls].name)} · co-op partner</small></span></div>`:''}
   ${pm.map(n=>`<div class="li"><span>${avatar(n.user,n.cls)} ${userLink(n.id)} <small>Lv.${n.level} ${E(className(n))} · ${CLASSES[n.cls].role} · ${Math.round(n.hpPct*100)}% HP</small></span>${btn('Remove','kick',n.id,'tiny ghost')}</div>`).join('')}</div>
   <p class="hint">Find groups in Global or Recruit chat (“anyone want to help me clear the abandoned mine?”), or invite people from their profile. Members fight on their own and share XP and loot.</p>
@@ -5015,6 +5050,105 @@ async function boot(){if(typeof IS_TEST_SITE!=='undefined'&&IS_TEST_SITE)documen
   netInit().then(async()=>{if(!UI.started)await showTitle();});}
 boot();
 
+
+/* ---- social.js ---- */
+/* ETERNAL REALMS — real-player friends (saved to your account) and parties (live, up to 4 real players).
+   Friends: each player keeps one row friends/<uid> = {user, list:[uids], no:[uids]}.
+            Both players listing each other = friends. Only one side = a pending request.
+   Parties: carried in live presence. The leader broadcasts {lead:self, members, inv}; a member broadcasts {lead:leader}.
+            You are in a party only while both sides agree, so nobody can force their way in. */
+'use strict';
+const PARTY_MAX=4;
+NET.friendDocs={};NET.live.party={lead:null,members:[],inv:[]};
+
+/* ---------- friends ---------- */
+function friendsOnline(){return NET.mode==='online'&&!!NET.uid&&!NET.friendsOff;}
+function myFriendDoc(){return NET.friendDocs[NET.uid]||{list:[],no:[]};}
+function friendState(uid){if(!uid||uid===NET.uid)return 'self';const mine=(myFriendDoc().list||[]).includes(uid);const theirs=((NET.friendDocs[uid]||{}).list||[]).includes(NET.uid);
+  return mine&&theirs?'friends':mine?'sent':theirs?'incoming':'none';}
+function realFriendIds(){return (myFriendDoc().list||[]).filter(u=>friendState(u)==='friends');}
+function friendRequests(){const no=myFriendDoc().no||[];return Object.keys(NET.friendDocs).filter(u=>friendState(u)==='incoming'&&!no.includes(u));}
+function realName(uid){const p=NET.players[uid],l=NET.peerMap[uid],f=NET.friendDocs[uid];return String((l&&l.user)||(p&&p.user)||(f&&f.user)||'Adventurer').slice(0,24);}
+async function saveFriendDoc(list,no){if(!friendsOnline()){UI.toast('Friends need an online connection.','bad');return false;}
+  const doc={user:S.P.user,list:[...new Set(list)].slice(0,200),no:[...new Set(no)].slice(0,200)};
+  try{await NET.db.doc('friends/'+NET.uid).set(doc);NET.friendDocs[NET.uid]=doc;UI.dirty=true;return true;}
+  catch(e){console.warn('friends',e);UI.toast('Could not update your friends list right now.','bad');return false;}}
+async function friendAdd(uid){const d=myFriendDoc();if(uid===NET.uid)return;const wasIncoming=friendState(uid)==='incoming';
+  if(await saveFriendDoc([...(d.list||[]),uid],(d.no||[]).filter(x=>x!==uid))){UI.toast(wasIncoming?`You and ${realName(uid)} are now friends!`:`Friend request sent to ${realName(uid)}.`,wasIncoming?'epic':'');
+    if(wasIncoming)chatPush('system','SYS',`You and ${realName(uid)} are now friends.`);}}
+async function friendRemove(uid){const d=myFriendDoc();if(await saveFriendDoc((d.list||[]).filter(x=>x!==uid),d.no||[]))UI.toast(`Removed ${realName(uid)}.`);}
+async function friendDecline(uid){const d=myFriendDoc();await saveFriendDoc(d.list||[],[...(d.no||[]),uid]);}
+function onFriendsSnapshot(s){const before=friendRequests();NET.friendDocs={};for(const d of s.docs)NET.friendDocs[d.id]=d.data()||{};
+  for(const u of friendRequests())if(!before.includes(u)&&NET.friendsSeen){chatPush('system','SYS',`${realName(u)} sent you a friend request. Open Social to accept.`);UI.toast(`Friend request from ${realName(u)}`,'epic');}
+  NET.friendsSeen=1;UI.dirty=true;}
+function findPlayerByName(name){const n=String(name||'').trim().toLowerCase();if(!n)return null;
+  for(const [uid,p] of Object.entries(NET.players))if(String(p.user||'').toLowerCase()===n)return uid;
+  for(const [uid,p] of Object.entries(NET.peerMap))if(String(p.user||'').toLowerCase()===n)return uid;return null;}
+
+/* ---------- parties ---------- */
+function myParty(){return NET.live.party;}
+function isLeader(){return myParty().lead===NET.myKey;}
+function partyMates(){const me=NET.myKey,pt=myParty();if(!pt.lead)return [];
+  if(pt.lead===me)return (pt.members||[]).map(k=>NET.peerMap[k]).filter(Boolean);
+  const L=NET.peerMap[pt.lead];if(!L||!L.party||L.party.lead!==L.key||(!(L.party.members||[]).includes(me)&&!pt.ok))return [];
+  return [L,...(L.party.members||[]).filter(k=>k!==me).map(k=>NET.peerMap[k]).filter(p=>p&&p.party&&p.party.lead===L.key)];}
+function partyInvitesToMe(){return Object.values(NET.peerMap).filter(p=>p.party&&p.party.lead===p.key&&(p.party.inv||[]).includes(NET.myKey)&&myParty().lead!==p.key&&!(NET.dismissedInv||[]).includes(p.key));}
+function partyInvite(key){const pt=myParty();if(pt.lead&&pt.lead!==NET.myKey){UI.toast('Only the party leader can invite.','bad');return;}
+  const size=1+(pt.members||[]).length;if(size>=PARTY_MAX){UI.toast(`Parties hold ${PARTY_MAX} players.`,'bad');return;}
+  NET.live.party={lead:NET.myKey,members:pt.members||[],inv:[...new Set([...(pt.inv||[]),key])].slice(-6)};
+  chatPush('system','SYS',`Party invite sent to ${realName(key)}.`);netPresence(true);UI.dirty=true;}
+function partyAccept(lead){const L=NET.peerMap[lead];NET.dismissedInv=(NET.dismissedInv||[]).filter(k=>k!==lead);if(!L)return;if(myParty().lead&&myParty().lead!==lead)partyLeave(true);
+  if(1+((L.party.members||[]).length)>=PARTY_MAX){UI.toast('That party is already full.','bad');return;}
+  NET.live.party={lead,members:[],inv:[]};chatPush('system','SYS',`You joined ${L.user}'s party.`);netPresence(true);UI.dirty=true;}
+function partyLeave(quiet){const was=myParty().lead;NET.live.party={lead:null,members:[],inv:[]};NET.partyGone={};if(!quiet&&was)chatPush('system','SYS',was===NET.myKey?'You disbanded your party.':'You left the party.');netPresence(true);UI.dirty=true;}
+function partyKick(key){if(!isLeader())return;const pt=myParty();NET.live.party={lead:NET.myKey,members:(pt.members||[]).filter(k=>k!==key),inv:(pt.inv||[]).filter(k=>k!==key)};chatPush('system','SYS',`${realName(key)} was removed from the party.`);netPresence(true);UI.dirty=true;}
+// runs after every presence update: keeps both sides of the party agreement in sync.
+// Presence updates can arrive late or out of order, so nobody is dropped until they've looked "gone" for a few seconds.
+const PARTY_GRACE=6000;NET.partyGone={};
+function goneFor(k,isGone){const now=Date.now();if(!isGone){delete NET.partyGone[k];return 0;}if(!NET.partyGone[k])NET.partyGone[k]=now;return now-NET.partyGone[k];}
+function partyMaintain(){const me=NET.myKey,pt=myParty();if(!pt.lead)return;let changed=false;
+  if(pt.lead===me){let members=(pt.members||[]).slice();
+    for(const k of (pt.inv||[])){const p=NET.peerMap[k];if(p&&p.party&&p.party.lead===me&&!members.includes(k)&&1+members.length<PARTY_MAX){members.push(k);goneFor('m:'+k,false);chatPush('system','SYS',`${p.user} joined your party.`);}}
+    members=members.filter(k=>{const p=NET.peerMap[k];const gone=!(p&&p.party&&p.party.lead===me);if(goneFor('m:'+k,gone)>PARTY_GRACE){chatPush('system','SYS',`${realName(k)} left the party.`);return false;}return true;});
+    const inv=(pt.inv||[]).filter(k=>!members.includes(k));
+    if(members.join()!==(pt.members||[]).join()||inv.join()!==(pt.inv||[]).join()){NET.live.party={lead:me,members,inv};changed=true;}
+    if(!members.length&&!inv.length){NET.live.party={lead:null,members:[],inv:[]};changed=true;}}
+  else{const L=NET.peerMap[pt.lead];const leading=!!(L&&L.party&&L.party.lead===L.key);const joined=leading&&(L.party.members||[]).includes(me);
+    if(joined)pt.ok=1;
+    const gone=goneFor('lead',!L||!leading||(pt.ok&&!joined));
+    if(gone>(L?PARTY_GRACE:60000)){NET.live.party={lead:null,members:[],inv:[]};NET.partyGone={};
+      chatPush('system','SYS',!L?'Your party leader went offline. The party disbanded.':`You are no longer in ${L.user}'s party.`);changed=true;}
+    else if(!pt.ok&&!joined&&L&&!(L.party.inv||[]).includes(me)&&goneFor('inv',true)>PARTY_GRACE*2){NET.live.party={lead:null,members:[],inv:[]};changed=true;}
+    else if(joined)goneFor('inv',false);}
+  if(changed){netPresence(true);UI.dirty=true;}}
+function partyReward(keys,xp,gold){for(const k of keys)NET.live.rw.push({id:U.uid(),to:k,xp:Math.round(xp),gold:Math.round(gold)});NET.live.rw=NET.live.rw.slice(-8);netPresence(true);}
+
+/* ---------- Social tab panels ---------- */
+function realSocialHtml(){if(NET.mode!=='online')return '';const P=S.P,me=NET.myKey,pt=myParty(),mates=partyMates(),invites=partyInvitesToMe();
+  const row=(p,extra)=>`<div class="li"><span>${avatar(p.user,p.cls,1)} <b>${E(p.user)}</b><sup class="realdot">●</sup> <small>Lv.${p.lvl} ${E(CLASSES[p.cls]?CLASSES[p.cls].name:'')} · ${E(LOCS[p.loc]?LOCS[p.loc].n:'?')}${p.loc===P.loc?' · <span class="good">here</span>':''}</small></span>${extra||''}</div>`;
+  let h=`<section class="panel realp"><h3>${icon('party')} Party <small>${pt.lead?1+mates.length:1}/${PARTY_MAX} real players</small></h3>`;
+  if(invites.length)h+=invites.map(p=>`<div class="li invite"><span><b>${E(p.user)}</b> invites you to their party</span><span class="row">${btn('Join','ptjoin',p.key,'gilt tiny')}${btn('No','ptno',p.key,'ghost tiny')}</span></div>`).join('');
+  if(pt.lead){h+=`<div class="list"><div class="li"><span><b>${E(P.user)}</b> (you)${pt.lead===me?' · leader':''}</span></div>${mates.map(p=>row(p,(isLeader()?btn('Kick','ptkick',p.key,'ghost tiny'):'')+(p.key===pt.lead?' <small>leader</small>':''))).join('')}
+      ${isLeader()?(pt.inv||[]).map(k=>`<div class="li"><span class="hint">Invited: ${E(realName(k))}…</span></div>`).join(''):''}</div>
+      <p class="hint">Party members in the same place as you fight in your battles, and you fight in theirs. Everyone earns XP and gold. Party chat goes only to the party.</p>
+      <div class="row">${btn(isLeader()?'Disband party':'Leave party','ptleave','','ghost')}</div>`;}
+  else h+=`<p class="hint">You're not in a party. Invite a friend or any online player from their profile.</p>`;
+  h+=`</section>`;
+  if(friendsOnline()){const fr=realFriendIds(),req=friendRequests(),sent=(myFriendDoc().list||[]).filter(u=>friendState(u)==='sent');
+    h+=`<section class="panel realp"><h3>${icon('online')} Friends <small>${fr.filter(u=>NET.peerMap[u]).length}/${fr.length} online</small></h3>
+      ${req.map(u=>`<div class="li invite"><span><b>${E(realName(u))}</b> wants to be friends</span><span class="row">${btn('Accept','fracc',u,'gilt tiny')}${btn('Decline','frno',u,'ghost tiny')}</span></div>`).join('')}
+      <div class="list">${fr.map(u=>{const l=NET.peerMap[u],p=NET.players[u]||{};return `<div class="li"><button class="linkish" data-a="rprofile" data-v="${E(u)}">${avatar(realName(u),(l||p).cls||'warrior',1)} <b>${E(realName(u))}</b> <small>${l?`<span class="good">● online</span> · ${E(LOCS[l.loc]?LOCS[l.loc].n:'')}`:'○ offline'}${p.level?' · Lv.'+p.level:''}</small></button>${l&&!mates.some(m=>m.key===u)&&(!pt.lead||isLeader())?btn('Invite to party','ptinv',u,'tiny'):''}</div>`;}).join('')||'<p class="hint">No friends yet. Add someone by their username, or from their profile.</p>'}</div>
+      ${sent.length?`<p class="hint">Waiting for: ${sent.map(u=>E(realName(u))).join(', ')}</p>`:''}
+      <form data-form="fradd" class="row"><input name="name" placeholder="Username" maxlength="24" aria-label="Friend's username" required><button class="b tiny">Add friend</button></form></section>`;}
+  return h;}
+function realProfileButtons(id){if(id===NET.myKey)return '';const st=friendState(id),pt=myParty(),inParty=partyMates().some(m=>m.key===id),live=!!NET.peerMap[id];
+  const fb=!friendsOnline()?'':st==='friends'?btn('Remove friend','frrem',id,'ghost'):st==='sent'?btn('Request sent','',id,'ghost'):st==='incoming'?btn('Accept friend request','fracc',id,'gilt'):btn('Add friend','fradd1',id);
+  const pb=!live?'':inParty?btn('In your party','',id,'ghost'):partyInvitesToMe().some(p=>p.key===id)?btn('Join their party','ptjoin',id,'gilt'):(!pt.lead||isLeader())?btn('Invite to party','ptinv',id,'gilt'):'';
+  return `<div class="row wrap">${fb}${pb}</div>`;}
+Object.assign(ACT,{fradd1(id){friendAdd(id).then(()=>refreshModal());},fracc(id){friendAdd(id).then(()=>{UI.dirty=true;refreshModal();});},frno(id){friendDecline(id);},frrem(id){friendRemove(id).then(()=>refreshModal());},
+  form_fradd(fd){const uid=findPlayerByName(fd.name);if(!uid){UI.toast(`No player named "${String(fd.name).slice(0,24)}" found. Check the spelling.`,'bad');return;}if(uid===NET.uid){UI.toast("That's you!");return;}friendAdd(uid);},
+  ptinv(k){partyInvite(k);refreshModal();},ptjoin(k){partyAccept(k);refreshModal();},ptno(k){NET.dismissedInv=(NET.dismissedInv||[]).concat(k);UI.dirty=true;},
+  ptleave(){partyLeave();},ptkick(k){partyKick(k);}});
 
 /* ---- finale.js ---- */
 /* ETERNAL REALMS — the final battle, fully staged: Sunfall, the shatter, death, the glitch, rebirth, and the ending */

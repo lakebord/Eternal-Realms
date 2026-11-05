@@ -452,3 +452,6 @@ body:not(.ingame){background:#05070d}
 #modal .patch h3 small{font-family:var(--body);opacity:.7;font-size:.8rem}#modal .patch ul{margin:.3rem 0 1rem;padding-left:1.2rem;line-height:1.5}
 .testbadge{color:#1a1206;background:#ffcf5a;padding:.1rem .45rem;border-radius:6px;font-weight:700;letter-spacing:.06em}
 body.testsite::after{content:"TEST VERSION";position:fixed;left:50%;top:0;transform:translateX(-50%);z-index:90;background:#ffcf5a;color:#1a1206;font:700 .62rem/1.6 var(--mono);letter-spacing:.12em;padding:0 .6rem;border-radius:0 0 6px 6px;pointer-events:none}
+.li.invite{background:color-mix(in srgb,var(--gilt) 14%,transparent);border-radius:10px;padding:.45rem .6rem}
+.linkish{background:none;border:0;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer;display:flex;align-items:center;gap:.4rem}
+.realp form.row input{flex:1;min-width:0}
