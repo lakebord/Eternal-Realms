@@ -1,14 +1,12 @@
-# Builds the site and publishes it to Cloudflare Pages (a placeholder page until a game exists).
-#   push to main -> LIVE site   https://eternal-realms-26r.pages.dev
-#   push to next -> TEST site   https://next.eternal-realms-26r.pages.dev  (offline until a separate test database exists)
+# Builds the game and publishes it to Cloudflare Pages on every push to main.
 # Needs two repository secrets: CLOUDFLARE_API_TOKEN (Account → Cloudflare Pages → Edit) and CLOUDFLARE_ACCOUNT_ID.
 name: Deploy to Cloudflare Pages
 on:
   push:
-    branches: [main, next]
+    branches: [main]
   workflow_dispatch:
 concurrency:
-  group: deploy-${{ github.ref_name }}
+  group: deploy
   cancel-in-progress: true
 jobs:
   deploy:
@@ -24,14 +22,7 @@ jobs:
         with:
           node-version: 20
       - name: Build the game
-        run: |
-          if [ -f tools/build.js ]; then
-            node tools/build.js
-          else
-            # no game yet: publish a placeholder page
-            mkdir -p public
-            printf '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Coming soon</title><style>html,body{height:100%%;margin:0;background:#11141c;color:#e8e2d0;font:600 1.4rem system-ui,sans-serif;display:grid;place-items:center}</style><p>Coming soon</p>\n' > public/index.html
-          fi
+        run: node tools/build.js
       - name: Check the Cloudflare secrets are set
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
@@ -41,4 +32,4 @@ jobs:
       - name: Create the Pages project (first run only)
         run: npx --yes wrangler@3.99.0 pages project create eternal-realms --production-branch main || echo "Project already exists"
       - name: Publish
-        run: npx --yes wrangler@3.99.0 pages deploy public --project-name eternal-realms --branch ${{ github.ref_name }} --commit-dirty=true
+        run: npx --yes wrangler@3.99.0 pages deploy public --project-name eternal-realms --branch main --commit-dirty=true
