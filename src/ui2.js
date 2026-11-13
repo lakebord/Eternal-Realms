@@ -286,7 +286,7 @@ function actorCard(a,i,side){const fx=Object.keys(a.fx).filter(k=>STATUS[k]&&a.f
   <span class="ahead">${sigil(a)}<b>${E(a.name)}</b></span><small>Lv.${a.level} · ${a.row}${a.boss?' · BOSS':''}${a.fled?(a.tamed?' · bonded':a.surrendered?' · yielded':' · fled'):''}</small>${abar(Math.max(0,a.hp),a.mhp,'hp','HP',a._k)}${a.side==='a'&&!a.mon?abar(a.mp,a.mmp,'mp','MP',a._k)+abar(a.sp,a.msp,'sp','SP',a._k):''}<span class="fxs">${fx}</span></button>`;}
 function renderCombat(){if(!C)return;const el=$('#combat');const pa=C.allies.find(x=>x.isPlayer);const foes=alive(C.enemies);if(C.target>=foes.length)C.target=0;
   const myTurn=C.waiting&&!C.ended;let actions='';
-  if(C.ended){actions=`<div class="cres ${C.result}"><h3>${icon(C.result==='win'?'ranks':C.result==='lose'?'skull':'escape')} ${C.result==='win'?'Victory':C.result==='lose'?'Defeat':'Escaped'}</h3>${C.summary.map(s=>typeof s==='object'?`<p class="loot lr${s.r||0}">${s.html}</p>`:`<p>${E(s)}</p>`).join('')}<div class="row">${S.P.dungeon&&C.result==='win'?btn(S.P.dungeon.floor>S.P.dungeon.floors?'Face the boss':'Next floor','cnext','','gilt')+btn('Leave dungeon','cleave'):''}${btn(C.perma?'Return to title':'Continue','cclose','','gilt')}</div></div>`;}
+  if(C.ended){actions=`<div class="cres ${C.result}"><h3>${icon(C.result==='win'?'ranks':C.result==='lose'?'skull':'escape')} ${C.result==='win'?'Victory':C.result==='lose'?'Defeat':'Escaped'}</h3>${(C.summary||[]).map(s=>typeof s==='object'?`<p class="loot lr${s.r||0}">${s.html}</p>`:`<p>${E(s)}</p>`).join('')}<div class="row">${S.P.dungeon&&C.result==='win'?btn(S.P.dungeon.floor>S.P.dungeon.floors?'Face the boss':'Next floor','cnext','','gilt')+btn('Leave dungeon','cleave'):''}${btn(C.perma?'Return to title':'Continue','cclose','','gilt')}</div></div>`;}
   else if(myTurn){const m=UI.combatMenu;const sk=pa.skills;
     if(m==='main'){const cb=(ic,n,a,v,cls='')=>`<button class="cb ${cls}" data-a="${a}" data-v="${v}">${icon(ic)}<span>${n}</span></button>`;
       actions=`<div class="cact main"><div class="crow prim">${cb('attack','Attack','ca','attack','big')}${cb('skills','Skills','cmenu','skills','gilt')}${cb('magic','Magic','cmenu','magic','gilt')}${cb('items','Items','cmenu','items')}</div>
@@ -299,7 +299,7 @@ function renderCombat(){if(!C)return;const el=$('#combat');const pa=C.allies.fin
       if(m==='party')inner=['free','focus','defensive'].map(t=>btn(({free:'Fight freely',focus:'Focus my target',defensive:'Play defensively'})[t],'ctactic',t,C.tactic===t?'gilt':'')).join('');
       actions=`<div class="cact sub">${inner}${btn('◂ Back','cmenu','main','ghost')}</div>`;}}
   else actions='<div class="cact wait"><p>…</p></div>';
-  el.innerHTML=`<div class="cwrap"><header><h2>${E(C.opts.title||'Battle')}</h2><small class="turnlbl ${myTurn?'mine':''}">Round ${C.round} · ${C.ended?'Battle over':myTurn?'Your turn':(()=>{const a=C.order.slice(C.oi).find(x=>x&&x.hp>0&&!x.fled);return a?(a.isPlayer?'Your turn':`${E(a.name)}'s turn`):'Next round';})()}</small></header>
+  el.innerHTML=`<div class="cwrap"><header><h2>${E(C.opts.title||'Battle')}</h2><small class="turnlbl ${myTurn?'mine':''}">Round ${C.round} · ${C.ended?'Battle over':myTurn?'Your turn':(()=>{const a=C.order.slice(C.oi).find(x=>x&&x.hp>0&&!x.fled);return a?(a.isPlayer?'Get ready…':`${E(a.name)}'s turn`):'Next round';})()}</small></header>
    <div class="side enemies">${C.enemies.map((a,i)=>actorCard(a,alive(C.enemies).indexOf(a),'e')).join('')}</div>
    <div class="clog" id="clog">${C.log.slice(-14).map(([t,c])=>`<p class="${c}">${E(t)}</p>`).join('')}</div>
    <div class="side allies">${C.allies.map(a=>actorCard(a,0,'a')).join('')}</div>${actions}
@@ -340,6 +340,9 @@ function render(){if(!S||!S.P||!UI.started)return;renderHeader();renderNav();con
   if(tab==='chat'){if(!v.querySelector('.chat.full')||UI.chatDirty||UI.dirty){const keep=v.querySelector('#chatmsg');const kv=keep?keep.value:'';v.innerHTML=views.chat();const n=v.querySelector('#chatmsg');if(n&&kv)n.value=kv;}}
   else UI.viewChanged=setHTML(v,(views[tab]||renderWorld)());
   if(tab==='world'&&UI.viewChanged!==false)requestAnimationFrame(startWeather);
+  // phones: the map is wider than the screen, so open it centred on where you are (once per visit / per move)
+  if(tab==='map'){if(UI.lastTab!=='map'||UI.mapCtr!==S.P.loc){UI.mapCtr=S.P.loc;const w=v.querySelector('.mapwrap'),L=LOCS[S.P.loc];if(w&&L&&w.scrollWidth>w.clientWidth+4){const svg=w.querySelector('svg');const k=svg.getBoundingClientRect().width/1000;w.scrollLeft=Math.max(0,L.x*k-w.clientWidth/2);}}}
+  UI.lastTab=tab;
   // the chat side panel is hidden on phones (max-width 999px): don't build it there at all
   const side=$('#side');const sideShown=!(UI.sideMQ=UI.sideMQ||matchMedia('(max-width:999px)')).matches;if(tab!=='chat'&&sideShown){const keep=side.querySelector('#chatmsg');const kv=keep?keep.value:'';const sel=side.querySelector('#chatsel');const sv=sel?sel.value:null;const sideChanged=setHTML(side,renderChat(false));const n=side.querySelector('#chatmsg');if(n&&sideChanged){n.value=kv;}if(sv&&UI.lastChatCh===UI.chatCh&&side.querySelector('#chatsel'))side.querySelector('#chatsel').value=sv;UI.lastChatCh=UI.chatCh;}else setHTML(side,'');
   if(!UI.sideMQL&&UI.sideMQ){UI.sideMQL=1;UI.sideMQ.addEventListener('change',()=>{UI.dirty=true;render();});}
@@ -408,7 +411,7 @@ async function startGame(){if(!LAUNCH.open){showTitle();return;}if(!S.P){renderC
     if(NET.db){const meta=await fetchWorldMeta();if(meta&&meta.real>(S.real||0)+60000&&(await adoptWorld(meta))){from=meta.real;log(`The realm's chronicle was updated from ${meta.host}'s world.`,'lore');}}
     const hrs=await fastForward(from,Date.now());S.real=Date.now();
     if(hrs>=4&&S.digest){log(`While you were away, ${hrs>=48?Math.round(hrs/24)+' days':hrs+' hours'} passed in the Realms.`,'lore');openModal(digestHtml(S.digest),'digest');}
-    if(NET.isHost)uploadWorld();}$('#game').hidden=false;UI.started=true;UI.tab=UI.tab||'world';lastTick=Date.now();
+    if(NET.isHost)uploadWorld();}$('#game').hidden=false;window.scrollTo(0,0);UI.started=true;UI.tab=UI.tab||'world';lastTick=Date.now();
   S.real=Date.now();netPresence();publishProfile(true);UI.dirty=true;render();}
 setInterval(()=>{if(S)S.real=Date.now();},30000);
 window.addEventListener('beforeunload',()=>{if(S&&S.P&&UI.started){saveLocalSync();markPlaying(true);}});

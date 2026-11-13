@@ -111,7 +111,7 @@ textarea{width:100%;font-family:var(--mono);font-size:.8rem}
 @media (max-width:999px){
   #main{grid-template-columns:minmax(0,1fr);padding-bottom:calc(140px + env(safe-area-inset-bottom,0px))}#side{display:none}#hdr{grid-template-columns:minmax(0,1fr) auto}.hbars{grid-column:1/-1;grid-row:2}
   #nav{display:none}
-  #bnav{display:grid;grid-template-columns:repeat(6,1fr);position:fixed;left:0;right:0;bottom:0;z-index:25;background:color-mix(in srgb,var(--bg2) 94%,transparent);backdrop-filter:blur(12px);border-top:1px solid var(--line);
+  #bnav{display:grid;grid-template-columns:repeat(7,1fr);position:fixed;left:0;right:0;bottom:0;z-index:25;background:color-mix(in srgb,var(--bg2) 94%,transparent);backdrop-filter:blur(12px);border-top:1px solid var(--line);
     padding:.3em max(6px,env(safe-area-inset-right,0px)) calc(.3em + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px))}
   .bt{font:inherit;font-size:.68rem;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:0;color:var(--ink3);padding:.35em 0;cursor:pointer;position:relative;border-radius:8px}
   .bt .ic{width:24px;height:24px}.bt.on{color:var(--gilt)}.bt.on .ic{filter:drop-shadow(0 0 6px color-mix(in srgb,var(--gilt) 50%,transparent))}
@@ -462,6 +462,21 @@ body:not(.ingame){background:#05070d}
 .tmenu .soon p{margin:0;color:#e8e2d2;font-size:.92rem;line-height:1.5}
 #combat .turnlbl{padding:.15rem .55rem;border-radius:99px;border:1px solid var(--line);transition:background .2s,color .2s}#combat .turnlbl.mine{background:color-mix(in srgb,var(--gilt) 22%,transparent);border-color:var(--gilt);color:var(--ink)}
 .tmenu.auth .soon{text-align:left}.tmenu.auth form{gap:.45rem;margin:.6rem 0}.tmenu.auth input{width:100%}.tmenu.auth .b.ghost{width:100%;margin-top:.35rem}.tmenu.auth p{margin:.4rem 0}
+
+/* ---- usability pass: bigger touch targets, rows that never hide options, toasts that never pile up ---- */
+.chtabs{flex-wrap:wrap}
+#toasts,#toasts .toast{pointer-events:none}
+@media (pointer:coarse){
+  .b.tiny{min-height:38px;padding:.45em .8em;font-size:.84rem}
+  .ct{min-height:34px;padding:.35em .8em}
+  .li .b.tiny+.b.tiny{margin-left:.15em}
+}
+.maphint{display:none;margin:.2em 0 .5em}@media (max-width:700px){.maphint{display:block}}
+.li>span:first-child{flex:1 1 50%;min-width:0}
+@media (pointer:coarse){
+  .itm{min-height:36px;display:inline-flex;align-items:center}
+  .attr .b.tiny{min-width:38px}
+}
 
 </style>
 <div id="app" aria-live="polite"><div class="title"><h1>Eternal Realms</h1><p class="tag">The Realms are waking…</p></div></div>
@@ -2589,7 +2604,7 @@ function compGainXp(c,x){c.xp+=x;while(c.level<100&&c.xp>=xpNext(c.level)*0.7){c
 function canTame(){const P=S.P;return ['summoner','druid','necromancer'].includes(P.cls)||['beastmaster','grandsummoner'].includes(P.adv)||mLv(P,'summoning')>=10;}
 
 /* ---------------- party ---------------- */
-function partyMembers(){return S.P.party.map(npc).filter(Boolean);}
+function partyMembers(){return (S.P.party||[]).map(npc).filter(Boolean);}
 function partyFollow(){const P=S.P;for(const n of partyMembers()){n.loc=P.loc;n.busy=S.time+60;n.act='in your party';n.path=[];
   if(!online(n)||(S.time-n.joined>U.ri(6,12)*60&&U.chance(0.1))){leaveParty(n,online(n)?'gotta head out, thanks for the group!':'logging off, gg all');}}}
 function leaveParty(n,msg){const P=S.P;P.party=P.party.filter(x=>x!==n.id);n.inParty=false;n.busy=S.time;n.act='idle';log(`${n.user} left the party.`,'social');if(msg)BUS.emit('npc_say',{n,ch:'party',text:msg});
@@ -2941,13 +2956,16 @@ function monsterAttack(a,t){
 }
 
 /* ---------------- end of combat ---------------- */
+// a battle must ALWAYS reach its result screen: even if bookkeeping below fails, the summary exists and Continue appears
 function finishCombat(result){
-  if(C.ended)return;C.ended=true;const P=S.P,o=C.opts;const pa=C.allies.find(x=>x.isPlayer);
+  if(C.ended)return;C.ended=true;C.result=result;C.summary=[];
+  try{finishCombatInner(result);}catch(e){console.error('finishCombat',e);if(!C.summary.length)C.summary.push(result==='win'?'Victory!':result==='lose'?'You were defeated.':'You got away.');if(typeof UI!=='undefined')UI.combatEnded();}}
+function finishCombatInner(result){
+  const P=S.P,o=C.opts;const pa=C.allies.find(x=>x.isPlayer)||{hp:P.hp,mp:P.mp,sp:P.sp};
   P.hp=Math.max(result==='lose'?0:1,Math.round(pa.hp));P.mp=Math.max(0,Math.round(pa.mp));P.sp=Math.max(0,Math.round(pa.sp));
   // party members' hp
   for(const al of C.allies)if(al.char&&!al.isPlayer){al.char.hpPct=U.clamp(al.hp/al.mhp,0.05,1);if(al.hp<=0)al.char.hpPct=0.2;}
   const party=partyMembers();const size=1+party.length;
-  C.result=result;C.summary=[];
   if(o.type==='pvp'||o.type==='duel'||o.type==='arena'||o.type==='tourney'||o.type==='wpvp'||o.type==='rpvp'){pvpEnd(result);if(result==='lose')P.hp=Math.max(1,Math.round(stats(P).mhp*0.3));if(typeof UI!=='undefined')UI.combatEnded();return;}
   if(result==='win'){
     let xp=0,gold=0,items=[];const dm=DIFFS[P.diff];
@@ -4253,7 +4271,13 @@ const $=s=>document.querySelector(s);
 const E=U.esc;
 const UI={tab:'world',sub:null,chatCh:'all',pmWith:null,dirty:false,started:false,modalStack:[],logBuf:[],
   inCombat(){return !!(C&&!C.closed);},
-  toast(t,cls=''){const el=document.createElement('div');el.className='toast '+cls;el.textContent=t;$('#toasts').appendChild(el);setTimeout(()=>el.classList.add('out'),3200);setTimeout(()=>el.remove(),3800);},
+  // at most 3 messages on screen; repeats merge into one ("x3"), consecutive level-ups collapse, oldest drop off first
+  toast(t,cls=''){const box=$('#toasts');if(!box)return;const live=[...box.children].filter(x=>!x.classList.contains('out'));
+    const lvl=/^Level \d+!$/.test(t);let el=live.find(x=>x.dataset.t===t||(lvl&&/^Level \d+!$/.test(x.dataset.t)));
+    if(el){const n=lvl?1:(+el.dataset.n||1)+1;el.dataset.n=n;el.dataset.t=t;el.textContent=n>1?`${t} ×${n}`:t;clearTimeout(el._t1);clearTimeout(el._t2);box.appendChild(el);}
+    else{el=document.createElement('div');el.className='toast '+cls;el.dataset.t=t;el.textContent=t;box.appendChild(el);}
+    el._t1=setTimeout(()=>el.classList.add('out'),3200);el._t2=setTimeout(()=>el.remove(),3800);
+    const now=[...box.children].filter(x=>!x.classList.contains('out'));while(now.length>3){const o=now.shift();o.classList.add('out');setTimeout(()=>o.remove(),500);}},
   onLog(t,cls){UI.dirty=true;},
   refresh(){UI.dirty=true;},
   onChat(m){UI.chatDirty=true;if(m.from!=='P'&&m.ch!=='system'&&m.text&&S&&S.P&&m.text.toLowerCase().includes('@'+S.P.user.toLowerCase())){S.P.mentions++;}},
@@ -4286,12 +4310,12 @@ UI.refreshHeader=()=>{if(S&&S.P)renderHeader();};
 
 /* ---------------- nav ---------------- */
 const TABS=[['world','World','world'],['map','Map','map'],['char','Hero','hero'],['bag','Bag','bag'],['quests','Quests','quests'],['chat','Chat','chat'],['social','Party & Guild','social'],['ranks','Ranks','ranks'],['market','Market','market'],['codex','Codex','codex'],['menu','Menu','menu']];
-const BOTTOM=['world','map','char','bag','chat'];
+const BOTTOM=['world','map','char','bag','quests','chat'];
 function badge(k){const unread=Object.values(S.pmUnread||{}).reduce((a,b)=>a+b,0);if(k==='chat'&&(unread||S.P.mentions))return `<em>${unread+S.P.mentions}</em>`;if(k==='quests'&&S.P.quests.some(q=>q.done))return '<em>!</em>';if(k==='char'&&S.P.pts>0)return '<em>+</em>';return '';}
 function renderNav(){
   setHTML($('#nav'),TABS.map(([k,n,ic])=>`<button class="tab ${UI.tab===k?'on':''}" data-a="tab" data-v="${k}">${icon(ic)}<span>${n}</span>${badge(k)}</button>`).join(''));
   const moreOn=!BOTTOM.includes(UI.tab);const moreBadge=TABS.filter(t=>!BOTTOM.includes(t[0])).map(t=>badge(t[0])).join('')?'<em>!</em>':'';
-  setHTML($('#bnav'),TABS.filter(t=>BOTTOM.includes(t[0])).map(([k,n,ic])=>`<button class="bt ${UI.tab===k?'on':''}" data-a="tab" data-v="${k}">${icon(ic)}<span>${n}</span>${badge(k)}</button>`).join('')+`<button class="bt ${moreOn?'on':''}" data-a="more">${icon('more')}<span>More</span>${moreBadge}</button>`);
+  setHTML($('#bnav'),TABS.filter(t=>BOTTOM.includes(t[0])).map(([k,n,ic])=>`<button class="bt ${UI.tab===k?'on':''}" data-a="tab" data-v="${k}">${icon(ic)}<span>${n}</span>${badge(k)}</button>`).join('')+(()=>{const cur=moreOn&&TABS.find(t=>t[0]===UI.tab);return `<button class="bt ${moreOn?'on':''}" data-a="more">${icon(cur?cur[2]:'more')}<span>${cur?E(cur[1].split(' ')[0]):'More'}</span>${moreBadge}</button>`;})());
   const last=chatMessages().filter(m=>m.ch!=='system').slice(-1)[0];
   setHTML($('#ticker'),last&&UI.tab!=='chat'?`<button data-a="tab" data-v="chat">${avatar(m_name(last),m_cls(last),last.real)}<span><b>${E(m_name(last))}</b> ${E(last.text)}</span></button>`:'');$('#ticker').hidden=!last||UI.tab==='chat';}
 function m_name(m){return m.from==='P'?S.P.user:m.real?m.name:m.from==='SYS'?'System':(npc(m.from)||{}).user||'?';}
@@ -4427,7 +4451,7 @@ function renderMap(){const P=S.P;const vis=l=>!LOCS[l].hid||P.explored.includes(
     ${S.wars.some(w=>w.front===l)?`<text x="${L.x+10}" y="${L.y-8}" class="war">⚔</text>`:''}<text x="${L.x}" y="${L.y+r+12}" class="lbl">${E(L.n)}</text></g>`;}).join('');
   const sel=UI.mapSel||P.loc;const L=LOCS[sel];const p=sel!==P.loc?path(P.loc,sel):null;
   const pathLine=p?`<polyline class="jpath" points="${p.path.map(x=>LOCS[x].x+','+LOCS[x].y).join(' ')}"/>`:'';
-  return `<section class="panel"><h2>The Eternal Realms</h2><div class="mapwrap"><svg viewBox="0 0 1000 720" class="map" role="img" aria-label="World map"><defs><filter id="rough"><feTurbulence baseFrequency="0.018" numOctaves="3" seed="7"/><feDisplacementMap in="SourceGraphic" scale="38"/></filter></defs><rect x="0" y="0" width="1000" height="720" class="sea"/>
+  return `<section class="panel"><h2>The Eternal Realms</h2><p class="hint maphint">Swipe the map sideways to see the whole realm · tap a place for details.</p><div class="mapwrap"><svg viewBox="0 0 1000 720" class="map" role="img" aria-label="World map"><defs><filter id="rough"><feTurbulence baseFrequency="0.018" numOctaves="3" seed="7"/><feDisplacementMap in="SourceGraphic" scale="38"/></filter></defs><rect x="0" y="0" width="1000" height="720" class="sea"/>
     <g filter="url(#rough)">${[[260,330,250,190,'land'],[230,130,170,100,'forest'],[620,170,170,120,'mount'],[820,420,190,200,'waste'],[620,600,170,90,'land'],[480,400,110,170,'land'],[340,520,90,70,'land'],[560,670,80,30,'land'],[950,190,60,60,'waste']].map(([x,y,rx,ry,c])=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" class="terr ${c}"/>`).join('')}</g>
     ${regions.map(([n,x,y])=>`<text x="${x}" y="${y}" class="region">${n}</text>`).join('')}${lines}${pathLine}${nodes}</svg></div><p class="legend"><span class="lg city"></span>City <span class="lg dng"></span>Dungeon / lair <span class="lg ruin"></span>Ruin <span class="lg fr"></span>Real player</p>
     <div class="mapinfo"><div class="vista sm" style="background-image:url(${drawVista(sel,S.time)})"></div><h3>${E(L.n)}</h3><p>${E(L.d)}</p>${P.explored.includes(sel)?'':'<p class="hint">You have not been here yet.</p>'}
@@ -4850,7 +4874,7 @@ function actorCard(a,i,side){const fx=Object.keys(a.fx).filter(k=>STATUS[k]&&a.f
   <span class="ahead">${sigil(a)}<b>${E(a.name)}</b></span><small>Lv.${a.level} · ${a.row}${a.boss?' · BOSS':''}${a.fled?(a.tamed?' · bonded':a.surrendered?' · yielded':' · fled'):''}</small>${abar(Math.max(0,a.hp),a.mhp,'hp','HP',a._k)}${a.side==='a'&&!a.mon?abar(a.mp,a.mmp,'mp','MP',a._k)+abar(a.sp,a.msp,'sp','SP',a._k):''}<span class="fxs">${fx}</span></button>`;}
 function renderCombat(){if(!C)return;const el=$('#combat');const pa=C.allies.find(x=>x.isPlayer);const foes=alive(C.enemies);if(C.target>=foes.length)C.target=0;
   const myTurn=C.waiting&&!C.ended;let actions='';
-  if(C.ended){actions=`<div class="cres ${C.result}"><h3>${icon(C.result==='win'?'ranks':C.result==='lose'?'skull':'escape')} ${C.result==='win'?'Victory':C.result==='lose'?'Defeat':'Escaped'}</h3>${C.summary.map(s=>typeof s==='object'?`<p class="loot lr${s.r||0}">${s.html}</p>`:`<p>${E(s)}</p>`).join('')}<div class="row">${S.P.dungeon&&C.result==='win'?btn(S.P.dungeon.floor>S.P.dungeon.floors?'Face the boss':'Next floor','cnext','','gilt')+btn('Leave dungeon','cleave'):''}${btn(C.perma?'Return to title':'Continue','cclose','','gilt')}</div></div>`;}
+  if(C.ended){actions=`<div class="cres ${C.result}"><h3>${icon(C.result==='win'?'ranks':C.result==='lose'?'skull':'escape')} ${C.result==='win'?'Victory':C.result==='lose'?'Defeat':'Escaped'}</h3>${(C.summary||[]).map(s=>typeof s==='object'?`<p class="loot lr${s.r||0}">${s.html}</p>`:`<p>${E(s)}</p>`).join('')}<div class="row">${S.P.dungeon&&C.result==='win'?btn(S.P.dungeon.floor>S.P.dungeon.floors?'Face the boss':'Next floor','cnext','','gilt')+btn('Leave dungeon','cleave'):''}${btn(C.perma?'Return to title':'Continue','cclose','','gilt')}</div></div>`;}
   else if(myTurn){const m=UI.combatMenu;const sk=pa.skills;
     if(m==='main'){const cb=(ic,n,a,v,cls='')=>`<button class="cb ${cls}" data-a="${a}" data-v="${v}">${icon(ic)}<span>${n}</span></button>`;
       actions=`<div class="cact main"><div class="crow prim">${cb('attack','Attack','ca','attack','big')}${cb('skills','Skills','cmenu','skills','gilt')}${cb('magic','Magic','cmenu','magic','gilt')}${cb('items','Items','cmenu','items')}</div>
@@ -4863,7 +4887,7 @@ function renderCombat(){if(!C)return;const el=$('#combat');const pa=C.allies.fin
       if(m==='party')inner=['free','focus','defensive'].map(t=>btn(({free:'Fight freely',focus:'Focus my target',defensive:'Play defensively'})[t],'ctactic',t,C.tactic===t?'gilt':'')).join('');
       actions=`<div class="cact sub">${inner}${btn('◂ Back','cmenu','main','ghost')}</div>`;}}
   else actions='<div class="cact wait"><p>…</p></div>';
-  el.innerHTML=`<div class="cwrap"><header><h2>${E(C.opts.title||'Battle')}</h2><small class="turnlbl ${myTurn?'mine':''}">Round ${C.round} · ${C.ended?'Battle over':myTurn?'Your turn':(()=>{const a=C.order.slice(C.oi).find(x=>x&&x.hp>0&&!x.fled);return a?(a.isPlayer?'Your turn':`${E(a.name)}'s turn`):'Next round';})()}</small></header>
+  el.innerHTML=`<div class="cwrap"><header><h2>${E(C.opts.title||'Battle')}</h2><small class="turnlbl ${myTurn?'mine':''}">Round ${C.round} · ${C.ended?'Battle over':myTurn?'Your turn':(()=>{const a=C.order.slice(C.oi).find(x=>x&&x.hp>0&&!x.fled);return a?(a.isPlayer?'Get ready…':`${E(a.name)}'s turn`):'Next round';})()}</small></header>
    <div class="side enemies">${C.enemies.map((a,i)=>actorCard(a,alive(C.enemies).indexOf(a),'e')).join('')}</div>
    <div class="clog" id="clog">${C.log.slice(-14).map(([t,c])=>`<p class="${c}">${E(t)}</p>`).join('')}</div>
    <div class="side allies">${C.allies.map(a=>actorCard(a,0,'a')).join('')}</div>${actions}
@@ -4904,6 +4928,9 @@ function render(){if(!S||!S.P||!UI.started)return;renderHeader();renderNav();con
   if(tab==='chat'){if(!v.querySelector('.chat.full')||UI.chatDirty||UI.dirty){const keep=v.querySelector('#chatmsg');const kv=keep?keep.value:'';v.innerHTML=views.chat();const n=v.querySelector('#chatmsg');if(n&&kv)n.value=kv;}}
   else UI.viewChanged=setHTML(v,(views[tab]||renderWorld)());
   if(tab==='world'&&UI.viewChanged!==false)requestAnimationFrame(startWeather);
+  // phones: the map is wider than the screen, so open it centred on where you are (once per visit / per move)
+  if(tab==='map'){if(UI.lastTab!=='map'||UI.mapCtr!==S.P.loc){UI.mapCtr=S.P.loc;const w=v.querySelector('.mapwrap'),L=LOCS[S.P.loc];if(w&&L&&w.scrollWidth>w.clientWidth+4){const svg=w.querySelector('svg');const k=svg.getBoundingClientRect().width/1000;w.scrollLeft=Math.max(0,L.x*k-w.clientWidth/2);}}}
+  UI.lastTab=tab;
   // the chat side panel is hidden on phones (max-width 999px): don't build it there at all
   const side=$('#side');const sideShown=!(UI.sideMQ=UI.sideMQ||matchMedia('(max-width:999px)')).matches;if(tab!=='chat'&&sideShown){const keep=side.querySelector('#chatmsg');const kv=keep?keep.value:'';const sel=side.querySelector('#chatsel');const sv=sel?sel.value:null;const sideChanged=setHTML(side,renderChat(false));const n=side.querySelector('#chatmsg');if(n&&sideChanged){n.value=kv;}if(sv&&UI.lastChatCh===UI.chatCh&&side.querySelector('#chatsel'))side.querySelector('#chatsel').value=sv;UI.lastChatCh=UI.chatCh;}else setHTML(side,'');
   if(!UI.sideMQL&&UI.sideMQ){UI.sideMQL=1;UI.sideMQ.addEventListener('change',()=>{UI.dirty=true;render();});}
@@ -4972,7 +4999,7 @@ async function startGame(){if(!LAUNCH.open){showTitle();return;}if(!S.P){renderC
     if(NET.db){const meta=await fetchWorldMeta();if(meta&&meta.real>(S.real||0)+60000&&(await adoptWorld(meta))){from=meta.real;log(`The realm's chronicle was updated from ${meta.host}'s world.`,'lore');}}
     const hrs=await fastForward(from,Date.now());S.real=Date.now();
     if(hrs>=4&&S.digest){log(`While you were away, ${hrs>=48?Math.round(hrs/24)+' days':hrs+' hours'} passed in the Realms.`,'lore');openModal(digestHtml(S.digest),'digest');}
-    if(NET.isHost)uploadWorld();}$('#game').hidden=false;UI.started=true;UI.tab=UI.tab||'world';lastTick=Date.now();
+    if(NET.isHost)uploadWorld();}$('#game').hidden=false;window.scrollTo(0,0);UI.started=true;UI.tab=UI.tab||'world';lastTick=Date.now();
   S.real=Date.now();netPresence();publishProfile(true);UI.dirty=true;render();}
 setInterval(()=>{if(S)S.real=Date.now();},30000);
 window.addEventListener('beforeunload',()=>{if(S&&S.P&&UI.started){saveLocalSync();markPlaying(true);}});

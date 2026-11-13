@@ -288,13 +288,16 @@ function monsterAttack(a,t){
 }
 
 /* ---------------- end of combat ---------------- */
+// a battle must ALWAYS reach its result screen: even if bookkeeping below fails, the summary exists and Continue appears
 function finishCombat(result){
-  if(C.ended)return;C.ended=true;const P=S.P,o=C.opts;const pa=C.allies.find(x=>x.isPlayer);
+  if(C.ended)return;C.ended=true;C.result=result;C.summary=[];
+  try{finishCombatInner(result);}catch(e){console.error('finishCombat',e);if(!C.summary.length)C.summary.push(result==='win'?'Victory!':result==='lose'?'You were defeated.':'You got away.');if(typeof UI!=='undefined')UI.combatEnded();}}
+function finishCombatInner(result){
+  const P=S.P,o=C.opts;const pa=C.allies.find(x=>x.isPlayer)||{hp:P.hp,mp:P.mp,sp:P.sp};
   P.hp=Math.max(result==='lose'?0:1,Math.round(pa.hp));P.mp=Math.max(0,Math.round(pa.mp));P.sp=Math.max(0,Math.round(pa.sp));
   // party members' hp
   for(const al of C.allies)if(al.char&&!al.isPlayer){al.char.hpPct=U.clamp(al.hp/al.mhp,0.05,1);if(al.hp<=0)al.char.hpPct=0.2;}
   const party=partyMembers();const size=1+party.length;
-  C.result=result;C.summary=[];
   if(o.type==='pvp'||o.type==='duel'||o.type==='arena'||o.type==='tourney'||o.type==='wpvp'||o.type==='rpvp'){pvpEnd(result);if(result==='lose')P.hp=Math.max(1,Math.round(stats(P).mhp*0.3));if(typeof UI!=='undefined')UI.combatEnded();return;}
   if(result==='win'){
     let xp=0,gold=0,items=[];const dm=DIFFS[P.diff];

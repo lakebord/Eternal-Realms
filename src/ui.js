@@ -4,7 +4,13 @@ const $=s=>document.querySelector(s);
 const E=U.esc;
 const UI={tab:'world',sub:null,chatCh:'all',pmWith:null,dirty:false,started:false,modalStack:[],logBuf:[],
   inCombat(){return !!(C&&!C.closed);},
-  toast(t,cls=''){const el=document.createElement('div');el.className='toast '+cls;el.textContent=t;$('#toasts').appendChild(el);setTimeout(()=>el.classList.add('out'),3200);setTimeout(()=>el.remove(),3800);},
+  // at most 3 messages on screen; repeats merge into one ("x3"), consecutive level-ups collapse, oldest drop off first
+  toast(t,cls=''){const box=$('#toasts');if(!box)return;const live=[...box.children].filter(x=>!x.classList.contains('out'));
+    const lvl=/^Level \d+!$/.test(t);let el=live.find(x=>x.dataset.t===t||(lvl&&/^Level \d+!$/.test(x.dataset.t)));
+    if(el){const n=lvl?1:(+el.dataset.n||1)+1;el.dataset.n=n;el.dataset.t=t;el.textContent=n>1?`${t} ×${n}`:t;clearTimeout(el._t1);clearTimeout(el._t2);box.appendChild(el);}
+    else{el=document.createElement('div');el.className='toast '+cls;el.dataset.t=t;el.textContent=t;box.appendChild(el);}
+    el._t1=setTimeout(()=>el.classList.add('out'),3200);el._t2=setTimeout(()=>el.remove(),3800);
+    const now=[...box.children].filter(x=>!x.classList.contains('out'));while(now.length>3){const o=now.shift();o.classList.add('out');setTimeout(()=>o.remove(),500);}},
   onLog(t,cls){UI.dirty=true;},
   refresh(){UI.dirty=true;},
   onChat(m){UI.chatDirty=true;if(m.from!=='P'&&m.ch!=='system'&&m.text&&S&&S.P&&m.text.toLowerCase().includes('@'+S.P.user.toLowerCase())){S.P.mentions++;}},
@@ -37,12 +43,12 @@ UI.refreshHeader=()=>{if(S&&S.P)renderHeader();};
 
 /* ---------------- nav ---------------- */
 const TABS=[['world','World','world'],['map','Map','map'],['char','Hero','hero'],['bag','Bag','bag'],['quests','Quests','quests'],['chat','Chat','chat'],['social','Party & Guild','social'],['ranks','Ranks','ranks'],['market','Market','market'],['codex','Codex','codex'],['menu','Menu','menu']];
-const BOTTOM=['world','map','char','bag','chat'];
+const BOTTOM=['world','map','char','bag','quests','chat'];
 function badge(k){const unread=Object.values(S.pmUnread||{}).reduce((a,b)=>a+b,0);if(k==='chat'&&(unread||S.P.mentions))return `<em>${unread+S.P.mentions}</em>`;if(k==='quests'&&S.P.quests.some(q=>q.done))return '<em>!</em>';if(k==='char'&&S.P.pts>0)return '<em>+</em>';return '';}
 function renderNav(){
   setHTML($('#nav'),TABS.map(([k,n,ic])=>`<button class="tab ${UI.tab===k?'on':''}" data-a="tab" data-v="${k}">${icon(ic)}<span>${n}</span>${badge(k)}</button>`).join(''));
   const moreOn=!BOTTOM.includes(UI.tab);const moreBadge=TABS.filter(t=>!BOTTOM.includes(t[0])).map(t=>badge(t[0])).join('')?'<em>!</em>':'';
-  setHTML($('#bnav'),TABS.filter(t=>BOTTOM.includes(t[0])).map(([k,n,ic])=>`<button class="bt ${UI.tab===k?'on':''}" data-a="tab" data-v="${k}">${icon(ic)}<span>${n}</span>${badge(k)}</button>`).join('')+`<button class="bt ${moreOn?'on':''}" data-a="more">${icon('more')}<span>More</span>${moreBadge}</button>`);
+  setHTML($('#bnav'),TABS.filter(t=>BOTTOM.includes(t[0])).map(([k,n,ic])=>`<button class="bt ${UI.tab===k?'on':''}" data-a="tab" data-v="${k}">${icon(ic)}<span>${n}</span>${badge(k)}</button>`).join('')+(()=>{const cur=moreOn&&TABS.find(t=>t[0]===UI.tab);return `<button class="bt ${moreOn?'on':''}" data-a="more">${icon(cur?cur[2]:'more')}<span>${cur?E(cur[1].split(' ')[0]):'More'}</span>${moreBadge}</button>`;})());
   const last=chatMessages().filter(m=>m.ch!=='system').slice(-1)[0];
   setHTML($('#ticker'),last&&UI.tab!=='chat'?`<button data-a="tab" data-v="chat">${avatar(m_name(last),m_cls(last),last.real)}<span><b>${E(m_name(last))}</b> ${E(last.text)}</span></button>`:'');$('#ticker').hidden=!last||UI.tab==='chat';}
 function m_name(m){return m.from==='P'?S.P.user:m.real?m.name:m.from==='SYS'?'System':(npc(m.from)||{}).user||'?';}
@@ -178,7 +184,7 @@ function renderMap(){const P=S.P;const vis=l=>!LOCS[l].hid||P.explored.includes(
     ${S.wars.some(w=>w.front===l)?`<text x="${L.x+10}" y="${L.y-8}" class="war">⚔</text>`:''}<text x="${L.x}" y="${L.y+r+12}" class="lbl">${E(L.n)}</text></g>`;}).join('');
   const sel=UI.mapSel||P.loc;const L=LOCS[sel];const p=sel!==P.loc?path(P.loc,sel):null;
   const pathLine=p?`<polyline class="jpath" points="${p.path.map(x=>LOCS[x].x+','+LOCS[x].y).join(' ')}"/>`:'';
-  return `<section class="panel"><h2>The Eternal Realms</h2><div class="mapwrap"><svg viewBox="0 0 1000 720" class="map" role="img" aria-label="World map"><defs><filter id="rough"><feTurbulence baseFrequency="0.018" numOctaves="3" seed="7"/><feDisplacementMap in="SourceGraphic" scale="38"/></filter></defs><rect x="0" y="0" width="1000" height="720" class="sea"/>
+  return `<section class="panel"><h2>The Eternal Realms</h2><p class="hint maphint">Swipe the map sideways to see the whole realm · tap a place for details.</p><div class="mapwrap"><svg viewBox="0 0 1000 720" class="map" role="img" aria-label="World map"><defs><filter id="rough"><feTurbulence baseFrequency="0.018" numOctaves="3" seed="7"/><feDisplacementMap in="SourceGraphic" scale="38"/></filter></defs><rect x="0" y="0" width="1000" height="720" class="sea"/>
     <g filter="url(#rough)">${[[260,330,250,190,'land'],[230,130,170,100,'forest'],[620,170,170,120,'mount'],[820,420,190,200,'waste'],[620,600,170,90,'land'],[480,400,110,170,'land'],[340,520,90,70,'land'],[560,670,80,30,'land'],[950,190,60,60,'waste']].map(([x,y,rx,ry,c])=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" class="terr ${c}"/>`).join('')}</g>
     ${regions.map(([n,x,y])=>`<text x="${x}" y="${y}" class="region">${n}</text>`).join('')}${lines}${pathLine}${nodes}</svg></div><p class="legend"><span class="lg city"></span>City <span class="lg dng"></span>Dungeon / lair <span class="lg ruin"></span>Ruin <span class="lg fr"></span>Real player</p>
     <div class="mapinfo"><div class="vista sm" style="background-image:url(${drawVista(sel,S.time)})"></div><h3>${E(L.n)}</h3><p>${E(L.d)}</p>${P.explored.includes(sel)?'':'<p class="hint">You have not been here yet.</p>'}

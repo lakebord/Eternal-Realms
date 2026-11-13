@@ -26,7 +26,7 @@ function issue(where, kind, detail) {
   const ctx = MODE === 'phone' ? await b.newContext({ ...devices['Pixel 7'] }) : await b.newContext({ viewport: { width: 1280, height: 800 } });
   const p = await ctx.newPage();
   let where = 'start';
-  p.on('pageerror', e => issue(where, 'page error', e.message));
+  p.on('pageerror', e => issue(where, 'page error', e.message + ' :: ' + String(e.stack||'').split('\n').slice(1,5).join(' | ')));
   p.on('console', m => { if (m.type() === 'error') issue(where, 'console error', m.text().slice(0, 200)); });
   await p.goto('file://' + path.resolve(__dirname, '../index.html'));
   await p.waitForTimeout(800);
@@ -69,17 +69,20 @@ function issue(where, kind, detail) {
   async function coverCheck(label) {
     const r = await p.evaluate(async () => {
       const out = [];
-      const els = [...document.querySelectorAll('#main [data-a]')].filter(e => e.offsetParent !== null).slice(0, 120);
+      // scroll all the way down: anything still hidden under a bar at that point can never be tapped
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const els = [...document.querySelectorAll('#main [data-a]')].filter(e => e.offsetParent !== null);
       for (const e of els) {
-        e.scrollIntoView({ block: 'end' });                 // the worst case: at the bottom edge, next to the bottom bar / ticker
-        await new Promise(r => requestAnimationFrame(r));
         const rc = e.getBoundingClientRect();
-        const x = rc.left + rc.width / 2, y = rc.top + Math.min(rc.height / 2, 12);
+        if (rc.bottom < 0 || rc.top > innerHeight) continue;
+        const x = rc.left + rc.width / 2, y = rc.top + rc.height / 2;
         if (y < 0 || y > innerHeight) continue;
         const hit = document.elementFromPoint(x, y);
         if (hit && !e.contains(hit) && !hit.contains(e)) {
           const by = hit.closest('#bnav,#ticker,#hdr,#toasts,.toast,#chatdock') || hit;
-          out.push(`${e.dataset.a}${e.dataset.v ? '=' + e.dataset.v : ''} covered by ${by.id ? '#' + by.id : by.className || by.tagName} when scrolled to the bottom`);
+          if (by.id === 'hdr' || hit.closest('svg')) continue;   // top items scroll back down from under the header; map pins may overlap each other
+          out.push(`${e.dataset.a}${e.dataset.v ? '=' + e.dataset.v : ''} covered by ${by.id ? '#' + by.id : by.className || by.tagName} even when scrolled to the very bottom`);
         }
       }
       window.scrollTo(0, 0);
@@ -94,7 +97,8 @@ function issue(where, kind, detail) {
   }
 
   async function finishCombat() {
-    for (let i = 0; i < 80; i++) {
+    const t0 = Date.now();
+    while (Date.now() - t0 < 90000) {   // enemy turns play out on timers, so give a long fight real time
       const st = await p.evaluate(() => ({ c: UI.inCombat(), ended: !!(C && C.ended) }));
       if (!st.c) return;
       const close = await p.$('#combat [data-a=cclose]');
@@ -104,7 +108,7 @@ function issue(where, kind, detail) {
       else await p.evaluate(() => { const b = document.querySelector('#combat [data-a]'); if (b) b.dispatchEvent(new MouseEvent('click',{bubbles:true})); });
       await p.waitForTimeout(120);
     }
-    issue(where, 'stuck in combat', 'could not finish a fight in 80 turns');
+    issue(where, 'stuck in combat', 'fight still running after 90s: ' + await p.evaluate(() => C ? `round ${C.round} waiting=${C.waiting} ended=${C.ended} enemies=${C.enemies.map(e => e.name + ':' + Math.round(e.hp)).join(',')}` : 'no C'));
     await p.evaluate(() => { if (C) { C.ended = true; C.closed = true; } UI.dirty = true; render(); });
   }
 

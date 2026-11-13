@@ -212,7 +212,7 @@ function compGainXp(c,x){c.xp+=x;while(c.level<100&&c.xp>=xpNext(c.level)*0.7){c
 function canTame(){const P=S.P;return ['summoner','druid','necromancer'].includes(P.cls)||['beastmaster','grandsummoner'].includes(P.adv)||mLv(P,'summoning')>=10;}
 
 /* ---------------- party ---------------- */
-function partyMembers(){return S.P.party.map(npc).filter(Boolean);}
+function partyMembers(){return (S.P.party||[]).map(npc).filter(Boolean);}
 function partyFollow(){const P=S.P;for(const n of partyMembers()){n.loc=P.loc;n.busy=S.time+60;n.act='in your party';n.path=[];
   if(!online(n)||(S.time-n.joined>U.ri(6,12)*60&&U.chance(0.1))){leaveParty(n,online(n)?'gotta head out, thanks for the group!':'logging off, gg all');}}}
 function leaveParty(n,msg){const P=S.P;P.party=P.party.filter(x=>x!==n.id);n.inParty=false;n.busy=S.time;n.act='idle';log(`${n.user} left the party.`,'social');if(msg)BUS.emit('npc_say',{n,ch:'party',text:msg});
