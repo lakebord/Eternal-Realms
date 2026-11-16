@@ -15,12 +15,12 @@ def bounds(im):
             cuts.append(min(range(lo, hi), key=lambda i: prof[i]))
         cuts.append(n); return cuts
     return axis(W, lambda i, j: px[i, j], H), axis(H, lambda i, j: px[j, i], W)
-def atlas(name, cell):
+def atlas(name, cell, padf=0.07):
     im = Image.open(os.path.join(src, name + '.png')).convert('RGB'); xs, ys = bounds(im)
     o = Image.new('RGB', (cell * 4, cell * 4))
     for r in range(4):
         for c in range(4):
-            x0, x1, y0, y1 = xs[c], xs[c + 1], ys[r], ys[r + 1]; side = min(x1 - x0, y1 - y0); pad = int(side * 0.07)
+            x0, x1, y0, y1 = xs[c], xs[c + 1], ys[r], ys[r + 1]; side = min(x1 - x0, y1 - y0); pad = int(side * padf)
             cx, cy = (x0 + x1) // 2, (y0 + y1) // 2; h = side // 2 - pad
             o.paste(im.crop((cx - h, cy - h, cx + h, cy + h)).resize((cell, cell), Image.LANCZOS), (c * cell, r * cell))
     o.save(os.path.join(out, name + '.webp'), 'WEBP', quality=82, method=6); return o

@@ -68,6 +68,7 @@ const INST={
 function audTick(){const C_=AUD.ctx;if(!C_||!AUD.on)return;
   if(AUD.want!==AUD.mood){if(!AUD.fadeT){AUD.fadeT=C_.currentTime||0.001;AUD.mus.gain.setTargetAtTime(0.0001,C_.currentTime,0.35);}else if(C_.currentTime-AUD.fadeT>1.1){audNewBus(0.05);AUD.mood=AUD.want;AUD.fadeT=0;AUD.bar=0;AUD.step=0;AUD.next=C_.currentTime+0.05;AUD.mus.gain.setTargetAtTime(AUD.music*0.5,C_.currentTime,0.6);}}
   if(AUD.fadeT&&AUD.want===AUD.mood){AUD.fadeT=0;AUD.mus.gain.setTargetAtTime(AUD.music*0.5,C_.currentTime,0.4);}
+  if(AUD.rec){AUD.next=C_.currentTime+0.1;return;}   // a recorded track is playing: the synth band sits out
   const M=MOODS[AUD.mood];if(!M||AUD.fadeT)return;const s16=60/M.bpm/4;
   // fell behind (the page was busy)? skip the missed steps silently instead of firing broken notes in the past
   while(AUD.next<C_.currentTime-0.01){AUD.next+=s16;AUD.step++;if(AUD.step%16===0)AUD.bar++;}
