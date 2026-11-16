@@ -273,17 +273,17 @@ Object.assign(ACT,{cc(v){ccSync();const [f,k]=v.split('|');CC[f]=k;const y=windo
 /* ---------------- combat UI ---------------- */
 UI.banner=(title,sub)=>{const b=$('#banner');b.innerHTML=`<div><small>${E(sub||'')}</small><b>${E(title)}</b></div>`;b.hidden=false;b.classList.remove('go');void b.offsetWidth;b.classList.add('go');clearTimeout(UI.bt);UI.bt=setTimeout(()=>{b.hidden=true;},2600);};
 BUS.on((t,d)=>{if(S&&S.catchup)return;if(t==='player_tier'||t==='player_level'||t==='player_adv'){levelBurst();sfx('levelup');}if(t==='player_ach'){sfx('buff');burst(innerWidth/2,innerHeight*0.45,ELEM_COL.gold,24,4);}if(t==='player_tier')UI.banner(d.nm,'Class upgrade');if(t==='player_level')UI.banner(`Level ${d.level}`,'You feel stronger');if(t==='player_adv')UI.banner(d.A.name,'A higher path');if(t==='player_ach')UI.banner(ACHIEVEMENTS[d.id].n,'Achievement');});
-UI.openCombat=()=>{C.closed=false;$('#combat').hidden=false;UI.combatMenu='main';renderCombat();};
+UI.openCombat=()=>{C.closed=false;$('#combat').hidden=false;UI.combatMenu='main';$('#combat').classList.remove('res-win','res-lose','res-fled','justended');cfxIntro();renderCombat();};
 // strictly one actor at a time: each action gets its own beat so its animation finishes before the next one starts
 UI.turnGap=()=>UI.fast?260:fxReduced()?600:950;
 UI.runCombat=(afterPlayer)=>{if(!C||C.ended){renderCombat();return;}clearTimeout(UI.ct);
   const step=()=>{if(!C)return;C.acted=false;const r=combatStep();renderCombat();if(C.cinema&&!C.cineStarted){C.cineStarted=1;setTimeout(finalCinematic,1500);return;}
     if(r==='cont')UI.ct=setTimeout(step,C.acted?UI.turnGap():40);};
   if(afterPlayer){renderCombat();UI.ct=setTimeout(step,UI.turnGap());}else step();};
-UI.combatEnded=()=>{renderCombat();UI.dirty=true;if(C.result==='win'){sfx('victory');if(C.enemies.some(e=>e.boss)||C.summary.some(x=>typeof x==='object'&&x.r>=3))confetti();}else if(C.result==='lose')sfx('defeat');};
+UI.combatEnded=()=>{renderCombat();UI.dirty=true;cfxEnded();if(C.result==='win'){sfx('victory');if(C.enemies.some(e=>e.boss)||C.summary.some(x=>typeof x==='object'&&x.r>=3))confetti();}else if(C.result==='lose')sfx('defeat');};
 function actorCard(a,i,side){const fx=Object.keys(a.fx).filter(k=>STATUS[k]&&a.fx[k].d>0).map(k=>`<i class="fx ${STATUS[k].bad?'bad':'good'}">${STATUS[k].n}</i>`).join('');const dead=a.hp<=0||a.fled;
-  const sel=side==='e'&&C.target===i;const cur=C.order[C.oi]===a&&!C.ended;a._k=a._k||U.uid();return `<button class="actor ${side} ${dead?'dead':''} ${sel?'sel':''} ${a.isPlayer?'me':''} ${cur?'turn':''} ${a.boss?'boss':''} ${a.coop?'coopa':''}" data-k="${a._k}" ${side==='e'&&!dead?`data-a="ctarget" data-v="${i}"`:'disabled'} aria-label="${E(a.name)}">
-  <span class="ahead">${sigil(a)}<b>${E(a.name)}</b></span><small>Lv.${a.level} · ${a.row}${a.boss?' · BOSS':''}${a.fled?(a.tamed?' · bonded':a.surrendered?' · yielded':' · fled'):''}</small>${abar(Math.max(0,a.hp),a.mhp,'hp','HP',a._k)}${a.side==='a'&&!a.mon?abar(a.mp,a.mmp,'mp','MP',a._k)+abar(a.sp,a.msp,'sp','SP',a._k):''}<span class="fxs">${fx}</span></button>`;}
+  const sel=side==='e'&&C.target===i;const cur=C.order[C.oi]===a&&!C.ended;a._k=a._k||U.uid();return `<button class="actor ${side} ${dead?'dead':''} ${sel?'sel':''} ${a.isPlayer?'me':''} ${cur?'turn':''} ${a.boss?'boss':''} ${a.coop?'coopa':''} ${ptActor(a)?'hasp':''} ${a.side==='a'&&a.hp>0&&a.hp<a.mhp*0.25?'low':''}" style="--i:${Math.max(0,i)}" data-k="${a._k}" ${side==='e'&&!dead?`data-a="ctarget" data-v="${i}"`:'disabled'} aria-label="${E(a.name)}">
+  ${ptActor(a,'ap')||''}<span class="ainfo"><span class="ahead">${ptActor(a)?'':sigil(a)}<b>${E(a.name)}</b></span><small>Lv.${a.level} · ${a.row}${a.boss?' · BOSS':''}${a.fled?(a.tamed?' · bonded':a.surrendered?' · yielded':' · fled'):''}</small>${abar(Math.max(0,a.hp),a.mhp,'hp','HP',a._k)}${a.side==='a'&&!a.mon?abar(a.mp,a.mmp,'mp','MP',a._k)+abar(a.sp,a.msp,'sp','SP',a._k):''}<span class="fxs">${fx}</span></span></button>`;}
 function renderCombat(){if(!C)return;const el=$('#combat');const pa=C.allies.find(x=>x.isPlayer);const foes=alive(C.enemies);if(C.target>=foes.length)C.target=0;
   const myTurn=C.waiting&&!C.ended;let actions='';
   if(C.ended){actions=`<div class="cres ${C.result}"><h3>${icon(C.result==='win'?'ranks':C.result==='lose'?'skull':'escape')} ${C.result==='win'?'Victory':C.result==='lose'?'Defeat':'Escaped'}</h3>${(C.summary||[]).map(s=>typeof s==='object'?`<p class="loot lr${s.r||0}">${s.html}</p>`:`<p>${E(s)}</p>`).join('')}<div class="row">${S.P.dungeon&&C.result==='win'?btn(S.P.dungeon.floor>S.P.dungeon.floors?'Face the boss':'Next floor','cnext','','gilt')+btn('Leave dungeon','cleave'):''}${btn(C.perma?'Return to title':'Continue','cclose','','gilt')}</div></div>`;}
@@ -304,10 +304,10 @@ function renderCombat(){if(!C)return;const el=$('#combat');const pa=C.allies.fin
    <div class="clog" id="clog">${C.log.slice(-14).map(([t,c])=>`<p class="${c}">${E(t)}</p>`).join('')}</div>
    <div class="side allies">${C.allies.map(a=>actorCard(a,0,'a')).join('')}</div>${actions}
    ${UI.inspect?`<div class="inspect">${UI.inspect}${btn('Close','cinspect','x','ghost tiny')}</div>`:''}</div>`;
-  const lg=$('#clog');if(lg)lg.scrollTop=lg.scrollHeight;animBars(el);combatVfx(el);finaleAmbience();
-  if(C.floats&&C.floats.length){const fl=$('#floats');for(const f of C.floats.splice(0)){const card=el.querySelector(`[data-k="${f.a._k}"]`);if(!card)continue;const r=card.getBoundingClientRect();
-    const d=document.createElement('span');d.className='float '+f.kind;d.textContent=f.txt;d.style.left=(r.left+r.width*(0.35+Math.random()*0.3))+'px';d.style.top=(r.top+r.height*0.35)+'px';fl.appendChild(d);setTimeout(()=>d.remove(),1100);
-    if(f.kind==='dmg'||f.kind==='crit'){card.classList.add('hit');if(f.kind==='crit'&&!matchMedia('(prefers-reduced-motion: reduce)').matches)el.querySelector('.cwrap').classList.add('shake');}}}}
+  const lg=$('#clog');if(lg)lg.scrollTop=lg.scrollHeight;animBars(el);cfxFrame(el);combatVfx(el);finaleAmbience();
+  if(C.floats&&C.floats.length){const fl=$('#floats');for(const f of C.floats.splice(0)){const card=el.querySelector(`[data-k="${f.a._k}"]`);if(!card)continue;const r=(card.querySelector('.pt')||card).getBoundingClientRect();
+    const x=r.left+r.width*(0.3+Math.random()*0.4),y=r.top+r.height*0.3;const pop=()=>{const d=document.createElement('span');d.className='float '+f.kind;d.textContent=f.txt;d.style.left=x+'px';d.style.top=y+'px';d.style.setProperty('--dx',((Math.random()-0.5)*40).toFixed(0)+'px');fl.appendChild(d);setTimeout(()=>d.remove(),1200);};
+    const wait=cfxFloatDelay(f.a);if(wait>8)setTimeout(pop,wait);else pop();}}}
 Object.assign(ACT,{ctarget(i){C.target=+i;},ca(a){if(a==='tame'||a==='escape'||a==='surrender'||a==='row'){playerAction(a,null,C.target);}else playerAction(a,null,C.target);UI.combatMenu='main';},
   cmenu(m){UI.combatMenu=m;},cskill(id){const s=SKILLS[id];let t=C.target;if(['ally'].includes(s.tg)){const fr=friendsOf(C.allies.find(x=>x.isPlayer));t=fr.indexOf(fr.slice().sort((a,b)=>a.hp/a.mhp-b.hp/b.mhp)[0]);}playerAction('skill',id,t);UI.combatMenu='main';},
   citem(i){playerAction('item',+i);UI.combatMenu='main';},csummon(id){playerAction('summon',id);UI.combatMenu='main';},ctactic(t){playerAction('tactic',t);UI.combatMenu='main';},

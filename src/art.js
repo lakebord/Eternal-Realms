@@ -146,3 +146,19 @@ function drawTitleBg(cv){const W=cv.width=cv.clientWidth*(window.devicePixelRati
   const ridge=(y0,amp,col)=>{g.fillStyle=col;g.beginPath();g.moveTo(0,H);let y=y0;for(let x=0;x<=W;x+=W/60){y+=(r()-0.5)*amp;y=Math.max(y0-amp*1.5,Math.min(y0+amp,y));g.lineTo(x,y);}g.lineTo(W,H);g.fill();};
   ridge(H*0.62,H*0.06,'#1b2133');ridge(H*0.72,H*0.05,'#131828');ridge(H*0.84,H*0.03,'#0b0e18');
   g.fillStyle='#0b0e18';g.beginPath();g.moveTo(W*0.66,H*0.84);g.lineTo(W*0.675,H*0.5);g.lineTo(W*0.69,H*0.84);g.fill();g.fillStyle='rgba(255,196,110,.9)';g.fillRect(W*0.674,H*0.6,3,5);}
+
+/* ---------- painted portraits & icons (sprite atlases in assets/, 4×4 cells each) ----------
+   Missing files (e.g. the single-file artifact build) simply fall back to the line-icon sigils. */
+const ART={ok:false,base:'assets/',gear:['sword','greatsword','axe','greataxe','mace','spear','halberd','dagger','bow','staff','orb','fist','shield','tome','head_cloth','head_leather','head_plate','chest_cloth','chest_leather','chest_plate','legs_cloth','legs_leather','legs_plate','hands_cloth','hands_leather','hands_plate','feet_cloth','feet_leather','feet_plate','ring','amulet','_chest'],
+  npc:{stranger:89,merchant:90,innkeeper:91,smith:92,guard:93,priestess:94,sage:95}};
+(function(){try{const im=new Image();im.onload=()=>{ART.ok=true;document.documentElement.classList.add('art');if(typeof UI!=='undefined'){UI.dirty=true;if(typeof render==='function')try{render();}catch(e){}}};im.src=ART.base+'mon01.webp';
+  for(const n of ['class01','class02','class03','mon02'])setTimeout(()=>{new Image().src=ART.base+n+'.webp';},1500);}catch(e){}})();
+function artCell(sheet,i,cls,extra){const c=i%4,r=Math.floor(i/4)%4;return `<span class="pt ${cls||''}" ${extra||''} style="background-image:url(${ART.base}${sheet}.webp);background-position:${(c*100/3).toFixed(2)}% ${(r*100/3).toFixed(2)}%" aria-hidden="true"></span>`;}
+function artIdx(prefix,i,cls,extra){return artCell(prefix+String(Math.floor(i/16)+1).padStart(2,'0'),i%16,cls,extra);}
+function nameHash(s){let h=0;s=String(s||'');for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h);}
+function ptMon(id,cls){if(!ART.ok)return '';ART.mk=ART.mk||Object.keys(MONSTERS);const i=ART.mk.indexOf(id);return i<0?'':artIdx('mon',i,cls);}
+function ptNpc(kind,cls){if(!ART.ok||ART.npc[kind]==null)return '';return artIdx('mon',ART.npc[kind],cls);}
+function ptClass(cl,gender,name,cls){if(!ART.ok)return '';ART.ck=ART.ck||Object.keys(CLASSES);let i=ART.ck.indexOf(cl);if(i<0)return '';
+  const f=gender==='female'?1:gender==='male'?0:nameHash(name)%2;if(i<16)return artCell(f?'class02':'class01',i,cls);if(i<20)return artCell('class03',(i-16)+(f?4:0),cls);return '';}
+function ptItem(it,cls){if(!ART.ok||!it)return '';if(it.b){const i=ART.gear.indexOf(it.b);return i<0?'':artIdx('gear',i,(cls||'')+' r'+(it.r||0));}ART.ik=ART.ik||Object.keys(ITEMS);const i=ART.ik.indexOf(it.k||it);return i<0?'':artIdx('items',i,cls);}
+function ptActor(a,cls){if(!a)return '';if(a.id&&MONSTERS[a.id])return ptMon(a.id,cls);if(a.cls)return ptClass(a.cls,a.char&&a.char.gender,a.name,cls);return '';}

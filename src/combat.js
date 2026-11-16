@@ -161,7 +161,7 @@ function useSkill(a,id,tIdx){
   else if(sk.tg==='pet'){const pet=friends.find(f=>f.isComp);if(!pet){clog('You have no summon in battle.','bad');a.mp+=sk.c[0];a.sp+=sk.c[1];a.cd[id]=0;return false;}targets=[pet];}
   else if(sk.tg==='dead')targets=C.allies.filter(x=>x.hp<=0).slice(0,1);
   targets=targets.filter(Boolean);
-  clog(`${a.name} uses ${sk.n}!`,'skill');
+  clog(`${a.name} uses ${sk.n}!`,'skill');vfx('cast',a,{n:sk.n,k:sk.k,e:sk.e||(sk.k==='mag'?'arcane':null)});
   if(sk.m&&a.isPlayer)gainMastery(sk.m,sk.k==='mag'||sk.k==='heal'?5:4);else if(a.isPlayer&&(sk.k==='phys'))gainMastery(a.wt,4);
   if(sk.k==='phys'||sk.k==='mag'){
     for(const t of targets){const hits=sk.hits||1;for(let i=0;i<hits&&t.hp>0;i++){

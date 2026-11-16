@@ -22,7 +22,7 @@ function userLink(id){if(id==='P')return `<b class="me">${E(S.P.user)}</b>`;if(S
   const n=npc(id);return n?`<a class="ulink" data-a="profile" data-v="${n.id}">${E(n.user)}</a>`:'?';}
 const CLS_HUE={bard:'#e07ab0',shaman:'#4ab0d8',warlock:'#7a4ab8',artificer:'#c09a5a',ranger:'#5a9a4a',warrior:'#d0704a',knight:'#9aa6b8',swordsman:'#c9b07a',archer:'#7fb35a',rogue:'#8a7ac0',mage:'#5b8be0',cleric:'#e6d08a',summoner:'#5cc0b0',paladin:'#e8b84a',berserker:'#d8463a',monk:'#e09a4a',necromancer:'#8f6bd0',druid:'#6bb06a',spearman:'#b88a5a',merchant:'#d8ad55'};
 const CLS_ICON={bard:'lute',shaman:'quick',warlock:'flame',artificer:'gear',ranger:'hunt',warrior:'attack',knight:'defend',swordsman:'parry',archer:'hunt',rogue:'quick',mage:'magic',cleric:'heart',summoner:'summon',paladin:'temple',berserker:'heavy',monk:'trainer',necromancer:'skull',druid:'gather',spearman:'travel',merchant:'coin'};
-function avatar(name,cls,real){const c=CLS_HUE[cls]||'#888';return `<span class="av ${real?'real':''}" style="--ac:${c}" aria-hidden="true">${E(String(name||'?').replace(/^[^A-Za-z0-9]*/,'').slice(0,1).toUpperCase()||'?')}</span>`;}
+function avatar(name,cls,real){const c=CLS_HUE[cls]||'#888';const pp=ptClass(cls,null,name);if(pp)return `<span class="av hasp ${real?'real':''}" style="--ac:${c}" aria-hidden="true">${pp}</span>`;return `<span class="av ${real?'real':''}" style="--ac:${c}" aria-hidden="true">${E(String(name||'?').replace(/^[^A-Za-z0-9]*/,'').slice(0,1).toUpperCase()||'?')}</span>`;}
 function className(a){return a.adv?ADV_CLASSES[a.adv].name:tierName(a);}
 function lvlColor(l){const d=l-S.P.level;return d>=6?'lv-red':d>=3?'lv-orange':d>=-3?'lv-yellow':d>=-8?'lv-green':'lv-grey';}
 

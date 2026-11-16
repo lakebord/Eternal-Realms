@@ -14,6 +14,7 @@ function fxLoop(){const g=FX.g;g.setTransform(FX.dpr,0,0,FX.dpr,0,0);g.clearRect
     else if(p.k==='slash'){const L=p.r1*Math.min(1,t*3);g.strokeStyle=p.c;g.lineWidth=p.s*(1-t);g.lineCap='round';g.shadowColor=p.c;g.shadowBlur=12;g.beginPath();g.moveTo(p.x-Math.cos(p.ang)*L,p.y-Math.sin(p.ang)*L);g.lineTo(p.x+Math.cos(p.ang)*L,p.y+Math.sin(p.ang)*L);g.stroke();g.shadowBlur=0;}
     else if(p.k==='bolt'){g.strokeStyle=p.c;g.lineWidth=2.5;g.shadowColor=p.c;g.shadowBlur=14;g.beginPath();let x=p.x,y=p.y-120;g.moveTo(x,y);for(let k=0;k<7;k++){x+=(Math.random()-0.5)*26;y+=120/7;g.lineTo(x,y);}g.stroke();g.shadowBlur=0;}
     else if(p.k==='glow'){const R=Math.max(0.1,p.r0+p.r1*t);const rg=g.createRadialGradient(p.x,p.y,0,p.x,p.y,R);rg.addColorStop(0,p.c);rg.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=rg;g.beginPath();g.arc(p.x,p.y,R,0,7);g.fill();}
+    else if(p.k==='fn'){g.save();p.draw(g,t,p);g.restore();}
     else if(p.k==='rect'){g.fillStyle=p.c;g.save();g.translate(p.x,p.y);g.rotate(p.rot+=p.vr);g.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6);g.restore();}
     return true;});
   g.globalAlpha=1;FX.raf=FX.parts.length?requestAnimationFrame(fxLoop):0;}
@@ -37,14 +38,7 @@ function goldBurst(el){const [x,y]=el?centerOf(el):[innerWidth/2,80];burst(x,y,E
 function levelBurst(){const x=innerWidth/2,y=innerHeight*0.45;for(let k=0;k<3;k++)fxAdd({k:'ring',x,y,r0:10,r1:220,s:4,c:'#ffd36a',life:900,t0:performance.now()+k*150});burst(x,y,['#ffd36a','#fff4c0','#e0b45e'],60,7,{g:0.06,up:1});}
 
 /* ---------- combat VFX: consume the queue after each render ---------- */
-function combatVfx(root){if(!C||!C.vfx||!C.vfx.length)return;const q=C.vfx.splice(0);
-  for(const v of q){const el=v.a&&v.a._k&&root.querySelector(`[data-k="${v.a._k}"]`);const src=v.s&&v.s._k&&root.querySelector(`[data-k="${v.s._k}"]`);
-    if(src&&v.t==='hit'){src.classList.remove('lunge-up','lunge-down');void src.offsetWidth;src.classList.add(v.s.side==='a'?'lunge-up':'lunge-down');}
-    if(!el)continue;
-    switch(v.t){case 'hit':fxHit(el,v.e,v.crit);sfx(v.crit?'crit':v.e&&v.e!=='phys'?'magic':(v.melee?'slash':'hit'),{e:v.e});if(v.a.isPlayer)hurtPulse();break;
-      case 'heal':fxHeal(el);sfx('heal');break;case 'buff':fxBuff(el,false);sfx('buff');break;case 'debuff':fxBuff(el,true);sfx('debuff');break;
-      case 'miss':fxMiss(el);sfx('miss');break;case 'death':fxDeath(el);sfx('death');if(v.final){const [x,y]=centerOf(el);for(let k=0;k<6;k++)fxAdd({k:'ring',x,y,r0:10,r1:innerWidth*0.8,s:7,c:['#ffffff','#ffd36a','#fff4c0'][k%3],life:1400,t0:performance.now()+k*140});burst(x,y,['#ffffff','#ffd36a','#fff4c0'],160,14,{g:0.03});flashScreen('#ffffff');sfx('victory');}break;case 'summon':fxSummon(el);sfx('summon');break;
-      case 'phase':flashScreen('#df5d4733');sfx('boss');el.classList.add('enrage');break;}}}
+/* combatVfx lives in cfx.js (battle choreography) */
 function hurtPulse(){const v=document.getElementById('combat');if(!v)return;v.classList.remove('hurt');void v.offsetWidth;v.classList.add('hurt');}
 /* animated bars: render at previous value, then slide to the new one (with a trailing "ghost" chunk) */
 /* ---------- living bars: damage drains away, heals pour in. State survives re-renders. ---------- */
