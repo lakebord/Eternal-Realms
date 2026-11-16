@@ -330,7 +330,7 @@ const UNIQUES = {
 };
 // fixed consumables / materials / misc. v = base value in gold
 const ITEMS = {
-  hpot1:{n:'Minor Health Potion',t:'con',heal:70,v:15},hpot2:{n:'Health Potion',t:'con',heal:220,v:45},hpot3:{n:'Greater Health Potion',t:'con',heal:600,v:130},hpot4:{n:'Supreme Health Potion',t:'con',heal:1600,v:380},
+  hpot1:{n:'Minor Health Potion',t:'con',heal:70,hpc:0.25,v:15},hpot2:{n:'Health Potion',t:'con',heal:220,hpc:0.35,v:45},hpot3:{n:'Greater Health Potion',t:'con',heal:600,hpc:0.45,v:130},hpot4:{n:'Supreme Health Potion',t:'con',heal:1600,hpc:0.6,v:380},
   mpot1:{n:'Minor Mana Potion',t:'con',mana:40,v:18},mpot2:{n:'Mana Potion',t:'con',mana:120,v:55},mpot3:{n:'Greater Mana Potion',t:'con',mana:320,v:150},
   stonic:{n:'Stamina Tonic',t:'con',stam:80,v:20},antidote:{n:'Antidote',t:'con',cure:1,v:12},elixir_str:{n:'Elixir of Might',t:'con',buff:'might',v:60},
   elixir_def:{n:'Ironskin Draught',t:'con',buff:'fortify',v:60},smoke:{n:'Smoke Bomb',t:'con',escape:1,v:30},firebomb:{n:'Fire Flask',t:'con',bomb:1,e:'fire',dmg:60,v:35},

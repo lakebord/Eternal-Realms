@@ -192,7 +192,11 @@ function makeMonster(id,l,opts={}){
   const m={id,name:M.n,mon:1,level:l,cat:M.cat,boss:!!M.boss,b:M.b||[],e:M.e||null,w:M.w||[],r:M.r||[],st:M.st||null,
     mhp:Math.round((40+l*16)*(M.hp||1)*diff*hh),atk:(10+l*4.5)*(M.at||1)*diff*hc,matk:(10+l*4.5)*(M.md||M.at||1)*0.85*diff*hc,pdef:(3+l*1.5)*(M.df||1),mdef:(3+l*1.5)*(M.md||1),
     acc:85+l*0.8,eva:Math.min(40,(4+l*0.3)*(M.ev||1)),spd:(9+l*0.5)*(M.sp||1),crit:5,critDmg:150,row:(M.b||[]).includes('ranged')||(M.b||[]).includes('caster')?'back':'front'};
-  if(M.boss&&!M.world&&!/^trial|^warlord/.test(id)){m.mhp=Math.round(m.mhp*1.9);m.atk*=1.3;m.matk*=1.3;m.pdef*=1.15;}
+  // damage pass: monsters hit ~20-30% softer (more so at high level, where their attack outgrew hero HP) and ordinary ones are a bit
+  // tougher, so a fight is a few exchanged blows instead of a coin flip. Dungeon bosses lost the huge HP wall and the spike damage:
+  // a solo hero can grind one down in a dozen-odd turns; they grow with party size instead (see startCombat).
+  const soft=0.80-0.10*Math.min(1,l/80);m.atk*=soft;m.matk*=soft;m.critDmg=140;if(!M.boss)m.mhp=Math.round(m.mhp*1.12);
+  if(M.boss&&!M.world&&!/^trial|^warlord/.test(id)){m.pdef*=1.1;m.critDmg=135;m.dungeonBoss=1;m.atk*=0.9;m.matk*=0.9;const early=0.6+0.4*U.clamp((l-8)/22,0,1);m.mhp=Math.round(m.mhp*early);}   // the first dungeons are met with few skills and weak potions
   m.hp=m.mhp;m.mp=999;m.fx={};m.cd={};m.phase=1;
   return m;
 }

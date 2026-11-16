@@ -957,7 +957,7 @@ const UNIQUES = {
 };
 // fixed consumables / materials / misc. v = base value in gold
 const ITEMS = {
-  hpot1:{n:'Minor Health Potion',t:'con',heal:70,v:15},hpot2:{n:'Health Potion',t:'con',heal:220,v:45},hpot3:{n:'Greater Health Potion',t:'con',heal:600,v:130},hpot4:{n:'Supreme Health Potion',t:'con',heal:1600,v:380},
+  hpot1:{n:'Minor Health Potion',t:'con',heal:70,hpc:0.25,v:15},hpot2:{n:'Health Potion',t:'con',heal:220,hpc:0.35,v:45},hpot3:{n:'Greater Health Potion',t:'con',heal:600,hpc:0.45,v:130},hpot4:{n:'Supreme Health Potion',t:'con',heal:1600,hpc:0.6,v:380},
   mpot1:{n:'Minor Mana Potion',t:'con',mana:40,v:18},mpot2:{n:'Mana Potion',t:'con',mana:120,v:55},mpot3:{n:'Greater Mana Potion',t:'con',mana:320,v:150},
   stonic:{n:'Stamina Tonic',t:'con',stam:80,v:20},antidote:{n:'Antidote',t:'con',cure:1,v:12},elixir_str:{n:'Elixir of Might',t:'con',buff:'might',v:60},
   elixir_def:{n:'Ironskin Draught',t:'con',buff:'fortify',v:60},smoke:{n:'Smoke Bomb',t:'con',escape:1,v:30},firebomb:{n:'Fire Flask',t:'con',bomb:1,e:'fire',dmg:60,v:35},
@@ -1918,7 +1918,11 @@ function makeMonster(id,l,opts={}){
   const m={id,name:M.n,mon:1,level:l,cat:M.cat,boss:!!M.boss,b:M.b||[],e:M.e||null,w:M.w||[],r:M.r||[],st:M.st||null,
     mhp:Math.round((40+l*16)*(M.hp||1)*diff*hh),atk:(10+l*4.5)*(M.at||1)*diff*hc,matk:(10+l*4.5)*(M.md||M.at||1)*0.85*diff*hc,pdef:(3+l*1.5)*(M.df||1),mdef:(3+l*1.5)*(M.md||1),
     acc:85+l*0.8,eva:Math.min(40,(4+l*0.3)*(M.ev||1)),spd:(9+l*0.5)*(M.sp||1),crit:5,critDmg:150,row:(M.b||[]).includes('ranged')||(M.b||[]).includes('caster')?'back':'front'};
-  if(M.boss&&!M.world&&!/^trial|^warlord/.test(id)){m.mhp=Math.round(m.mhp*1.9);m.atk*=1.3;m.matk*=1.3;m.pdef*=1.15;}
+  // damage pass: monsters hit ~20-30% softer (more so at high level, where their attack outgrew hero HP) and ordinary ones are a bit
+  // tougher, so a fight is a few exchanged blows instead of a coin flip. Dungeon bosses lost the huge HP wall and the spike damage:
+  // a solo hero can grind one down in a dozen-odd turns; they grow with party size instead (see startCombat).
+  const soft=0.80-0.10*Math.min(1,l/80);m.atk*=soft;m.matk*=soft;m.critDmg=140;if(!M.boss)m.mhp=Math.round(m.mhp*1.12);
+  if(M.boss&&!M.world&&!/^trial|^warlord/.test(id)){m.pdef*=1.1;m.critDmg=135;m.dungeonBoss=1;m.atk*=0.9;m.matk*=0.9;const early=0.6+0.4*U.clamp((l-8)/22,0,1);m.mhp=Math.round(m.mhp*early);}   // the first dungeons are met with few skills and weak potions
   m.hp=m.mhp;m.mp=999;m.fx={};m.cd={};m.phase=1;
   return m;
 }
@@ -2596,7 +2600,7 @@ function useItem(idx,inCombat){const P=S.P,it=P.inv[idx];if(!it||isGear(it))retu
   if(d.t!=='con'&&d.t!=='food')return false;
   if(d.t==='food'&&inCombat){log('No time to eat now!','bad');return false;}
   if(d.ret){if(inCombat){log('You cannot read it mid-fight.','bad');return false;}invRemove(P,it.k);P.loc=P.home;P.dungeon=null;log(`The scroll flares, and you are back in ${LOCS[P.home].n}.`,'good');spend(10);return true;}
-  if(d.heal)P.hp=Math.min(st.mhp,P.hp+d.heal);if(d.mana)P.mp=Math.min(st.mmp,P.mp+d.mana);if(d.stam)P.sp=Math.min(st.msp,P.sp+d.stam);
+  if(d.heal)P.hp=Math.min(st.mhp,P.hp+Math.max(d.heal,Math.round(st.mhp*(d.hpc||0))));   // potions heal at least a share of max HP, so they stay useful as you growif(d.mana)P.mp=Math.min(st.mmp,P.mp+d.mana);if(d.stam)P.sp=Math.min(st.msp,P.sp+d.stam);
   if(d.wellfed){P.fx.wellfed=S.time+180;}if(d.cure&&P.cfx){for(const k of ['poison','burn','bleed'])delete P.cfx[k];}
   invRemove(P,it.k);if(!inCombat)log(`You use ${d.n}.`);return true;}
 function sellItem(idx){const P=S.P,it=P.inv[idx];if(!it)return;const q=isGear(it)?1:it.q;const v=priceFor(isGear(it)?it:{k:it.k},P.loc,false)*(isGear(it)?1:1);
@@ -2837,6 +2841,8 @@ function startCombat(enemies,opts={}){
   const allies=[actorFromChar(P,'a')];
   if(!opts.noParty)for(const n of partyMembers())allies.push(actorFromChar(n,'a',{ai:1}));
   if(!opts.noParty&&typeof coopPartner==='function'){const cp=coopPartner();if(cp&&cp.loc===P.loc&&cp.cs){const a=actorFromSnap(cp.cs,cp.user+' ●','a');a.coop=1;allies.push(a);opts.coop=cp;}}
+  // dungeon bosses scale to the size of the group facing them
+  if(allies.length>1)for(const e of enemies)if(e.dungeonBoss&&!e.partyAdj){e.partyAdj=1;const k=1+0.75*Math.min(4,allies.length-1);e.mhp=Math.round(e.mhp*k);e.hp=e.mhp;e.atk*=1+0.1*Math.min(4,allies.length-1);e.matk*=1+0.1*Math.min(4,allies.length-1);}
   C={allies,enemies:enemies.map(e=>e.side?e:(e.mon?actorFromMon(e):e)),round:0,order:[],oi:0,log:[],opts,ended:false,waiting:false,target:0,tactic:P.tactic||'free',inspected:{},startHp:P.hp,dmgDealt:0,dmgByP:0};
   for(const e of C.enemies)e.side='e';
   if(opts.ambush){for(const a of allies)a.fx.ambushed={d:1};clog('You were caught off guard!','bad');}
@@ -2935,7 +2941,7 @@ function die(a,by){a.hp=0;vfx('death',a,{final:!!(a.finalBoss&&C.reborn)});if(a.
   if(a.side==='e'&&a.mon)a.killedBy=by&&by.isPlayer;}
 function bossPhase(b){const pct=b.hp/b.mhp;if(b.phase===1&&pct<0.66){b.phase=2;vfx('phase',b);clog(`${b.name} becomes enraged!`,'boss');
     if(b.b.includes('undead')||b.id==='b_lich'){for(let i=0;i<2;i++)C.enemies.push(actorFromMon(makeMonster('skeleton',Math.round(b.level*0.8))));clog('Bones rise from the ground to defend their master!','boss');}
-    if(b.id==='b_grubnak'||b.id==='b_foreman'){C.enemies.push(actorFromMon(makeMonster(b.id==='b_grubnak'?'goblin':'kobold',b.level-4)));clog('Reinforcements arrive!','boss');}}
+    if(b.id==='b_grubnak'||b.id==='b_foreman'){C.enemies.push(actorFromMon(makeMonster(b.id==='b_grubnak'?'goblin':'kobold',b.level-(C.allies.length>1?4:7))));clog('Reinforcements arrive!','boss');}}
   if(b.phase===2&&pct<0.33){b.phase=3;clog(`${b.name} is desperate. Its attacks grow wild!`,'boss');}}
 
 /* ---------------- actions ---------------- */
@@ -4753,7 +4759,7 @@ function svcPanel(s){const P=S.P,loc=P.loc;let h=`<h2>${SVC_NAMES[s]} — ${E(LO
   return h;}
 function sellSection(){const P=S.P;const items=P.inv.map((it,i)=>[it,i]).filter(([it])=>isGear(it)||ITEMS[it.k].t==='mat'||ITEMS[it.k].t==='food'||ITEMS[it.k].t==='con');
   return `<details class="sell"><summary>Sell items</summary><div class="list">${items.map(([it,i])=>`<div class="li"><span>${rarityName(it)}${it.q>1?' ×'+it.q:''}</span><span class="gold">${priceFor(isGear(it)?it:{k:it.k},P.loc,false)}g</span>${btn('Sell','sell',i,'tiny')}</div>`).join('')||'<p class="hint">Nothing to sell.</p>'}</div></details>`;}
-function itemDesc(it){if(!isGear(it)){const d=ITEMS[it.k];if(!d)return '';const p=[];if(d.heal)p.push(`+${d.heal} HP`);if(d.mana)p.push(`+${d.mana} MP`);if(d.stam)p.push(`+${d.stam} SP`);if(d.cure)p.push('cures poison');if(d.buff)p.push(STATUS[d.buff].n);if(d.escape)p.push('escape');if(d.bomb)p.push('fire damage');if(d.ret)p.push('teleport home');if(d.revive)p.push('revive ally');if(d.school)p.push('learn '+MASTERY[d.school].n);if(d.t==='mat')p.push('material');if(d.wellfed)p.push('well-fed');return p.join(', ');}
+function itemDesc(it){if(!isGear(it)){const d=ITEMS[it.k];if(!d)return '';const p=[];if(d.heal)p.push(d.hpc?`+${d.heal} HP or ${Math.round(d.hpc*100)}%`:`+${d.heal} HP`);if(d.mana)p.push(`+${d.mana} MP`);if(d.stam)p.push(`+${d.stam} SP`);if(d.cure)p.push('cures poison');if(d.buff)p.push(STATUS[d.buff].n);if(d.escape)p.push('escape');if(d.bomb)p.push('fire damage');if(d.ret)p.push('teleport home');if(d.revive)p.push('revive ally');if(d.school)p.push('learn '+MASTERY[d.school].n);if(d.t==='mat')p.push('material');if(d.wellfed)p.push('well-fed');return p.join(', ');}
   const s=itemStats(it),b=ITEM_BASES[it.b];const p=[];if(s.atk>0.5)p.push(`ATK ${Math.round(s.atk)}`);if(s.matk>0.5)p.push(`MATK ${Math.round(s.matk)}`);if(s.def>0.5)p.push(`DEF ${Math.round(s.def)}`);if(s.mdef>0.5)p.push(`MDEF ${Math.round(s.mdef)}`);
   for(const k of ATTRS)if(s[k])p.push(`${k.toUpperCase()} +${s[k]}`);if(s.crit)p.push(`Crit +${s.crit.toFixed(1)}%`);if(s.spd)p.push(`Spd ${s.spd>0?'+':''}${s.spd}`);for(const e in s.el)p.push(`${U.cap(e)} dmg`);for(const e in s.res)p.push(`${U.cap(e)} res ${s.res[e]}%`);if(s.steal)p.push('Lifesteal');
   return `${b.t==='weapon'?U.cap(b.wt):b.ac?U.cap(b.ac):b.n} · ${p.join(' · ')}${b.two?' · two-handed':''}${b.reach?' · reach':''}${b.ranged?' · ranged':''}`;}
@@ -4939,7 +4945,7 @@ function renderChar(){const P=S.P,st=stats(P),a=st.attr;const R=RACES[P.race];
   let h=`<section class="panel hero"><div class="vista sm" style="background-image:url(${drawVista(P.loc,S.time)})"></div><div class="phead"><span class="portrait lg" style="--ac:${CLS_HUE[P.cls]}">${icon(CLS_ICON[P.cls])}<b>${P.level}</b></span><div><h2>${E(P.name)} <small>“${E(P.user)}”</small></h2></div></div><p class="desc">A ${E(desc)}</p>
     <p><b>Lv.${P.level} ${E(className(P))}</b> · ${R.name} · ${BACKGROUNDS[P.bg].name}${P.guild?` · ${E(guild(P.guild).name)}`:''} · Fame ${U.fmt(P.fame)}</p>
     <p class="hint">${E(R.perk)} <span class="bad">${E(R.flaw)}</span></p></section>`;
-  h+=`<section class="panel"><h3>Attributes ${P.pts?`<span class="gilt-t">${P.pts} unspent points</span>`:''}</h3><div class="attrs">${ATTRS.map(k=>`<div class="attr"><span title="${ATTR_NAMES[k]}">${k.toUpperCase()}</span><b>${a[k]}</b>${P.pts?btn('+','alloc',k,'tiny'):''}</div>`).join('')}</div>
+  h+=`<section class="panel"><h3>Attributes ${P.pts?`<span class="gilt-t">${P.pts} unspent points</span> ${btn('Auto-assign','autoalloc','','tiny gilt')}`:''}</h3><div class="attrs">${ATTRS.map(k=>`<div class="attr"><span title="${ATTR_NAMES[k]}">${k.toUpperCase()}</span><b>${a[k]}</b>${P.pts?btn('+','alloc',k,'tiny'):''}</div>`).join('')}</div>
     <div class="derived">${[['Max HP',st.mhp],['Max MP',st.mmp],['Max SP',st.msp],['Phys. Attack',st.patk],['Magic Attack',st.matk],['Phys. Defense',st.pdef],['Magic Defense',st.mdef],['Accuracy',st.acc],['Evasion',st.eva.toFixed(1)+'%'],['Critical',st.crit.toFixed(1)+'%'],['Crit Damage',Math.round(st.critDmg)+'%'],['Speed',st.spd],['Gear Score',st.gs],['Combat Power',st.power]].map(([k,v])=>`<div><span>${k}</span><b>${typeof v==='number'?U.fmt(v):v}</b></div>`).join('')}</div>
     ${Object.keys(st.sets||{}).length?`<p class="good">Sets: ${Object.entries(st.sets).map(([k,n])=>`${SETS[k].n} ${n}/4`).join(' · ')}</p>`:''}
     ${Object.keys(st.res).length?`<p class="hint">Resistances: ${Object.entries(st.res).map(([e,v])=>`${U.cap(e)} ${v}%`).join(', ')}</p>`:''}
@@ -4957,7 +4963,9 @@ function renderChar(){const P=S.P,st=stats(P),a=st.attr;const R=RACES[P.race];
   h+=`<section class="panel"><h3>Achievements <small>${P.ach.length}/${Object.keys(ACHIEVEMENTS).length}</small></h3><div class="achs">${Object.entries(ACHIEVEMENTS).map(([id,A])=>`<div class="ach ${P.ach.includes(id)?'got':''}" title="${E(A.d)}"><b>${E(A.n)}</b><small>${E(A.d)}</small></div>`).join('')}</div></section>`;
   h+=`<section class="panel"><h3>Record</h3><div class="derived">${[['Monsters slain',P.stats.kills],['Dungeons cleared',P.stats.dungeons],['Bosses',P.stats.bosses],['World bosses',P.stats.worldBoss],['PvP',`${P.pvp.w}W/${P.pvp.l}L (${P.pvp.r})`],['Quests',P.stats.quests||0],['Crafted',P.stats.crafted],['Explored',`${P.explored.length}/${Object.keys(LOCS).length}`],['Deaths',P.stats.deaths]].map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join('')}</div></section>`;
   return h;}
-Object.assign(ACT,{alloc(k){allocate(k);},compact(id){S.P.activeComp=id;},comprel(id){S.P.comps=S.P.comps.filter(c=>c.id!==id);if(S.P.activeComp===id)S.P.activeComp=S.P.comps[0]?S.P.comps[0].id:null;}});
+Object.assign(ACT,{alloc(k){allocate(k);},
+  // spends every unspent point the way the class is meant to be built: main stat, second stat, and some vitality
+  autoalloc(){const P=S.P;const pr=CLASS_PRIO[P.cls]||['str','vit'];const n=P.pts;let i=0;while(P.pts>0){const k=i%5===4?'vit':i%5===1||i%5===3?pr[1]:pr[0];allocate(k);i++;}if(n)UI.toast(`Assigned ${n} points to ${[pr[0],pr[1],'vit'].filter((x,j,a)=>a.indexOf(x)===j).map(x=>x.toUpperCase()).join(', ')}`,'epic');},compact(id){S.P.activeComp=id;},comprel(id){S.P.comps=S.P.comps.filter(c=>c.id!==id);if(S.P.activeComp===id)S.P.activeComp=S.P.comps[0]?S.P.comps[0].id:null;}});
 
 function renderBag(){const P=S.P;let h=`<section class="panel"><h3>Equipped</h3><div class="slots">${EQUIP_SLOTS.map(sl=>{const it=P.equip[sl];return `<div class="slot"><span>${U.cap(sl)}</span>${it?`<button class="itm" data-a="iteminfo" data-v="e:${sl}">${rarityName(it)}<small>Lv.${it.l}</small></button>`:'<em>empty</em>'}</div>`;}).join('')}</div></section>`;
   const sort=UI.bagSort||'type';const items=P.inv.map((it,i)=>[it,i]);

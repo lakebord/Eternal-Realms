@@ -74,7 +74,7 @@ function useItem(idx,inCombat){const P=S.P,it=P.inv[idx];if(!it||isGear(it))retu
   if(d.t!=='con'&&d.t!=='food')return false;
   if(d.t==='food'&&inCombat){log('No time to eat now!','bad');return false;}
   if(d.ret){if(inCombat){log('You cannot read it mid-fight.','bad');return false;}invRemove(P,it.k);P.loc=P.home;P.dungeon=null;log(`The scroll flares, and you are back in ${LOCS[P.home].n}.`,'good');spend(10);return true;}
-  if(d.heal)P.hp=Math.min(st.mhp,P.hp+d.heal);if(d.mana)P.mp=Math.min(st.mmp,P.mp+d.mana);if(d.stam)P.sp=Math.min(st.msp,P.sp+d.stam);
+  if(d.heal)P.hp=Math.min(st.mhp,P.hp+Math.max(d.heal,Math.round(st.mhp*(d.hpc||0))));   // potions heal at least a share of max HP, so they stay useful as you growif(d.mana)P.mp=Math.min(st.mmp,P.mp+d.mana);if(d.stam)P.sp=Math.min(st.msp,P.sp+d.stam);
   if(d.wellfed){P.fx.wellfed=S.time+180;}if(d.cure&&P.cfx){for(const k of ['poison','burn','bleed'])delete P.cfx[k];}
   invRemove(P,it.k);if(!inCombat)log(`You use ${d.n}.`);return true;}
 function sellItem(idx){const P=S.P,it=P.inv[idx];if(!it)return;const q=isGear(it)?1:it.q;const v=priceFor(isGear(it)?it:{k:it.k},P.loc,false)*(isGear(it)?1:1);

@@ -39,6 +39,8 @@ function startCombat(enemies,opts={}){
   const allies=[actorFromChar(P,'a')];
   if(!opts.noParty)for(const n of partyMembers())allies.push(actorFromChar(n,'a',{ai:1}));
   if(!opts.noParty&&typeof coopPartner==='function'){const cp=coopPartner();if(cp&&cp.loc===P.loc&&cp.cs){const a=actorFromSnap(cp.cs,cp.user+' ●','a');a.coop=1;allies.push(a);opts.coop=cp;}}
+  // dungeon bosses scale to the size of the group facing them
+  if(allies.length>1)for(const e of enemies)if(e.dungeonBoss&&!e.partyAdj){e.partyAdj=1;const k=1+0.75*Math.min(4,allies.length-1);e.mhp=Math.round(e.mhp*k);e.hp=e.mhp;e.atk*=1+0.1*Math.min(4,allies.length-1);e.matk*=1+0.1*Math.min(4,allies.length-1);}
   C={allies,enemies:enemies.map(e=>e.side?e:(e.mon?actorFromMon(e):e)),round:0,order:[],oi:0,log:[],opts,ended:false,waiting:false,target:0,tactic:P.tactic||'free',inspected:{},startHp:P.hp,dmgDealt:0,dmgByP:0};
   for(const e of C.enemies)e.side='e';
   if(opts.ambush){for(const a of allies)a.fx.ambushed={d:1};clog('You were caught off guard!','bad');}
@@ -137,7 +139,7 @@ function die(a,by){a.hp=0;vfx('death',a,{final:!!(a.finalBoss&&C.reborn)});if(a.
   if(a.side==='e'&&a.mon)a.killedBy=by&&by.isPlayer;}
 function bossPhase(b){const pct=b.hp/b.mhp;if(b.phase===1&&pct<0.66){b.phase=2;vfx('phase',b);clog(`${b.name} becomes enraged!`,'boss');
     if(b.b.includes('undead')||b.id==='b_lich'){for(let i=0;i<2;i++)C.enemies.push(actorFromMon(makeMonster('skeleton',Math.round(b.level*0.8))));clog('Bones rise from the ground to defend their master!','boss');}
-    if(b.id==='b_grubnak'||b.id==='b_foreman'){C.enemies.push(actorFromMon(makeMonster(b.id==='b_grubnak'?'goblin':'kobold',b.level-4)));clog('Reinforcements arrive!','boss');}}
+    if(b.id==='b_grubnak'||b.id==='b_foreman'){C.enemies.push(actorFromMon(makeMonster(b.id==='b_grubnak'?'goblin':'kobold',b.level-(C.allies.length>1?4:7))));clog('Reinforcements arrive!','boss');}}
   if(b.phase===2&&pct<0.33){b.phase=3;clog(`${b.name} is desperate. Its attacks grow wild!`,'boss');}}
 
 /* ---------------- actions ---------------- */

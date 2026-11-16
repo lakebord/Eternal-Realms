@@ -31,7 +31,9 @@ function bossFight(cls,loc,solo){const D=G.LOCS[loc];const L=D.lv[1];const P=her
     n.equip={weapon:G.makeGear(G.CLASSES[n.cls].weapons.find(w=>G.ITEM_BASES[w]),L-1,1)};for(const sl of ['head','chest','legs','hands','feet'])n.equip[sl]=G.makeGear(`${sl}_${G.CLASSES[n.cls].armor}`,L-1,1);n.hpPct=1;G.dirty(n);}
   P.party=solo?[]:[tank.id,heal.id];tank.inParty=heal.inParty=!solo;
   G.startCombat([G.makeMonster(D.boss,L+2)],{type:'pve'});let C=G.getC();if(P.comps.length)C.allies.push(G.compActor(Object.assign(P.comps[0],{level:L})));
-  let guard=0;while(guard++<600){const r=G.combatStep();C=G.getC();if(r==='end')break;if(r==='wait'){const a=C.order[C.oi];C.waiting=false;G.allyAI(a);G.endTurn(a);C.oi++;if(G.checkEnd())break;}}
+  // a real player carries potions into a boss room: 6 of the tier sold for their level
+  let pots=6;const pt=L<12?[70,.25]:L<28?[220,.35]:L<55?[600,.45]:[1600,.6];
+  let guard=0;while(guard++<600){const r=G.combatStep();C=G.getC();if(r==='end')break;if(r==='wait'){const a=C.order[C.oi];C.waiting=false;if(a.isPlayer&&pots>0&&a.hp<a.mhp*0.4){pots--;a.hp=Math.min(a.mhp,a.hp+Math.max(pt[0],Math.round(a.mhp*pt[1])));}else G.allyAI(a);G.endTurn(a);C.oi++;if(G.checkEnd())break;}}
   P.party=[];tank.inParty=heal.inParty=false;return C.result==='win';}
 console.log('\n=== dungeon boss, party of 3 (win%) ===');const dg=['mine','warrens','grimward','crystalcaves','undervault','webdepths','citadel','tomb','necropolis','spire'];
 console.log('class'.padEnd(12)+dg.map(d=>d.slice(0,9).padStart(10)).join(''));
