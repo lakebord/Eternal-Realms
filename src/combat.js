@@ -73,8 +73,8 @@ function combatStep(){
   return checkEnd()?'end':'cont';
 }
 function startTurn(a){ // returns false if turn is skipped
-  for(const [k,dk] of [['poison','poison'],['burn','burn'],['bleed','bleed']])if(hasFx(a,k)){const d=Math.max(1,Math.round(a.mhp*STATUS[k].dot*(a.boss?0.25:1)));a.hp-=d;clog(`${a.name} suffers ${d} ${STATUS[k].n.toLowerCase()} damage.`,'dot');if(a.hp<=0){die(a);return false;}}
-  if(hasFx(a,'regen')){const h=Math.round(a.mhp*0.07);a.hp=Math.min(a.mhp,a.hp+h);clog(`${a.name} regenerates ${h} HP.`,'heal');}
+  for(const [k,dk] of [['poison','poison'],['burn','burn'],['bleed','bleed']])if(hasFx(a,k)){const d=Math.max(1,Math.round(a.mhp*STATUS[k].dot*(a.boss?0.25:1)));a.hp-=d;vfx('dot',a,{k});floatFx(a,''+d,'dot');clog(`${a.name} suffers ${d} ${STATUS[k].n.toLowerCase()} damage.`,'dot');if(a.hp<=0){die(a);return false;}}
+  if(hasFx(a,'regen')){const h=Math.round(a.mhp*0.07);a.hp=Math.min(a.mhp,a.hp+h);vfx('heal',a,{soft:1});floatFx(a,'+'+h,'heal');clog(`${a.name} regenerates ${h} HP.`,'heal');}
   if(a.b&&a.b.includes('regen')&&a.hp<a.mhp){const h=Math.round(a.mhp*0.04);a.hp=Math.min(a.mhp,a.hp+h);}
   if(a.sp<a.msp)a.sp=Math.min(a.msp,a.sp+Math.round(a.msp*0.05));if(a.mp<a.mmp&&a.mmp<999)a.mp=Math.min(a.mmp,a.mp+Math.round(a.mmp*0.03));
   for(const k in a.cd)if(a.cd[k]>0)a.cd[k]--;
@@ -126,11 +126,11 @@ function damage(att,def,opts={}){
 function floatFx(a,txt,kind){if(!C)return;(C.floats=C.floats||[]).push({a,txt,kind});if(kind==='miss')vfx('miss',a);}
 function vfx(t,a,x){if(!C)return;(C.vfx=C.vfx||[]).push(Object.assign({t,a},x||{}));}
 function applyHit(att,def,r,label){if(att.finalBoss&&def.side!==att.side)r.d=Math.max(1,Math.round(r.d*FINAL_DMG));def.hp-=r.d;
-  if(def.finalBoss&&!C.reborn&&def.hp<def.mhp*0.5){def.hp=Math.round(def.mhp*0.5);if(!def.floored){def.floored=1;clog(`${def.name} reels, then lifts its hands to the broken sun. The sky begins to burn white.`,'boss');vfx('phase',def);}}vfx('hit',def,{s:att,e:r.e||'phys',crit:r.crit,melee:!att.ranged});floatFx(def,(r.crit?'✦':'')+r.d,r.crit?'crit':'dmg');C.dmgDealt+=att.side==='a'?r.d:0;if(att.isPlayer)C.dmgByP+=r.d;
+  if(def.finalBoss&&!C.reborn&&def.hp<def.mhp*0.5){def.hp=Math.round(def.mhp*0.5);if(!def.floored){def.floored=1;clog(`${def.name} reels, then lifts its hands to the broken sun. The sky begins to burn white.`,'boss');vfx('phase',def);}}vfx('hit',def,{s:att,e:r.e||'phys',crit:r.crit,melee:!att.ranged,wt:att.mon?null:att.wt,cat:att.mon?att.cat:null,mode:att._mode,big:!!att.boss});floatFx(def,(r.crit?'✦':'')+r.d,r.crit?'crit':'dmg');C.dmgDealt+=att.side==='a'?r.d:0;if(att.isPlayer)C.dmgByP+=r.d;
   clog(`${att.name} ${label} ${def.name} for ${r.d}${r.crit?' CRITICAL':''}${r.tag}.`,att.side==='a'?(r.crit?'crit':'hit'):'hurt');
   if(att.steal||hasFx(att,'lifesteal')){const h=Math.round(r.d*((att.steal||0)+(hasFx(att,'lifesteal')?0.3:0)));if(h>0){att.hp=Math.min(att.mhp,att.hp+h);}}
   if(def.hp<=0)die(def,att);
-  else if(def.hp>0&&hasFx(def,'counter')&&!att.ranged&&att.side!==def.side&&U.chance(0.7)){const c=damage(def,att,{power:0.8});att.hp-=c.d;clog(`${def.name} counters for ${c.d}!`,'crit');if(att.hp<=0)die(att,def);}
+  else if(def.hp>0&&hasFx(def,'counter')&&!att.ranged&&att.side!==def.side&&U.chance(0.7)){const c=damage(def,att,{power:0.8});att.hp-=c.d;vfx('riposte',att,{s:def});floatFx(att,''+c.d,'dmg');clog(`${def.name} counters for ${c.d}!`,'crit');if(att.hp<=0)die(att,def);}
   if(def.boss&&def.hp>0)bossPhase(def);
 }
 function die(a,by){a.hp=0;vfx('death',a,{final:!!(a.finalBoss&&C.reborn)});if(a.side==='e'){clog(`${a.name} is defeated!`,'kill');}else clog(`${a.name} has fallen!`,'bad');
@@ -145,10 +145,11 @@ function costOk(a,sk){const [mp,sp]=sk.c||[0,0];if(a.mp<mp||a.sp<sp)return false
 function payCost(a,sk){const [mp,sp]=sk.c||[0,0];a.mp-=mp;a.sp-=sp;a.cd[sk.id]=(sk.cd||0)+1;if(sk.gold&&a.isPlayer)S.P.gold-=sk.gold;}
 function basicAttack(a,t,mode){
   const magBasic=MAGIC_WT.includes(a.wt)&&a.matk>a.patk&&!a.mon;let power=1,acc=0,crit=0,sp=0,label='attacks';
+  a._mode=mode||null;
   if(mode==='heavy'){power=1.6;acc=-15;sp=8;label='slams';a.heavyNext=1;}if(mode==='quick'){power=0.7;acc=15;crit=5;sp=3;label='quickly strikes';a.quickNext=1;}
   if(a.sp<sp){power=1;acc=0;}else a.sp-=sp;
   if(!hitRoll(a,t,magBasic?'mag':'phys',acc)){clog(`${a.name} ${label} ${t.name} but misses.`,'miss');return;}
-  if(!magBasic&&hasFx(t,'parry')&&!a.ranged&&U.chance(0.45+mLv(t.char||{},'sword')*0.004)){const c=damage(t,a,{power:0.8});a.hp-=c.d;clog(`${t.name} parries and ripostes ${a.name} for ${c.d}!`,'crit');if(a.hp<=0)die(a,t);return;}
+  if(!magBasic&&hasFx(t,'parry')&&!a.ranged&&U.chance(0.45+mLv(t.char||{},'sword')*0.004)){const c=damage(t,a,{power:0.8});a.hp-=c.d;vfx('riposte',a,{s:t,parry:1});floatFx(a,''+c.d,'dmg');clog(`${t.name} parries and ripostes ${a.name} for ${c.d}!`,'crit');if(a.hp<=0)die(a,t);return;}
   const r=damage(a,t,{kind:magBasic?'mag':'phys',power,crit,ranged:magBasic||a.ranged});applyHit(a,t,r,magBasic?'blasts':label);
   if(a.st&&U.chance(a.st[1])&&t.hp>0){addFx(t,a.st[0],a.st[2]);clog(`${t.name} is ${STATUS[a.st[0]].n.toLowerCase()}.`,'dot');}
   if(a.char&&a.isPlayer){gainMastery(a.wt,mode==='heavy'?4:3);}
@@ -161,18 +162,18 @@ function useSkill(a,id,tIdx){
   else if(sk.tg==='pet'){const pet=friends.find(f=>f.isComp);if(!pet){clog('You have no summon in battle.','bad');a.mp+=sk.c[0];a.sp+=sk.c[1];a.cd[id]=0;return false;}targets=[pet];}
   else if(sk.tg==='dead')targets=C.allies.filter(x=>x.hp<=0).slice(0,1);
   targets=targets.filter(Boolean);
-  clog(`${a.name} uses ${sk.n}!`,'skill');vfx('cast',a,{n:sk.n,k:sk.k,e:sk.e||(sk.k==='mag'?'arcane':null)});
+  clog(`${a.name} uses ${sk.n}!`,'skill');vfx('cast',a,{n:sk.n,k:sk.k,e:sk.e||(sk.k==='mag'?'arcane':null),all:sk.tg==='all',side:a.side});a._mode=sk.k==='phys'?(sk.hits>1?'flurry':'skill'):sk.k==='mag'?'spell':null;
   if(sk.m&&a.isPlayer)gainMastery(sk.m,sk.k==='mag'||sk.k==='heal'?5:4);else if(a.isPlayer&&(sk.k==='phys'))gainMastery(a.wt,4);
   if(sk.k==='phys'||sk.k==='mag'){
     for(const t of targets){const hits=sk.hits||1;for(let i=0;i<hits&&t.hp>0;i++){
       if(!hitRoll(a,t,sk.k,sk.acc||0)){clog(`${a.name}'s ${sk.n} misses ${t.name}.`,'miss');continue;}
       let power=sk.p;if(id==='rampage')power*=1+(1-a.hp/a.mhp);if(id==='coin_toss')power+=a.char?stats(a.char).attr.luck*0.03:0;if(id==='judgement'&&t.cat==='undead')power*=1.6;
       const r=damage(a,t,{kind:sk.k,power,crit:sk.crit||0,sk,hybrid:sk.hybrid,ranged:sk.k==='mag'||a.ranged});applyHit(a,t,r,'hits');
-      if(sk.drain){const h=Math.round(r.d*sk.drain);a.hp=Math.min(a.mhp,a.hp+h);clog(`${a.name} drains ${h} HP.`,'heal');}
+      if(sk.drain){const h=Math.round(r.d*sk.drain);a.hp=Math.min(a.mhp,a.hp+h);vfx('drain',a,{s:t});floatFx(a,'+'+h,'heal');clog(`${a.name} drains ${h} HP.`,'heal');}
       if(sk.st&&t.hp>0&&U.chance(sk.st[1])){addFx(t,sk.st[0],sk.st[2]);clog(`${t.name} is ${STATUS[sk.st[0]].n.toLowerCase()}!`,'dot');}}}
     if(sk.self){const s=Math.round(a.mhp*sk.self);a.hp=Math.max(1,a.hp-s);}
   } else if(sk.k==='heal'){
-    for(const t of targets){if(sk.tg==='dead'){t.hp=Math.round(t.mhp*0.5);clog(`${t.name} is revived!`,'heal');continue;}
+    for(const t of targets){if(sk.tg==='dead'){t.hp=Math.round(t.mhp*0.5);vfx('revive',t);clog(`${t.name} is revived!`,'heal');continue;}
       let h=(sk.p<=1&&!sk.m&&sk.tg!=='ally')?t.mhp*sk.p:(a.matk*0.9+(a.char?stats(a.char).attr.wis*2:a.level*2))*sk.p;if(sk.m&&a.char)h*=1+mLv(a.char,sk.m)*0.006;h=Math.round(h);
       if(h>0){t.hp=Math.min(t.mhp,t.hp+h);clog(`${t.name} recovers ${h} HP.`,'heal');floatFx(t,'+'+h,'heal');vfx('heal',t);}
       if(sk.mpRegen){const m=Math.round(t.mmp*sk.mpRegen/100);t.mp=Math.min(t.mmp,t.mp+m);clog(`${t.name} restores ${m} MP.`,'heal');}
@@ -198,28 +199,28 @@ function playerAction(act,arg,tIdx){
   const foes=foesOf(a);const t=foes[tIdx!=null?tIdx:C.target]||foes[0];let used=true;
   switch(act){
     case 'attack':basicAttack(a,t);break;case 'heavy':basicAttack(a,t,'heavy');break;case 'quick':basicAttack(a,t,'quick');break;
-    case 'defend':a.fx.defend={d:1};a.sp=Math.min(a.msp,a.sp+Math.round(a.msp*0.15));clog(`${a.name} braces for impact.`,'buff');gainMastery('shield',2);break;
-    case 'dodge':if(a.sp<6){clog('Too exhausted to dodge.','bad');used=false;break;}a.sp-=6;a.fx.dodge={d:1};clog(`${a.name} readies to dodge.`,'buff');break;
-    case 'parry':a.fx.parry={d:1};clog(`${a.name} takes a parrying stance.`,'buff');break;
-    case 'counter':if(a.sp<10){clog('Not enough stamina.','bad');used=false;break;}a.sp-=10;a.fx.counter={d:2};a.fx.defend={d:1};clog(`${a.name} waits for an opening to counter.`,'buff');break;
+    case 'defend':a.fx.defend={d:1};a.sp=Math.min(a.msp,a.sp+Math.round(a.msp*0.15));vfx('stance',a,{k:'defend'});clog(`${a.name} braces for impact.`,'buff');gainMastery('shield',2);break;
+    case 'dodge':if(a.sp<6){clog('Too exhausted to dodge.','bad');used=false;break;}a.sp-=6;a.fx.dodge={d:1};vfx('stance',a,{k:'dodge'});clog(`${a.name} readies to dodge.`,'buff');break;
+    case 'parry':a.fx.parry={d:1};vfx('stance',a,{k:'parry'});clog(`${a.name} takes a parrying stance.`,'buff');break;
+    case 'counter':if(a.sp<10){clog('Not enough stamina.','bad');used=false;break;}a.sp-=10;a.fx.counter={d:2};a.fx.defend={d:1};vfx('stance',a,{k:'counter'});clog(`${a.name} waits for an opening to counter.`,'buff');break;
     case 'skill':used=useSkill(a,arg,tIdx!=null?tIdx:C.target);break;
     case 'item':{const P=S.P;const it=P.inv[arg];if(!it){used=false;break;}const d=ITEMS[it.k];
       if(d.escape){invRemove(P,it.k);clog('You vanish in a cloud of smoke!','buff');finishCombat('fled');return;}
-      if(d.bomb){invRemove(P,it.k);for(const e of foes){const r=Math.round(d.dmg*(1+P.level*0.25));e.hp-=r;clog(`${e.name} is engulfed in flames for ${r}!`,'hit');if(e.hp<=0)die(e,a);}break;}
-      if(d.buff){invRemove(P,it.k);a.fx[d.buff]={d:4};clog(`${a.name} drinks ${d.n}.`,'buff');break;}
-      if(d.revive){const dead=C.allies.find(x=>x.hp<=0&&!x.isPlayer);if(!dead){clog('No fallen ally to revive.','bad');used=false;break;}invRemove(P,it.k);dead.hp=Math.round(dead.mhp*0.4);clog(`${dead.name} is revived!`,'heal');break;}
-      P.hp=a.hp;P.mp=a.mp;P.sp=a.sp;if(!useItem(arg,true)){used=false;break;}const hp0=a.hp;a.hp=Math.min(a.mhp,P.hp);a.mp=Math.min(a.mmp,P.mp);a.sp=Math.min(a.msp,P.sp);if(d.cure)for(const k of ['poison','burn','bleed'])delete a.fx[k];clog(`${a.name} uses ${d.n}${a.hp>hp0?` (+${a.hp-hp0} HP)`:''}.`,'heal');break;}
+      if(d.bomb){invRemove(P,it.k);vfx('cast',a,{n:d.n,k:'item',e:it.k==='frost_bomb'?'frost':it.k==='thunder_bomb'?'lightning':it.k==='venom_flask'?'poison':'fire',all:1});for(const e of foes){const r=Math.round(d.dmg*(1+P.level*0.25));e.hp-=r;vfx('hit',e,{s:a,e:it.k==='frost_bomb'?'frost':it.k==='thunder_bomb'?'lightning':it.k==='venom_flask'?'poison':'fire',crit:false,melee:false,thrown:1});floatFx(e,''+r,'dmg');clog(`${e.name} is engulfed in flames for ${r}!`,'hit');if(e.hp<=0)die(e,a);}break;}
+      if(d.buff){invRemove(P,it.k);a.fx[d.buff]={d:4};vfx('drink',a,{c:'#ffd36a'});vfx('buff',a);clog(`${a.name} drinks ${d.n}.`,'buff');break;}
+      if(d.revive){const dead=C.allies.find(x=>x.hp<=0&&!x.isPlayer);if(!dead){clog('No fallen ally to revive.','bad');used=false;break;}invRemove(P,it.k);dead.hp=Math.round(dead.mhp*0.4);vfx('revive',dead);clog(`${dead.name} is revived!`,'heal');break;}
+      P.hp=a.hp;P.mp=a.mp;P.sp=a.sp;if(!useItem(arg,true)){used=false;break;}const hp0=a.hp;a.hp=Math.min(a.mhp,P.hp);a.mp=Math.min(a.mmp,P.mp);a.sp=Math.min(a.msp,P.sp);if(d.cure)for(const k of ['poison','burn','bleed'])delete a.fx[k];vfx('drink',a,{c:d.mana?'#6aa8ff':'#ff6a6a'});if(a.hp>hp0){vfx('heal',a);floatFx(a,'+'+(a.hp-hp0),'heal');}clog(`${a.name} uses ${d.n}${a.hp>hp0?` (+${a.hp-hp0} HP)`:''}.`,'heal');break;}
     case 'summon':{const P=S.P;const c=P.comps.find(c=>c.id===(arg||P.activeComp));if(!c){clog('No companion.','bad');used=false;break;}if(C.allies.some(x=>x.ref===c.id&&x.hp>0)){clog(`${c.name} is already fighting.`,'bad');used=false;break;}
       const cost=15+Math.round(c.level*0.5);if(a.mp<cost){clog(`Summoning costs ${cost} MP.`,'bad');used=false;break;}a.mp-=cost;const ca=compActor(c);C.allies.push(ca);vfx('summon',ca);clog(`${a.name} summons ${c.name} (Lv.${c.level})!`,'buff');gainMastery('summoning',5);break;}
     case 'tame':{const P=S.P;if(!canTame()){clog('You lack the skill to bond with creatures.','bad');used=false;break;}const M=MONSTERS[t.id];if(!t.mon||!M||!M.tame||t.boss){clog(`${t.name} cannot be bonded.`,'bad');used=false;break;}
       if(t.hp>t.mhp*0.3){clog(`${t.name} is too strong-willed. Weaken it below 30% first.`,'bad');used=false;break;}if(P.comps.length>=8){clog('You can bond with at most 8 creatures.','bad');used=false;break;}
       const ch=0.3+mLv(P,'summoning')*0.006+(1-t.hp/t.mhp)*0.3+(P.cls==='summoner'||P.adv==='beastmaster'?0.15:0)-(t.level-P.level)*0.03;
-      if(U.chance(U.clamp(ch,0.05,0.9))){t.fled=1;t.tamed=1;const sp=M.tame;const c={id:U.uid(),sp,name:SPECIES[sp].n,level:Math.max(1,t.level-2),xp:0};P.comps.push(c);if(!P.activeComp)P.activeComp=c.id;clog(`✨ ${t.name} bonds with you! ${c.name} joins your companions.`,'crit');gainMastery('summoning',15);checkAch();}
-      else clog(`${t.name} breaks free of your bond!`,'miss');break;}
-    case 'row':a.row=a.row==='front'?'back':'front';S.P.row=a.row;clog(`${a.name} moves to the ${a.row} row.`,'buff');break;
+      if(U.chance(U.clamp(ch,0.05,0.9))){t.fled=1;t.tamed=1;const sp=M.tame;const c={id:U.uid(),sp,name:SPECIES[sp].n,level:Math.max(1,t.level-2),xp:0};P.comps.push(c);if(!P.activeComp)P.activeComp=c.id;vfx('tame',t,{s:a,ok:1});clog(`✨ ${t.name} bonds with you! ${c.name} joins your companions.`,'crit');gainMastery('summoning',15);checkAch();}
+      else{vfx('tame',t,{s:a,ok:0});clog(`${t.name} breaks free of your bond!`,'miss');}break;}
+    case 'row':a.row=a.row==='front'?'back':'front';S.P.row=a.row;vfx('row',a,{back:a.row==='back'});clog(`${a.name} moves to the ${a.row} row.`,'buff');break;
     case 'tactic':C.tactic=arg;S.P.tactic=arg;clog(`Party tactic: ${({free:'Free fighting',focus:'Focus my target',defensive:'Defensive'})[arg]}.`,'buff');return;
     case 'escape':{if(C.opts.noEscape){clog('There is no escape from this fight!','bad');used=false;break;}const fs=foes.reduce((m,e)=>Math.max(m,e.spd),0);const ch=U.clamp(0.45+(a.spd-fs)*0.02-(foes.some(e=>e.boss)?0.3:0),0.08,0.92);
-      if(U.chance(ch)){clog('You escape!','buff');finishCombat('fled');return;}clog('You fail to escape!','bad');break;}
+      if(U.chance(ch)){clog('You escape!','buff');finishCombat('fled');return;}vfx('stumble',a);clog('You fail to escape!','bad');break;}
     case 'surrender':clog('You yield the duel.','bad');finishCombat('lose');return;
   }
   if(!used)return;
@@ -269,20 +270,20 @@ function enemyAI(a){
   const t=pickTarget(a,foes);
   if(a.boss){
     a.bt=(a.bt||0)+1;
-    if(a.bt%3===0){const p=a.phase>=2&&!a.finalBoss?1.0:0.8;clog(`${a.name} unleashes a devastating ${a.e?a.e+' ':''}${b.includes('dragon')?'breath':'wave'}!`,'boss');
+    if(a.bt%3===0){const p=a.phase>=2&&!a.finalBoss?1.0:0.8;clog(`${a.name} unleashes a devastating ${a.e?a.e+' ':''}${b.includes('dragon')?'breath':'wave'}!`,'boss');a._mode='spell';vfx('cast',a,{n:(a.e?a.e[0].toUpperCase()+a.e.slice(1)+' ':'')+(b.includes('dragon')?'Breath':'Wave'),k:'mag',e:a.e||'shadow',all:1,side:a.side,breath:1});
       for(const f of foes){if(!hitRoll(a,f,'mag'))continue;const r=damage(Object.assign({},a,{matk:Math.max(a.atk,a.matk)}),f,{kind:'mag',power:p});applyHit(a,f,r,'scorches');if(a.st&&f.hp>0&&U.chance(a.st[1]))addFx(f,a.st[0],a.st[2]);}return;}
     if(b.includes('dragon')&&a.bt%4===1&&a.phase>=2){a.fx.dodge={d:1};clog(`${a.name} takes to the air!`,'boss');}
   }
-  if((b.includes('caster')||(a.e&&U.chance(0.3)))&&U.chance(0.6)){if(!hitRoll(a,t,'mag')){clog(`${a.name}'s spell misses ${t.name}.`,'miss');floatFx(t,'miss','miss');return;}const r=damage(a,t,{kind:'mag',power:1.15});applyHit(a,t,r,'casts at');if(a.st&&t.hp>0&&U.chance(a.st[1])){addFx(t,a.st[0],a.st[2]);clog(`${t.name} is ${STATUS[a.st[0]].n.toLowerCase()}.`,'dot');}return;}
+  if((b.includes('caster')||(a.e&&U.chance(0.3)))&&U.chance(0.6)){if(!hitRoll(a,t,'mag')){clog(`${a.name}'s spell misses ${t.name}.`,'miss');floatFx(t,'miss','miss');return;}a._mode='spell';const r=damage(a,t,{kind:'mag',power:1.15});applyHit(a,t,r,'casts at');if(a.st&&t.hp>0&&U.chance(a.st[1])){addFx(t,a.st[0],a.st[2]);clog(`${t.name} is ${STATUS[a.st[0]].n.toLowerCase()}.`,'dot');}return;}
   monsterAttack(a,t);
 }
 function monsterAttack(a,t){
-  const b=a.b||[];let power=1,label='attacks';
-  if(b.includes('brute')&&U.chance(0.3)){power=1.6;label='smashes';}
+  const b=a.b||[];let power=1,label='attacks';a._mode=null;
+  if(b.includes('brute')&&U.chance(0.3)){power=1.6;label='smashes';a._mode='heavy';}
   if(b.includes('pack')){const n=alive(a.side==='e'?C.enemies:C.allies).filter(x=>x.id===a.id).length;power*=1+(n-1)*0.1;}
   if(hasFx(a,'ambusher'))label='ambushes';
   if(!hitRoll(a,t,'phys',power>1?-12:0)){clog(`${a.name} ${label} ${t.name} but misses.`,'miss');floatFx(t,'miss','miss');return;}
-  if(hasFx(t,'parry')&&U.chance(0.45+mLv(t.char||{},'sword')*0.004)){const c=damage(t,a,{power:0.9});a.hp-=c.d;clog(`${t.name} parries and counters ${a.name} for ${c.d}!`,'crit');if(a.hp<=0)die(a,t);return;}
+  if(hasFx(t,'parry')&&U.chance(0.45+mLv(t.char||{},'sword')*0.004)){const c=damage(t,a,{power:0.9});a.hp-=c.d;vfx('riposte',a,{s:t,parry:1});floatFx(a,''+c.d,'dmg');clog(`${t.name} parries and counters ${a.name} for ${c.d}!`,'crit');if(a.hp<=0)die(a,t);return;}
   const r=damage(Object.assign({},a,{patk:a.atk||a.patk}),t,{kind:'phys',power,ranged:b.includes('ranged')});applyHit(a,t,r,label);
   if(a.st&&t.hp>0&&U.chance(a.st[1])){addFx(t,a.st[0],a.st[2]);clog(`${t.name} is ${STATUS[a.st[0]].n.toLowerCase()}.`,'dot');}
 }
