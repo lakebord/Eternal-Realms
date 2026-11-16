@@ -14,6 +14,7 @@ const ICONS={
   codex:'M4 4h7a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4z M20 4h-7a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h7z',
   menu:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M12 2v3 M12 19v3 M2 12h3 M19 12h3 M4.9 4.9l2.1 2.1 M17 17l2.1 2.1 M4.9 19.1L7 17 M17 7l2.1-2.1',
   more:'M5 12h.01 M12 12h.01 M19 12h.01',
+  download:'M12 3v12 M7 10l5 5 5-5 M4 20h16',
   explore:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M15.5 8.5l-2 5-5 2 2-5z',
   hunt:'M5 19L17 7 M14 4l6 0 0 6 M4 15l5 5 M7 13l4 4',
   search:'M11 17a6 6 0 1 0 0-12 6 6 0 0 0 0 12z M20 20l-4.5-4.5',
@@ -162,3 +163,7 @@ function ptClass(cl,gender,name,cls){if(!ART.ok)return '';ART.ck=ART.ck||Object.
   const f=gender==='female'?1:gender==='male'?0:nameHash(name)%2;if(i<16)return artCell(f?'class02':'class01',i,cls);if(i<20)return artCell('class03',(i-16)+(f?4:0),cls);return '';}
 function ptItem(it,cls){if(!ART.ok||!it)return '';if(it.b){const i=ART.gear.indexOf(it.b);return i<0?'':artIdx('gear',i,(cls||'')+' r'+(it.r||0));}ART.ik=ART.ik||Object.keys(ITEMS);const i=ART.ik.indexOf(it.k||it);return i<0?'':artIdx('items',i,cls);}
 function ptActor(a,cls){if(!a)return '';if(a.id&&MONSTERS[a.id])return ptMon(a.id,cls);if(a.cls)return ptClass(a.cls,a.char&&a.char.gender,a.name,cls);return '';}
+
+/* the Android app download is offered on the website only: not inside the app itself, not on iPhones, and only if the file is really there */
+function apkCheck(){const el=document.getElementById('apkbtn');if(!el)return;try{const ua=navigator.userAgent||'';if(window.Capacitor||/; wv\)/.test(ua)||/iPhone|iPad|iPod/.test(ua)||location.protocol==='file:')return;
+  if(ART.apk===true){el.hidden=false;return;}if(ART.apk===false)return;fetch('eternal-realms.apk',{method:'HEAD'}).then(r=>{const t=r.headers.get('content-type')||'';ART.apk=r.ok&&!/text\/html/.test(t);const e2=document.getElementById('apkbtn');if(ART.apk&&e2){e2.hidden=false;const kb=+r.headers.get('content-length');if(kb>0){const sm=e2.querySelector('small');if(sm)sm.textContent=`Download the game for your phone (APK, ${(kb/1048576).toFixed(1)} MB)`;}}}).catch(()=>{ART.apk=false;});}catch(e){}}

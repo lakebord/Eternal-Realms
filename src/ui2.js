@@ -235,30 +235,45 @@ const HELP_HTML=`<h2>How to play</h2><div class="help">
 <p><b>Saving:</b> Progress saves automatically to this browser${typeof NET!=='undefined'&&NET.canWrite?' and your claude.ai account':''}. Use Export save for a backup.</p></div>`;
 
 /* ---------------- character creation ---------------- */
-const CC={user:'',name:'',race:'human',gender:'unspecified',age:22,hair:'',eyes:'',build:'',skin:'',mark:'',bg:'commoner',cls:'warrior',start:'home',diff:'normal'};
+const CC={step:0,user:'',name:'',race:'human',gender:'unspecified',age:22,hair:'',eyes:'',build:'',skin:'',mark:'',bg:'commoner',cls:'warrior',start:'home',diff:'normal'};
 function ccPreview(){const at=baseAttrs(CC.race,CC.bg);const fake={race:CC.race,cls:CC.cls,level:1,attr:at,equip:{},mastery:{}};const st=calcStats(fake);const R=RACES[CC.race],B=BACKGROUNDS[CC.bg],K=CLASSES[CC.cls];
   return `<div class="ccprev"><h3>${E(CC.name||'Your hero')} <small>${E(CC.user||'username')}</small></h3><p>${R.name} ${K.name} · ${B.name}</p><div class="attrs small">${ATTRS.map(k=>`<div class="attr"><span>${k.toUpperCase()}</span><b>${at[k]}</b></div>`).join('')}</div>
    <p class="hint">HP ${st.mhp} · MP ${st.mmp} · SP ${st.msp} · Gold ${(B.gold||0)+(K.gold||0)}</p><p class="good">${E(R.perk)}</p><p class="bad">${E(R.flaw)}</p><p class="hint">${E(K.desc)} Skills: ${K.skills.map(s=>SKILLS[s].n).join(', ')}</p><p class="hint">${E(B.desc)}</p></div>`;}
-function renderCreate(){if(!LAUNCH.open){showTitle();return;}const card=(k,o,sel,field)=>`<button type="button" class="card ${sel===k?'on':''}" data-a="cc" data-v="${field}|${k}"><b>${E(o.name)}</b><small>${E(o.perk||o.desc||'')}</small></button>`;
-  const starts=[['home',`Homeland (${LOCS[RACES[CC.race].home].n})`],['brookhollow','Brookhollow (classic start)'],['crossroads','Crossroads (frontier)'],['valeria','Valeria (capital)'],['saltmere','Port Saltmere']];
-  $('#app').innerHTML=`<div class="create"><header class="cchead"><h1>Create your adventurer</h1><p>Nobody has heard of you yet. The Realms already have their champions.</p></header>
-  <form data-form="create" class="ccform"><div class="cccols"><div class="ccmain">
-   <fieldset><legend>Identity</legend><div class="fgrid"><label>Username<input name="user" id="cc_user" maxlength="16" required pattern="[A-Za-z0-9_\\-]{3,16}" value="${E(CC.user)}" placeholder="e.g. ${E(genUsername(new Set()))}"></label>
-    <label>Character name<input name="name" id="cc_name" maxlength="24" required value="${E(CC.name)}" placeholder="e.g. ${E(genCharName(CC.race))}"></label>
+/* character creation: five short steps instead of one endless form. The hero bar at the bottom is always there,
+   so you can finish at any point once you have a name. */
+const CC_STEPS=['Hero','Race','Class','Origin','Journey'];
+const RACE_ART={human:['class01',13],highelf:['class03',8],woodelf:['class03',9],darkelf:['class03',10],dwarf:['class03',11],orc:['class03',12],beastkin:['class03',13],halfelf:['class02',3],draconian:['class03',14],halfling:['class03',15]};
+function ccPortrait(cls){return ptClass(CC.cls,CC.gender,CC.name||CC.user||'hero',cls)||`<span class="pt ${cls||''} noart">${icon(CLS_ICON[CC.cls]||'hero')}</span>`;}
+function renderCreate(){if(!LAUNCH.open){showTitle();return;}CC.step=U.clamp(CC.step||0,0,CC_STEPS.length-1);const st=CC.step;
+  const pick=(k,o,sel,field,art,sub)=>`<button type="button" class="pk ${sel===k?'on':''} ${art?'hasart':''}" data-a="cc" data-v="${field}|${k}">${art||''}<span><b>${E(o.name)}</b><small>${E(sub!=null?sub:(o.perk||o.desc||''))}</small></span></button>`;
+  const starts=[['home',`Homeland: ${LOCS[RACES[CC.race].home].n}`,'Start among your own people.'],['brookhollow','Brookhollow','The classic start: a quiet village.'],['crossroads','Crossroads','A frontier trading post.'],['valeria','Valeria','The capital. Busy and expensive.'],['saltmere','Port Saltmere','Ships, pirates and salt air.']];
+  const R=RACES[CC.race],K=CLASSES[CC.cls],B=BACKGROUNDS[CC.bg];const roleN={dps:'Damage',tank:'Tank',healer:'Healer',support:'Support',summoner:'Summoner'};
+  let body='';
+  if(st===0)body=`<h2>Who are you?</h2><p class="cclead">Nobody has heard of you yet. Give them a name to remember.</p>
+    <div class="fgrid"><label>Username<input name="user" id="cc_user" maxlength="16" required pattern="[A-Za-z0-9_\\-]{3,16}" value="${E(CC.user)}" placeholder="e.g. ${E(genUsername(new Set()))}" autocomplete="off"><small>What other players see in chat. 3–16 letters or numbers.</small></label>
+    <label>Character name<input name="name" id="cc_name" maxlength="24" required value="${E(CC.name)}" placeholder="e.g. ${E(genCharName(CC.race))}" autocomplete="off"><small>Your hero's name in the story.</small></label>
     <label>Gender<select name="gender" id="cc_gender">${['unspecified','female','male','nonbinary'].map(g=>`<option ${CC.gender===g?'selected':''}>${g}</option>`).join('')}</select></label>
-    <label>Age<input name="age" id="cc_age" type="number" min="16" max="400" value="${CC.age}"></label></div></fieldset>
-   <fieldset><legend>Appearance</legend><div class="fgrid"><label>Hair<input name="hair" id="cc_hair" maxlength="30" value="${E(CC.hair)}" placeholder="braided copper"></label><label>Eyes<input name="eyes" id="cc_eyes" maxlength="30" value="${E(CC.eyes)}" placeholder="storm-grey"></label>
+    <label>Age<input name="age" id="cc_age" type="number" min="16" max="400" value="${CC.age}"></label></div>
+    <details class="ccmore" ${CC.hair||CC.eyes||CC.build||CC.skin||CC.mark?'open':''}><summary>Describe your looks <small>optional</small></summary><div class="fgrid"><label>Hair<input name="hair" id="cc_hair" maxlength="30" value="${E(CC.hair)}" placeholder="braided copper"></label><label>Eyes<input name="eyes" id="cc_eyes" maxlength="30" value="${E(CC.eyes)}" placeholder="storm-grey"></label>
     <label>Build<input name="build" id="cc_build" maxlength="30" value="${E(CC.build)}" placeholder="lean"></label><label>${CC.race==='beastkin'?'Fur':CC.race==='draconian'?'Scales':'Skin'}<input name="skin" id="cc_skin" maxlength="30" value="${E(CC.skin)}" placeholder="sun-browned"></label>
-    <label class="wide">Distinguishing mark<input name="mark" id="cc_mark" maxlength="60" value="${E(CC.mark)}" placeholder="a scar across the left brow"></label></div></fieldset>
-   <fieldset><legend>Race</legend><div class="cards">${Object.entries(RACES).map(([k,o])=>card(k,o,CC.race,'race')).join('')}</div><p class="hint">${E(RACES[CC.race].lore)}</p></fieldset>
-   <fieldset><legend>Background</legend><div class="cards">${Object.entries(BACKGROUNDS).map(([k,o])=>card(k,{name:o.name,desc:o.desc},CC.bg,'bg')).join('')}</div></fieldset>
-   <fieldset><legend>Starting class</legend><div class="cards">${Object.entries(CLASSES).map(([k,o])=>card(k,{name:o.name,desc:o.desc},CC.cls,'cls')).join('')}</div></fieldset>
-   <fieldset><legend>Starting location</legend><div class="cards">${starts.map(([k,n])=>card(k,{name:n},CC.start,'start')).join('')}</div></fieldset>
-   <p class="hint">Everyone plays on the same Normal difficulty so friends can adventure together. Dying costs 10% of your gold and some experience, and you wake up at your last inn.</p>
-  </div><aside class="ccside">${ccPreview()}<button class="b gilt big">Enter the Realms</button><p id="ccerr" class="bad" role="alert"></p>${btn('Back','title','','ghost')}</aside></div></form></div>`;}
+    <label class="wide">Distinguishing mark<input name="mark" id="cc_mark" maxlength="60" value="${E(CC.mark)}" placeholder="a scar across the left brow"></label></div></details>`;
+  if(st===1)body=`<h2>Choose your people</h2><div class="pks art">${Object.entries(RACES).map(([k,o])=>{const ra=RACE_ART[k];return pick(k,o,CC.race,'race',ART.ok&&ra?artCell(ra[0],ra[1],'pkp'):'',o.perk.split(':')[0]);}).join('')}</div>
+    <div class="ccinfo"><h3>${E(R.name)}</h3><p>${E(R.lore)}</p><p class="good">＋ ${E(R.perk)}</p><p class="bad">－ ${E(R.flaw)}</p><p class="hint">Homeland: ${E(LOCS[R.home].n)}</p></div>`;
+  if(st===2)body=`<h2>Choose your calling</h2><div class="pks art">${Object.entries(CLASSES).map(([k,o])=>pick(k,o,CC.cls,'cls',ptClass(k,CC.gender,CC.name||CC.user||'hero','pkp'),roleN[o.role]||o.role)).join('')}</div>
+    <div class="ccinfo"><h3>${E(K.name)} <small>${roleN[K.role]||K.role} · ${E(K.armor)} armor</small></h3><p>${E(K.desc)}</p><p class="hint">Starting skills: ${K.skills.map(x=>SKILLS[x].n).join(', ')}</p><p class="hint">Weapons: ${K.weapons.filter(w=>ITEM_BASES[w]).map(w=>ITEM_BASES[w].n).join(', ')}</p></div>`;
+  if(st===3)body=`<h2>Where do you come from?</h2><p class="cclead">Your past gives you a little gold, a few belongings and a head start in one skill.</p><div class="pks">${Object.entries(BACKGROUNDS).map(([k,o])=>pick(k,{name:o.name,desc:o.desc},CC.bg,'bg','')).join('')}</div>`;
+  if(st===4)body=`<h2>Where does it begin?</h2><div class="pks">${starts.map(([k,n,d])=>pick(k,{name:n},CC.start,'start','',d)).join('')}</div>${ccPreview()}
+    <p class="hint">Everyone plays on the same difficulty so friends can adventure together. Dying costs 10% of your gold and some experience, and you wake up at your last inn.</p>`;
+  $('#app').innerHTML=`<div class="tart dim" aria-hidden="true"></div><div class="create wiz"><header class="cchead"><button type="button" class="b ghost tiny" data-a="title">◂ Title</button><h1>Forge your legend</h1>
+   <ol class="ccsteps">${CC_STEPS.map((n,i)=>`<li class="${i===st?'on':i<st?'done':''}"><button type="button" data-a="ccstep" data-v="${i}"><i>${i<st?'✓':i+1}</i><span>${n}</span></button></li>`).join('')}</ol></header>
+  <form data-form="create" class="ccform"><div class="ccmain" data-step="${st}">${body}</div>
+   <aside class="ccside"><div class="cchero">${ccPortrait('cchp')}<span><b>${E(CC.name||'Your hero')}</b><small>${E(R.name)} ${E(K.name)} · ${E(B.name)}</small></span></div>
+    <p id="ccerr" class="bad" role="alert"></p>
+    <div class="ccnav">${st>0?`<button type="button" class="b" data-a="ccstep" data-v="${st-1}">◂ Back</button>`:''}${st<CC_STEPS.length-1?`<button type="button" class="b next" data-a="ccstep" data-v="${st+1}">Next: ${CC_STEPS[st+1]} ▸</button>`:''}<button class="b gilt ${st===CC_STEPS.length-1?'big':''}">Enter the Realms</button></div></aside></form></div>`;}
 function ccSync(){const f=document.querySelector('.ccform');if(!f)return;for(const k of ['user','name','gender','age','hair','eyes','build','skin','mark']){const el=f.elements[k];if(el)CC[k]=el.value;}}
 Object.assign(ACT,{cc(v){ccSync();const [f,k]=v.split('|');CC[f]=k;const y=window.scrollY;renderCreate();window.scrollTo(0,y);},
-  form_create(fd){if(!LAUNCH.open)return;ccSync();const err=$('#ccerr');const user=CC.user.trim(),name=CC.name.trim();
+  ccstep(v){ccSync();CC.step=+v;renderCreate();window.scrollTo(0,0);},
+  form_create(fd){if(!LAUNCH.open)return;ccSync();const err={set textContent(m){if(CC.step!==0){CC.step=0;renderCreate();window.scrollTo(0,0);}const el=$('#ccerr');if(el)el.textContent=m;}};const user=CC.user.trim(),name=CC.name.trim();
     if(!/^[A-Za-z0-9_\-]{3,16}$/.test(user)){err.textContent='Usernames are 3–16 letters, numbers, _ or -.';return;}if(!name){err.textContent='Give your character a name.';return;}
     if(S.npcs.some(n=>n.user.toLowerCase()===user.toLowerCase())||Object.entries(NET.players).some(([id,p])=>id!==NET.uid&&p.user.toLowerCase()===user.toLowerCase())){err.textContent='That username is already taken by another adventurer.';return;}
     const start=CC.start==='home'?RACES[CC.race].home:CC.start;
@@ -393,19 +408,20 @@ Object.assign(ACT,{authmode(){UI.authMode=UI.authMode==='signup'?'signin':'signu
 async function showTitle(){UI.started=false;document.body.classList.remove('ingame');$('#game').hidden=true;$('#combat').hidden=true;
   const local=await loadLocal();const cloud=await peekCloud();UI.localSave=local;const LP=local&&local.obj&&local.obj.P;
   const W=S||{};const day=W.time?T.day(W.time):1;const on=W.npcs?W.npcs.filter(n=>!n.retired&&online(n)).length:0;const head=(W.news||[])[0];const boss=W.boss?MONSTERS[W.boss.id].n:null;
-  $('#app').hidden=false;$('#app').innerHTML=`<canvas class="titlebg" id="titlebg" aria-hidden="true"></canvas><div class="vignette" aria-hidden="true"></div>
-   <div class="title">
+  $('#app').hidden=false;$('#app').innerHTML=`<div class="tart" aria-hidden="true"></div><canvas class="titlebg" id="titlebg" aria-hidden="true"></canvas><canvas class="tembers" id="tembers" aria-hidden="true"></canvas><div class="vignette" aria-hidden="true"></div>
+   <div class="title t2">
     <div class="crest" aria-hidden="true"><span class="crest-ring"></span>${icon('swords')}</div>
-    <p class="pre">A living fantasy MMORPG</p><h1 class="logo"><span>Eternal</span><span>Realms</span></h1>
-    <p class="tag">Hundreds of adventurers already roam these lands. None of them are waiting for you.</p>
+    <div class="thead"><p class="pre">A living dark-fantasy MMORPG</p><h1 class="logo"><span>Eternal</span><span>Realms</span></h1><div class="orn" aria-hidden="true"><i></i><b>◆</b><i></i></div>
+    <p class="tag">Hundreds of adventurers already roam these lands. None of them are waiting for you.</p></div><div class="tbody">
     <div class="ticker" role="status"><span>${icon('clock')}Day ${day}</span>${LAUNCH.open?`<span>${icon('online')}${on} adventurers online${NET.peers?` · ${NET.peers} real`:''}</span>`:`<span class="bad">${icon('online')}Servers offline</span>`}${boss?`<span class="bad">${icon('skull')}${E(boss)} awakens</span>`:''}${head?`<span class="news">${E(head[1])}</span>`:''}</div>
     ${authHtml()}${!LAUNCH.open?`<div class="tmenu prelaunch"><div class="soon"><small>Servers status</small><b>${icon('clock')} Opening soon</b><p>The Realms are not open yet. No accounts or characters exist until launch day. Check back soon.</p></div>
      <div class="row tsub"><button class="b ghost" data-a="help">How to play</button><button class="b ghost" data-a="sound" id="tsound">${AUD.on?'♪ Music on':'♪ Play music'}</button></div></div>`:''}
-    <div class="tmenu" ${!LAUNCH.open||needSignIn()?'hidden':''}>${LP?`<button class="hero-card" data-a="cont"><span class="portrait" style="--ac:${CLS_HUE[LP.cls]}">${icon(CLS_ICON[LP.cls])}<b>${LP.level}</b></span><span><small>Continue your legend</small><b>${E(LP.name)}</b><small>${E(LP.adv?ADV_CLASSES[LP.adv].name:CLASSES[LP.cls].name)} · ${E(LOCS[LP.loc]?LOCS[LP.loc].n:'')}</small></span><i>▶</i></button>`:''}
+    <div class="tmenu" ${!LAUNCH.open||needSignIn()?'hidden':''}>${LP?`<button class="hero-card" data-a="cont"><span class="portrait ${ptClass(LP.cls,LP.gender,LP.name)?'hasp':''}" style="--ac:${CLS_HUE[LP.cls]}">${ptClass(LP.cls,LP.gender,LP.name)||icon(CLS_ICON[LP.cls])}<b>${LP.level}</b></span><span><small>Continue your legend</small><b>${E(LP.name)}</b><small>${E(LP.adv?ADV_CLASSES[LP.adv].name:CLASSES[LP.cls].name)} · ${E(LOCS[LP.loc]?LOCS[LP.loc].n:'')}</small></span><i>▶</i></button>`:''}
      ${cloud&&(!LP||cloud.t>local.t+5000)?`<button class="b gilt big" data-a="contcloud">Continue from your account <small>${E(cloud.user)} · Lv.${cloud.level}</small></button>`:''}
-     <button class="b ${LP?'':'gilt'} big" data-a="newchar">${LP?'New character':'Begin your adventure'}</button>
-     <div class="row tsub"><button class="b ghost" data-a="importask">Import save</button><button class="b ghost" data-a="help">How to play</button><button class="b ghost" data-a="sound" id="tsound">${AUD.on?'♪ Music on':'♪ Play music'}</button></div></div>
-    ${LAUNCH.open?`<p class="hint">${E(NET.status)}</p>`:''}</div>`;requestAnimationFrame(()=>startTitleScene(document.getElementById('titlebg')));
+     <button class="tp ${LP?'':'prime'}" data-a="newchar"><i>${icon('swords')}</i><span><b>${LP?'New character':'Begin your adventure'}</b><small>${LP?'Start over with a new hero':'Create your hero and enter the Realms'}</small></span></button>
+     <a class="tp apk" id="apkbtn" href="eternal-realms.apk" download="eternal-realms.apk" hidden><i>${icon('download')}</i><span><b>Get the Android app</b><small>Download the game for your phone (APK)</small></span></a>
+     <div class="row tsub"><button class="b ghost" data-a="help">${icon('codex')} How to play</button><button class="b ghost" data-a="importask">${icon('bag')} Import save</button><button class="b ghost" data-a="sound" id="tsound">${AUD.on?'♪ Music on':'♪ Play music'}</button></div></div>
+    <p class="tfoot">${LAUNCH.open?E(NET.status)+' · ':''}v1.1</p></div></div>`;requestAnimationFrame(()=>{startTitleScene(document.getElementById('titlebg'));startEmbers(document.getElementById('tembers'));});apkCheck();
   if(AUD.on)audMood('title');}
 async function startGame(){if(!LAUNCH.open){showTitle();return;}if(!S.P){renderCreate();return;}$('#app').hidden=true;document.body.classList.add('ingame');
   // the world keeps moving: adopt the newest shared world, then fast-forward through the time nobody was watching

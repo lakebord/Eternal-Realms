@@ -2,7 +2,7 @@
 const {chromium}=require('playwright');const path=require('path');
 (async()=>{const b=await chromium.launch();const p=await b.newPage({viewport:{width:1280,height:900}});const errs=[];p.on('pageerror',e=>errs.push(e.stack));
 await p.goto('file://'+path.resolve(__dirname,'../index.html'));await p.waitForTimeout(800);
-await p.click('[data-a=newchar]');await p.fill('#cc_user','Clicker');await p.fill('#cc_name','Clicky');await p.click('[data-v="cls|'+(process.argv[2]||'summoner')+'"]');await p.fill('#cc_user','Clicker');await p.fill('#cc_name','Clicky');await p.click('.ccside .b.gilt');await p.waitForTimeout(800);
+await p.click('[data-a=newchar]');await p.fill('#cc_user','Clicker');await p.fill('#cc_name','Clicky');await p.click('.ccsteps [data-v="2"]');await p.click('[data-v="cls|'+(process.argv[2]||'summoner')+'"]');await p.click('.ccsteps [data-v=\"0\"]');await p.fill('#cc_user','Clicker');await p.fill('#cc_name','Clicky');await p.click('.ccside .b.gilt');await p.waitForTimeout(800);
 await p.evaluate(()=>{S.P.level=12;S.P.mastery.fire={lv:5,xp:0};dirty(S.P);const st=stats(S.P);S.P.hp=st.mhp;S.P.mp=st.mmp;S.P.sp=st.msp;invAdd(S.P,'hpot1',3);
   startCombat([makeMonster('wolf',3),makeMonster('wolf',3)],{type:'pve'});});
 const waitTurn=async()=>{for(let i=0;i<40;i++){if(await p.$('#combat [data-a=ca][data-v=attack]'))return true;if(await p.$('[data-a=cclose]'))return false;await p.waitForTimeout(150);}return false;};

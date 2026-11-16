@@ -145,3 +145,11 @@ function startTitleScene(cv){cancelAnimationFrame(TS.raf);if(!cv)return;const dp
 /* ---------- button ripple ---------- */
 document.addEventListener('pointerdown',e=>{const b=e.target.closest('.b,.ab,.cb,.tab,.bt,.person,.tr,.card');if(!b||fxReduced())return;const r=b.getBoundingClientRect();const s=document.createElement('span');s.className='ripple';
   const d=Math.max(r.width,r.height);s.style.width=s.style.height=d+'px';s.style.left=(e.clientX-r.left-d/2)+'px';s.style.top=(e.clientY-r.top-d/2)+'px';b.appendChild(s);setTimeout(()=>s.remove(),550);sfx('click');},{passive:true});
+
+/* drifting embers over the painted title art */
+const EMB={raf:0};
+function startEmbers(cv){cancelAnimationFrame(EMB.raf);if(!cv||fxReduced())return;const g=cv.getContext('2d');const dpr=Math.min(2,devicePixelRatio||1);let W,H;const fit=()=>{W=cv.clientWidth;H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;};fit();
+  const ps=[];const mk=(any)=>({x:Math.random()*W,y:any?Math.random()*H:H+10,vx:-0.15+Math.random()*0.5,vy:-0.25-Math.random()*0.7,s:0.8+Math.random()*2.2,a:0.3+Math.random()*0.7,ph:Math.random()*6.28});for(let i=0;i<46;i++)ps.push(mk(true));
+  const loop=()=>{if(!cv.isConnected)return;if(cv.clientWidth!==W||cv.clientHeight!==H)fit();g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);const t=performance.now()/1000;
+    for(let i=0;i<ps.length;i++){const p=ps[i];p.x+=p.vx+Math.sin(t*0.8+p.ph)*0.25;p.y+=p.vy;if(p.y<-10||p.x<-10||p.x>W+10)ps[i]=mk(false);const fl=0.6+0.4*Math.sin(t*3+p.ph);g.globalAlpha=p.a*fl*Math.min(1,p.y/(H*0.25));const rg=g.createRadialGradient(p.x,p.y,0,p.x,p.y,p.s*3);rg.addColorStop(0,'#ffd9a0');rg.addColorStop(0.35,'#ff8a3a');rg.addColorStop(1,'rgba(255,90,20,0)');g.fillStyle=rg;g.beginPath();g.arc(p.x,p.y,p.s*3,0,7);g.fill();}
+    g.globalAlpha=1;EMB.raf=requestAnimationFrame(loop);};loop();}

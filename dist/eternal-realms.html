@@ -1,6 +1,8 @@
 <title>Eternal Realms</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="theme-color" content="#11141b">
+<meta name="theme-color" content="#07080b">
+<link rel="icon" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="description" content="Eternal Realms: a living fantasy text MMORPG with hundreds of autonomous adventurers, guilds, chat and tactical combat.">
@@ -603,6 +605,81 @@ body:not(.ingame){background:#05070d}
 @media (max-width:520px){.crow.six{grid-template-columns:repeat(3,1fr)}.crow.util{grid-template-columns:repeat(3,1fr)}.crow.six .cb .cg,.crow.util .cb .cg{width:36px;height:36px}.crow.six .cb,.crow.util .cb{font-size:.66rem}}
 .cb.c-defend,.cb.c-parry{--glow:#8fd0ff}.cb.c-dodge,.cb.c-quick{--glow:#cfeaff}.cb.c-heavy,.cb.c-counter{--glow:#ff9a6a}.cb.c-items{--glow:#8fe06a}.cb.c-summon,.cb.c-bond{--glow:#5cd8c0}.cb.c-eye,.cb.c-row,.cb.c-party{--glow:#d8cdb4}
 .cb.big{--glow:#ff8a70}.cb.big .cg{box-shadow:inset 0 0 0 1px #ff8a70,inset 0 2px 5px #000c,0 0 0 2px #1a0806,0 0 0 3px #8a3226,0 0 16px -2px #df5d47}
+
+/* ================= title screen: painted key art ================= */
+.tart{position:fixed;inset:0;z-index:0;background:#07080b;overflow:hidden}
+html.art .tart::before{content:"";position:absolute;inset:-4%;background:url(assets/title.webp) 52% 38%/cover no-repeat;animation:kenburns 40s ease-in-out infinite alternate;will-change:transform}
+@keyframes kenburns{from{transform:scale(1) translate(0,0)}to{transform:scale(1.1) translate(-1.5%,-1.5%)}}
+.tart::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#05060acc 0%,#05060a55 22%,#05060a22 42%,#05060a99 68%,#05060af2 100%)}
+.tart.dim::before{filter:blur(6px) brightness(.45);animation:none}.tart.dim::after{background:linear-gradient(180deg,#07080bcc,#07080bee)}
+html.art .titlebg{display:none}html:not(.art) .tart{display:none}
+.tembers{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+html.art .vignette{background:radial-gradient(ellipse at 50% 42%,transparent 45%,#000c 100%)}
+.title.t2{max-width:500px;min-height:calc(100vh - 2em);min-height:calc(100dvh - 2em);margin:0 auto;padding:max(3.2vh,1em) 0 1em;display:flex;flex-direction:column;justify-content:space-between;gap:1.2em}
+.title.t2 .crest{display:none}
+.thead{animation:theadin 1.1s cubic-bezier(.2,.9,.3,1) both}@keyframes theadin{from{opacity:0;transform:translateY(-14px);filter:blur(6px)}}
+.title.t2 .pre{letter-spacing:.44em;font-size:.68rem;color:#d8cdb4;text-shadow:0 1px 6px #000}
+.title.t2 .logo{font-size:clamp(3.2rem,15vw,5.8rem);margin:.05em 0 .1em;filter:drop-shadow(0 6px 22px #000)}
+.orn{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:.7em;max-width:300px;margin:.2em auto .5em;color:var(--gilt)}
+.orn i{height:1px;background:linear-gradient(90deg,transparent,#e0b45e)}.orn i:last-child{transform:scaleX(-1)}.orn b{font-size:.7rem;font-weight:400;text-shadow:0 0 10px #e0b45e}
+.title.t2 .tag{font-size:1rem;color:#e6dfcc;text-shadow:0 1px 8px #000,0 0 2px #000;margin:.2em auto 0;max-width:32ch;font-style:italic}
+.tbody{display:flex;flex-direction:column;gap:.7em;animation:resin .8s .35s both}
+.title.t2 .ticker{margin:0;padding:.45em .8em;border-radius:22px;background:#0b0d12a8;border:1px solid #ffffff14;backdrop-filter:blur(8px);font-size:.78rem;color:#cfc8b6}
+.title.t2 .tmenu{gap:.55em;animation:none}
+/* menu plates (same family as the battle commands) */
+.tp{font:inherit;display:flex;align-items:center;gap:.9em;width:100%;text-align:left;text-decoration:none;cursor:pointer;color:#e6dcc4;padding:.72em .95em;border-radius:12px;border:1px solid #4a4338;
+  background:linear-gradient(180deg,#262932ee 0%,#191c23ee 46%,#111318f2 100%);box-shadow:inset 0 1px 0 #ffffff1c,inset 0 -2px 0 #0009,inset 0 0 0 1px #0008,0 3px 0 #06070a,0 10px 24px -8px #000;backdrop-filter:blur(8px);position:relative;overflow:hidden;transition:transform .08s,border-color .15s,filter .15s}
+.tp[hidden]{display:none}
+.tp i{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;color:var(--gilt);background:radial-gradient(circle at 50% 35%,#3a3220,#0c0d11 72%);box-shadow:inset 0 0 0 1px #8a7030,inset 0 2px 5px #000c,0 0 0 2px #0b0c0f,0 0 0 3px #4a4338,0 0 14px -4px var(--gilt)}
+.tp i .ic{width:22px;height:22px}.tp span{display:flex;flex-direction:column;min-width:0}
+.tp b{font-family:var(--display);font-weight:400;font-size:1.22rem;letter-spacing:.06em;color:#f0e2bc;text-shadow:0 1px 0 #000}.tp small{font-size:.8rem;color:#a8a08c}
+.tp:hover{border-color:var(--gilt);filter:brightness(1.1)}.tp:active{transform:translateY(3px);box-shadow:inset 0 2px 8px #000c,0 0 0 #000}
+.tp.prime{border-color:#a9823a;background:linear-gradient(180deg,#5a4520ee 0%,#33280fee 48%,#1c1609f2 100%);box-shadow:inset 0 1px 0 #ffe9a840,inset 0 -2px 0 #000a,0 3px 0 #0e0b05,0 0 28px -8px #e0b45e,0 10px 24px -8px #000}
+.tp.prime b{color:#ffe9a8;font-size:1.36rem}.tp.prime small{color:#d8c89a}
+.tp.prime::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,#ffffff26 50%,transparent 65%) 0 0/250% 100% no-repeat;animation:sheen 3.6s ease-in-out infinite;pointer-events:none}
+.tp.apk i{color:#8fe06a;box-shadow:inset 0 0 0 1px #4f9a3a,inset 0 2px 5px #000c,0 0 0 2px #0b0c0f,0 0 0 3px #4a4338,0 0 14px -4px #8fe06a}
+.title.t2 .hero-card{border-radius:12px;background:linear-gradient(180deg,#5a4520ee,#2a200cee 55%,#16110af2);box-shadow:inset 0 1px 0 #ffe9a840,0 3px 0 #0e0b05,0 0 30px -8px #e0b45e,0 10px 24px -8px #000;backdrop-filter:blur(8px)}
+.hero-card .portrait.hasp{padding:0;overflow:visible;position:relative;background:none}.hero-card .portrait.hasp .pt{width:100%;height:100%;border-radius:inherit;border:0}
+.hero-card .portrait.hasp b{position:absolute;right:-6px;bottom:-6px;min-width:22px;height:22px;border-radius:11px;display:grid;place-items:center;font-size:.72rem;font-family:var(--mono);color:#16110a;background:var(--gilt);box-shadow:0 0 0 2px #16110a}
+.title.t2 .tsub{gap:.4em;flex-wrap:wrap}.title.t2 .tsub .b{flex:1 1 30%;display:inline-flex;align-items:center;justify-content:center;gap:.4em;font-size:.8rem;min-height:40px;border-radius:10px;background:#0f1117cc;border-color:#33302a;color:#cfc8b6}
+.title.t2 .tsub .b .ic{width:16px;height:16px;color:var(--gilt2)}
+.tfoot{margin:.2em 0 0;font-size:.72rem;color:#8a8474;text-shadow:0 1px 4px #000;letter-spacing:.06em}
+.title.t2 .tmenu .soon{background:#0b0d12cc;border-radius:12px}
+@media (min-width:900px){.title.t2{justify-content:center;gap:2.2em}}
+@media (prefers-reduced-motion:reduce){html.art .tart::before{animation:none}.thead{animation:none}}
+
+/* ================= character creation: step-by-step ================= */
+.create.wiz{position:relative;z-index:1;max-width:760px;padding:1em 0 0;min-height:100dvh;display:flex;flex-direction:column}
+.create.wiz .cchead{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:.2em .8em;margin-bottom:.7em}
+.create.wiz .cchead h1{font-size:clamp(1.5rem,6vw,2.2rem);margin:0;color:var(--gilt);text-shadow:0 2px 14px #000}
+.ccsteps{grid-column:1/-1;list-style:none;display:grid;grid-template-columns:repeat(5,1fr);gap:.25em;margin:.5em 0 0;padding:0}
+.ccsteps li{position:relative}.ccsteps li:not(:last-child)::after{content:"";position:absolute;top:15px;left:calc(50% + 18px);right:calc(-50% + 18px);height:2px;background:#3a352c}.ccsteps li.done:not(:last-child)::after{background:var(--gilt2)}
+.ccsteps button{font:inherit;width:100%;background:none;border:0;color:#8f8a78;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.25em;padding:0;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase}
+.ccsteps i{font-style:normal;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-size:.8rem;background:#14161b;border:1px solid #3a352c;color:#8f8a78;position:relative;z-index:1}
+.ccsteps li.done i{border-color:var(--gilt2);color:var(--gilt)}.ccsteps li.on i{background:linear-gradient(180deg,#5a4520,#2a200c);border-color:var(--gilt);color:#ffe9a8;box-shadow:0 0 14px -2px var(--gilt)}.ccsteps li.on button{color:var(--gilt)}
+.create.wiz .ccform{flex:1;display:flex;flex-direction:column;gap:.8em}
+.create.wiz .ccmain{flex:1;background:linear-gradient(180deg,#191c24f2,#101216f5);border:1px solid #2c2a26;border-radius:14px;padding:1em 1em 1.1em;box-shadow:inset 0 1px 0 #ffffff0d,0 10px 30px -10px #000;animation:stepin .32s cubic-bezier(.2,.9,.3,1)}
+@keyframes stepin{from{opacity:0;transform:translateX(14px)}}
+.create.wiz h2{font-size:1.45rem;color:#f0e2bc;margin:0 0 .15em}.cclead{color:var(--ink2);margin:0 0 .9em;font-size:.95rem}
+.create.wiz .fgrid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.8em}.create.wiz .fgrid label small{color:var(--ink3);font-size:.74rem}
+.create.wiz input,.create.wiz select{min-height:44px;font-size:1rem}
+.ccmore{margin-top:1em;border-top:1px solid #2c2a26;padding-top:.7em}.ccmore summary{cursor:pointer;font-family:var(--display);color:var(--gilt);font-size:1.05rem;padding:.3em 0}.ccmore summary small{color:var(--ink3);font-family:var(--body,inherit);font-size:.75rem}.ccmore .fgrid{margin-top:.6em}
+.pks{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.45em;margin-top:.6em}
+.pks.art{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.pk{font:inherit;display:flex;align-items:center;gap:.65em;text-align:left;color:var(--ink);cursor:pointer;padding:.5em .6em;border-radius:10px;border:1px solid #3a352c;background:linear-gradient(180deg,#22252d,#16181d);box-shadow:inset 0 1px 0 #ffffff12,0 2px 0 #08090c;transition:border-color .15s,transform .08s,box-shadow .15s;min-height:56px}
+.pk span{display:flex;flex-direction:column;min-width:0}.pk b{font-family:var(--display);font-weight:400;font-size:1.04rem;color:#e6dcc4}.pk small{font-size:.74rem;color:var(--ink3);line-height:1.25}
+.pk .pkp{width:52px;height:52px;border-radius:9px}
+.pk:active{transform:translateY(2px)}.pk:hover{border-color:var(--gilt2)}
+.pk.on{border-color:var(--gilt);background:linear-gradient(180deg,#4a3a1a,#241b0b);box-shadow:inset 0 0 0 1px var(--gilt),0 0 18px -6px var(--gilt)}.pk.on b{color:#ffe9a8}.pk.on .pkp{border-color:var(--gilt);box-shadow:0 0 12px -2px var(--gilt)}
+.ccinfo{margin-top:.8em;padding:.75em .9em;border-radius:10px;background:#0c0d11;border:1px solid #2c2a26;border-left:3px solid var(--gilt2)}.ccinfo h3{margin:0 0 .2em;color:var(--gilt)}.ccinfo h3 small{font-size:.72rem;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase}.ccinfo p{margin:.25em 0;font-size:.92rem}
+.create.wiz .ccprev{margin-top:.9em;padding:.75em .9em;border-radius:10px;background:#0c0d11;border:1px solid #2c2a26}
+.create.wiz .ccside{position:sticky!important;top:auto;bottom:0;z-index:5;margin:0 -16px;padding:.6em 16px calc(.7em + env(safe-area-inset-bottom,0px));border-radius:14px 14px 0 0;border:0;border-top:1px solid var(--gilt2);background:linear-gradient(180deg,#191c24f5,#0c0d11);box-shadow:0 -12px 30px -10px #000;gap:.45em;backdrop-filter:blur(10px)}
+.cchero{display:flex;align-items:center;gap:.7em}.cchero .cchp{width:46px;height:46px;border-radius:10px;border-color:var(--gilt)}.cchero span{display:flex;flex-direction:column;min-width:0}.cchero b{font-family:var(--display);font-weight:400;font-size:1.15rem;color:#ffe9a8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cchero small{color:var(--ink2);font-size:.8rem}
+.pt.noart{display:grid;place-items:center;color:var(--gilt)}.pt.noart .ic{width:55%;height:55%}
+.ccnav{display:flex;gap:.45em}.ccnav .b{min-height:46px;border-radius:10px;font-family:var(--display);letter-spacing:.05em;font-size:1rem;width:auto}.ccnav .b.next{flex:1.4;background:linear-gradient(180deg,#2a2d36,#1b1e25 46%,#14161b);border-color:#6e5a2c;color:#f0e2bc;box-shadow:inset 0 1px 0 #ffffff1c,0 3px 0 #08090c}
+.ccnav .b.gilt{flex:1;box-shadow:inset 0 1px 0 #ffe9a840,0 3px 0 #0e0b05}.ccnav .b.gilt.big{flex:2;font-size:1.15rem}
+#ccerr:empty{display:none}#ccerr{margin:0;font-size:.88rem}
+@media (max-width:520px){.pks.art{grid-template-columns:repeat(2,1fr)}.pks{grid-template-columns:1fr}.pk .pkp{width:46px;height:46px}.ccsteps span{font-size:.62rem}}
 
 </style>
 <div id="app" aria-live="polite"><div class="title"><h1>Eternal Realms</h1><p class="tag">The Realms are waking…</p></div></div>
@@ -3907,6 +3984,7 @@ const ICONS={
   codex:'M4 4h7a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4z M20 4h-7a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h7z',
   menu:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M12 2v3 M12 19v3 M2 12h3 M19 12h3 M4.9 4.9l2.1 2.1 M17 17l2.1 2.1 M4.9 19.1L7 17 M17 7l2.1-2.1',
   more:'M5 12h.01 M12 12h.01 M19 12h.01',
+  download:'M12 3v12 M7 10l5 5 5-5 M4 20h16',
   explore:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M15.5 8.5l-2 5-5 2 2-5z',
   hunt:'M5 19L17 7 M14 4l6 0 0 6 M4 15l5 5 M7 13l4 4',
   search:'M11 17a6 6 0 1 0 0-12 6 6 0 0 0 0 12z M20 20l-4.5-4.5',
@@ -4055,6 +4133,10 @@ function ptClass(cl,gender,name,cls){if(!ART.ok)return '';ART.ck=ART.ck||Object.
   const f=gender==='female'?1:gender==='male'?0:nameHash(name)%2;if(i<16)return artCell(f?'class02':'class01',i,cls);if(i<20)return artCell('class03',(i-16)+(f?4:0),cls);return '';}
 function ptItem(it,cls){if(!ART.ok||!it)return '';if(it.b){const i=ART.gear.indexOf(it.b);return i<0?'':artIdx('gear',i,(cls||'')+' r'+(it.r||0));}ART.ik=ART.ik||Object.keys(ITEMS);const i=ART.ik.indexOf(it.k||it);return i<0?'':artIdx('items',i,cls);}
 function ptActor(a,cls){if(!a)return '';if(a.id&&MONSTERS[a.id])return ptMon(a.id,cls);if(a.cls)return ptClass(a.cls,a.char&&a.char.gender,a.name,cls);return '';}
+
+/* the Android app download is offered on the website only: not inside the app itself, not on iPhones, and only if the file is really there */
+function apkCheck(){const el=document.getElementById('apkbtn');if(!el)return;try{const ua=navigator.userAgent||'';if(window.Capacitor||/; wv\)/.test(ua)||/iPhone|iPad|iPod/.test(ua)||location.protocol==='file:')return;
+  if(ART.apk===true){el.hidden=false;return;}if(ART.apk===false)return;fetch('eternal-realms.apk',{method:'HEAD'}).then(r=>{const t=r.headers.get('content-type')||'';ART.apk=r.ok&&!/text\/html/.test(t);const e2=document.getElementById('apkbtn');if(ART.apk&&e2){e2.hidden=false;const kb=+r.headers.get('content-length');if(kb>0){const sm=e2.querySelector('small');if(sm)sm.textContent=`Download the game for your phone (APK, ${(kb/1048576).toFixed(1)} MB)`;}}}).catch(()=>{ART.apk=false;});}catch(e){}}
 
 /* ---- audio.js ---- */
 /* ETERNAL REALMS — generative music & sound effects (Web Audio, no files).
@@ -4429,6 +4511,14 @@ function startTitleScene(cv){cancelAnimationFrame(TS.raf);if(!cv)return;const dp
 /* ---------- button ripple ---------- */
 document.addEventListener('pointerdown',e=>{const b=e.target.closest('.b,.ab,.cb,.tab,.bt,.person,.tr,.card');if(!b||fxReduced())return;const r=b.getBoundingClientRect();const s=document.createElement('span');s.className='ripple';
   const d=Math.max(r.width,r.height);s.style.width=s.style.height=d+'px';s.style.left=(e.clientX-r.left-d/2)+'px';s.style.top=(e.clientY-r.top-d/2)+'px';b.appendChild(s);setTimeout(()=>s.remove(),550);sfx('click');},{passive:true});
+
+/* drifting embers over the painted title art */
+const EMB={raf:0};
+function startEmbers(cv){cancelAnimationFrame(EMB.raf);if(!cv||fxReduced())return;const g=cv.getContext('2d');const dpr=Math.min(2,devicePixelRatio||1);let W,H;const fit=()=>{W=cv.clientWidth;H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;};fit();
+  const ps=[];const mk=(any)=>({x:Math.random()*W,y:any?Math.random()*H:H+10,vx:-0.15+Math.random()*0.5,vy:-0.25-Math.random()*0.7,s:0.8+Math.random()*2.2,a:0.3+Math.random()*0.7,ph:Math.random()*6.28});for(let i=0;i<46;i++)ps.push(mk(true));
+  const loop=()=>{if(!cv.isConnected)return;if(cv.clientWidth!==W||cv.clientHeight!==H)fit();g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);const t=performance.now()/1000;
+    for(let i=0;i<ps.length;i++){const p=ps[i];p.x+=p.vx+Math.sin(t*0.8+p.ph)*0.25;p.y+=p.vy;if(p.y<-10||p.x<-10||p.x>W+10)ps[i]=mk(false);const fl=0.6+0.4*Math.sin(t*3+p.ph);g.globalAlpha=p.a*fl*Math.min(1,p.y/(H*0.25));const rg=g.createRadialGradient(p.x,p.y,0,p.x,p.y,p.s*3);rg.addColorStop(0,'#ffd9a0');rg.addColorStop(0.35,'#ff8a3a');rg.addColorStop(1,'rgba(255,90,20,0)');g.fillStyle=rg;g.beginPath();g.arc(p.x,p.y,p.s*3,0,7);g.fill();}
+    g.globalAlpha=1;EMB.raf=requestAnimationFrame(loop);};loop();}
 
 /* ---- cfx.js ---- */
 /* ETERNAL REALMS — battle choreography.
@@ -5178,30 +5268,45 @@ const HELP_HTML=`<h2>How to play</h2><div class="help">
 <p><b>Saving:</b> Progress saves automatically to this browser${typeof NET!=='undefined'&&NET.canWrite?' and your claude.ai account':''}. Use Export save for a backup.</p></div>`;
 
 /* ---------------- character creation ---------------- */
-const CC={user:'',name:'',race:'human',gender:'unspecified',age:22,hair:'',eyes:'',build:'',skin:'',mark:'',bg:'commoner',cls:'warrior',start:'home',diff:'normal'};
+const CC={step:0,user:'',name:'',race:'human',gender:'unspecified',age:22,hair:'',eyes:'',build:'',skin:'',mark:'',bg:'commoner',cls:'warrior',start:'home',diff:'normal'};
 function ccPreview(){const at=baseAttrs(CC.race,CC.bg);const fake={race:CC.race,cls:CC.cls,level:1,attr:at,equip:{},mastery:{}};const st=calcStats(fake);const R=RACES[CC.race],B=BACKGROUNDS[CC.bg],K=CLASSES[CC.cls];
   return `<div class="ccprev"><h3>${E(CC.name||'Your hero')} <small>${E(CC.user||'username')}</small></h3><p>${R.name} ${K.name} · ${B.name}</p><div class="attrs small">${ATTRS.map(k=>`<div class="attr"><span>${k.toUpperCase()}</span><b>${at[k]}</b></div>`).join('')}</div>
    <p class="hint">HP ${st.mhp} · MP ${st.mmp} · SP ${st.msp} · Gold ${(B.gold||0)+(K.gold||0)}</p><p class="good">${E(R.perk)}</p><p class="bad">${E(R.flaw)}</p><p class="hint">${E(K.desc)} Skills: ${K.skills.map(s=>SKILLS[s].n).join(', ')}</p><p class="hint">${E(B.desc)}</p></div>`;}
-function renderCreate(){if(!LAUNCH.open){showTitle();return;}const card=(k,o,sel,field)=>`<button type="button" class="card ${sel===k?'on':''}" data-a="cc" data-v="${field}|${k}"><b>${E(o.name)}</b><small>${E(o.perk||o.desc||'')}</small></button>`;
-  const starts=[['home',`Homeland (${LOCS[RACES[CC.race].home].n})`],['brookhollow','Brookhollow (classic start)'],['crossroads','Crossroads (frontier)'],['valeria','Valeria (capital)'],['saltmere','Port Saltmere']];
-  $('#app').innerHTML=`<div class="create"><header class="cchead"><h1>Create your adventurer</h1><p>Nobody has heard of you yet. The Realms already have their champions.</p></header>
-  <form data-form="create" class="ccform"><div class="cccols"><div class="ccmain">
-   <fieldset><legend>Identity</legend><div class="fgrid"><label>Username<input name="user" id="cc_user" maxlength="16" required pattern="[A-Za-z0-9_\\-]{3,16}" value="${E(CC.user)}" placeholder="e.g. ${E(genUsername(new Set()))}"></label>
-    <label>Character name<input name="name" id="cc_name" maxlength="24" required value="${E(CC.name)}" placeholder="e.g. ${E(genCharName(CC.race))}"></label>
+/* character creation: five short steps instead of one endless form. The hero bar at the bottom is always there,
+   so you can finish at any point once you have a name. */
+const CC_STEPS=['Hero','Race','Class','Origin','Journey'];
+const RACE_ART={human:['class01',13],highelf:['class03',8],woodelf:['class03',9],darkelf:['class03',10],dwarf:['class03',11],orc:['class03',12],beastkin:['class03',13],halfelf:['class02',3],draconian:['class03',14],halfling:['class03',15]};
+function ccPortrait(cls){return ptClass(CC.cls,CC.gender,CC.name||CC.user||'hero',cls)||`<span class="pt ${cls||''} noart">${icon(CLS_ICON[CC.cls]||'hero')}</span>`;}
+function renderCreate(){if(!LAUNCH.open){showTitle();return;}CC.step=U.clamp(CC.step||0,0,CC_STEPS.length-1);const st=CC.step;
+  const pick=(k,o,sel,field,art,sub)=>`<button type="button" class="pk ${sel===k?'on':''} ${art?'hasart':''}" data-a="cc" data-v="${field}|${k}">${art||''}<span><b>${E(o.name)}</b><small>${E(sub!=null?sub:(o.perk||o.desc||''))}</small></span></button>`;
+  const starts=[['home',`Homeland: ${LOCS[RACES[CC.race].home].n}`,'Start among your own people.'],['brookhollow','Brookhollow','The classic start: a quiet village.'],['crossroads','Crossroads','A frontier trading post.'],['valeria','Valeria','The capital. Busy and expensive.'],['saltmere','Port Saltmere','Ships, pirates and salt air.']];
+  const R=RACES[CC.race],K=CLASSES[CC.cls],B=BACKGROUNDS[CC.bg];const roleN={dps:'Damage',tank:'Tank',healer:'Healer',support:'Support',summoner:'Summoner'};
+  let body='';
+  if(st===0)body=`<h2>Who are you?</h2><p class="cclead">Nobody has heard of you yet. Give them a name to remember.</p>
+    <div class="fgrid"><label>Username<input name="user" id="cc_user" maxlength="16" required pattern="[A-Za-z0-9_\\-]{3,16}" value="${E(CC.user)}" placeholder="e.g. ${E(genUsername(new Set()))}" autocomplete="off"><small>What other players see in chat. 3–16 letters or numbers.</small></label>
+    <label>Character name<input name="name" id="cc_name" maxlength="24" required value="${E(CC.name)}" placeholder="e.g. ${E(genCharName(CC.race))}" autocomplete="off"><small>Your hero's name in the story.</small></label>
     <label>Gender<select name="gender" id="cc_gender">${['unspecified','female','male','nonbinary'].map(g=>`<option ${CC.gender===g?'selected':''}>${g}</option>`).join('')}</select></label>
-    <label>Age<input name="age" id="cc_age" type="number" min="16" max="400" value="${CC.age}"></label></div></fieldset>
-   <fieldset><legend>Appearance</legend><div class="fgrid"><label>Hair<input name="hair" id="cc_hair" maxlength="30" value="${E(CC.hair)}" placeholder="braided copper"></label><label>Eyes<input name="eyes" id="cc_eyes" maxlength="30" value="${E(CC.eyes)}" placeholder="storm-grey"></label>
+    <label>Age<input name="age" id="cc_age" type="number" min="16" max="400" value="${CC.age}"></label></div>
+    <details class="ccmore" ${CC.hair||CC.eyes||CC.build||CC.skin||CC.mark?'open':''}><summary>Describe your looks <small>optional</small></summary><div class="fgrid"><label>Hair<input name="hair" id="cc_hair" maxlength="30" value="${E(CC.hair)}" placeholder="braided copper"></label><label>Eyes<input name="eyes" id="cc_eyes" maxlength="30" value="${E(CC.eyes)}" placeholder="storm-grey"></label>
     <label>Build<input name="build" id="cc_build" maxlength="30" value="${E(CC.build)}" placeholder="lean"></label><label>${CC.race==='beastkin'?'Fur':CC.race==='draconian'?'Scales':'Skin'}<input name="skin" id="cc_skin" maxlength="30" value="${E(CC.skin)}" placeholder="sun-browned"></label>
-    <label class="wide">Distinguishing mark<input name="mark" id="cc_mark" maxlength="60" value="${E(CC.mark)}" placeholder="a scar across the left brow"></label></div></fieldset>
-   <fieldset><legend>Race</legend><div class="cards">${Object.entries(RACES).map(([k,o])=>card(k,o,CC.race,'race')).join('')}</div><p class="hint">${E(RACES[CC.race].lore)}</p></fieldset>
-   <fieldset><legend>Background</legend><div class="cards">${Object.entries(BACKGROUNDS).map(([k,o])=>card(k,{name:o.name,desc:o.desc},CC.bg,'bg')).join('')}</div></fieldset>
-   <fieldset><legend>Starting class</legend><div class="cards">${Object.entries(CLASSES).map(([k,o])=>card(k,{name:o.name,desc:o.desc},CC.cls,'cls')).join('')}</div></fieldset>
-   <fieldset><legend>Starting location</legend><div class="cards">${starts.map(([k,n])=>card(k,{name:n},CC.start,'start')).join('')}</div></fieldset>
-   <p class="hint">Everyone plays on the same Normal difficulty so friends can adventure together. Dying costs 10% of your gold and some experience, and you wake up at your last inn.</p>
-  </div><aside class="ccside">${ccPreview()}<button class="b gilt big">Enter the Realms</button><p id="ccerr" class="bad" role="alert"></p>${btn('Back','title','','ghost')}</aside></div></form></div>`;}
+    <label class="wide">Distinguishing mark<input name="mark" id="cc_mark" maxlength="60" value="${E(CC.mark)}" placeholder="a scar across the left brow"></label></div></details>`;
+  if(st===1)body=`<h2>Choose your people</h2><div class="pks art">${Object.entries(RACES).map(([k,o])=>{const ra=RACE_ART[k];return pick(k,o,CC.race,'race',ART.ok&&ra?artCell(ra[0],ra[1],'pkp'):'',o.perk.split(':')[0]);}).join('')}</div>
+    <div class="ccinfo"><h3>${E(R.name)}</h3><p>${E(R.lore)}</p><p class="good">＋ ${E(R.perk)}</p><p class="bad">－ ${E(R.flaw)}</p><p class="hint">Homeland: ${E(LOCS[R.home].n)}</p></div>`;
+  if(st===2)body=`<h2>Choose your calling</h2><div class="pks art">${Object.entries(CLASSES).map(([k,o])=>pick(k,o,CC.cls,'cls',ptClass(k,CC.gender,CC.name||CC.user||'hero','pkp'),roleN[o.role]||o.role)).join('')}</div>
+    <div class="ccinfo"><h3>${E(K.name)} <small>${roleN[K.role]||K.role} · ${E(K.armor)} armor</small></h3><p>${E(K.desc)}</p><p class="hint">Starting skills: ${K.skills.map(x=>SKILLS[x].n).join(', ')}</p><p class="hint">Weapons: ${K.weapons.filter(w=>ITEM_BASES[w]).map(w=>ITEM_BASES[w].n).join(', ')}</p></div>`;
+  if(st===3)body=`<h2>Where do you come from?</h2><p class="cclead">Your past gives you a little gold, a few belongings and a head start in one skill.</p><div class="pks">${Object.entries(BACKGROUNDS).map(([k,o])=>pick(k,{name:o.name,desc:o.desc},CC.bg,'bg','')).join('')}</div>`;
+  if(st===4)body=`<h2>Where does it begin?</h2><div class="pks">${starts.map(([k,n,d])=>pick(k,{name:n},CC.start,'start','',d)).join('')}</div>${ccPreview()}
+    <p class="hint">Everyone plays on the same difficulty so friends can adventure together. Dying costs 10% of your gold and some experience, and you wake up at your last inn.</p>`;
+  $('#app').innerHTML=`<div class="tart dim" aria-hidden="true"></div><div class="create wiz"><header class="cchead"><button type="button" class="b ghost tiny" data-a="title">◂ Title</button><h1>Forge your legend</h1>
+   <ol class="ccsteps">${CC_STEPS.map((n,i)=>`<li class="${i===st?'on':i<st?'done':''}"><button type="button" data-a="ccstep" data-v="${i}"><i>${i<st?'✓':i+1}</i><span>${n}</span></button></li>`).join('')}</ol></header>
+  <form data-form="create" class="ccform"><div class="ccmain" data-step="${st}">${body}</div>
+   <aside class="ccside"><div class="cchero">${ccPortrait('cchp')}<span><b>${E(CC.name||'Your hero')}</b><small>${E(R.name)} ${E(K.name)} · ${E(B.name)}</small></span></div>
+    <p id="ccerr" class="bad" role="alert"></p>
+    <div class="ccnav">${st>0?`<button type="button" class="b" data-a="ccstep" data-v="${st-1}">◂ Back</button>`:''}${st<CC_STEPS.length-1?`<button type="button" class="b next" data-a="ccstep" data-v="${st+1}">Next: ${CC_STEPS[st+1]} ▸</button>`:''}<button class="b gilt ${st===CC_STEPS.length-1?'big':''}">Enter the Realms</button></div></aside></form></div>`;}
 function ccSync(){const f=document.querySelector('.ccform');if(!f)return;for(const k of ['user','name','gender','age','hair','eyes','build','skin','mark']){const el=f.elements[k];if(el)CC[k]=el.value;}}
 Object.assign(ACT,{cc(v){ccSync();const [f,k]=v.split('|');CC[f]=k;const y=window.scrollY;renderCreate();window.scrollTo(0,y);},
-  form_create(fd){if(!LAUNCH.open)return;ccSync();const err=$('#ccerr');const user=CC.user.trim(),name=CC.name.trim();
+  ccstep(v){ccSync();CC.step=+v;renderCreate();window.scrollTo(0,0);},
+  form_create(fd){if(!LAUNCH.open)return;ccSync();const err={set textContent(m){if(CC.step!==0){CC.step=0;renderCreate();window.scrollTo(0,0);}const el=$('#ccerr');if(el)el.textContent=m;}};const user=CC.user.trim(),name=CC.name.trim();
     if(!/^[A-Za-z0-9_\-]{3,16}$/.test(user)){err.textContent='Usernames are 3–16 letters, numbers, _ or -.';return;}if(!name){err.textContent='Give your character a name.';return;}
     if(S.npcs.some(n=>n.user.toLowerCase()===user.toLowerCase())||Object.entries(NET.players).some(([id,p])=>id!==NET.uid&&p.user.toLowerCase()===user.toLowerCase())){err.textContent='That username is already taken by another adventurer.';return;}
     const start=CC.start==='home'?RACES[CC.race].home:CC.start;
@@ -5336,19 +5441,20 @@ Object.assign(ACT,{authmode(){UI.authMode=UI.authMode==='signup'?'signin':'signu
 async function showTitle(){UI.started=false;document.body.classList.remove('ingame');$('#game').hidden=true;$('#combat').hidden=true;
   const local=await loadLocal();const cloud=await peekCloud();UI.localSave=local;const LP=local&&local.obj&&local.obj.P;
   const W=S||{};const day=W.time?T.day(W.time):1;const on=W.npcs?W.npcs.filter(n=>!n.retired&&online(n)).length:0;const head=(W.news||[])[0];const boss=W.boss?MONSTERS[W.boss.id].n:null;
-  $('#app').hidden=false;$('#app').innerHTML=`<canvas class="titlebg" id="titlebg" aria-hidden="true"></canvas><div class="vignette" aria-hidden="true"></div>
-   <div class="title">
+  $('#app').hidden=false;$('#app').innerHTML=`<div class="tart" aria-hidden="true"></div><canvas class="titlebg" id="titlebg" aria-hidden="true"></canvas><canvas class="tembers" id="tembers" aria-hidden="true"></canvas><div class="vignette" aria-hidden="true"></div>
+   <div class="title t2">
     <div class="crest" aria-hidden="true"><span class="crest-ring"></span>${icon('swords')}</div>
-    <p class="pre">A living fantasy MMORPG</p><h1 class="logo"><span>Eternal</span><span>Realms</span></h1>
-    <p class="tag">Hundreds of adventurers already roam these lands. None of them are waiting for you.</p>
+    <div class="thead"><p class="pre">A living dark-fantasy MMORPG</p><h1 class="logo"><span>Eternal</span><span>Realms</span></h1><div class="orn" aria-hidden="true"><i></i><b>◆</b><i></i></div>
+    <p class="tag">Hundreds of adventurers already roam these lands. None of them are waiting for you.</p></div><div class="tbody">
     <div class="ticker" role="status"><span>${icon('clock')}Day ${day}</span>${LAUNCH.open?`<span>${icon('online')}${on} adventurers online${NET.peers?` · ${NET.peers} real`:''}</span>`:`<span class="bad">${icon('online')}Servers offline</span>`}${boss?`<span class="bad">${icon('skull')}${E(boss)} awakens</span>`:''}${head?`<span class="news">${E(head[1])}</span>`:''}</div>
     ${authHtml()}${!LAUNCH.open?`<div class="tmenu prelaunch"><div class="soon"><small>Servers status</small><b>${icon('clock')} Opening soon</b><p>The Realms are not open yet. No accounts or characters exist until launch day. Check back soon.</p></div>
      <div class="row tsub"><button class="b ghost" data-a="help">How to play</button><button class="b ghost" data-a="sound" id="tsound">${AUD.on?'♪ Music on':'♪ Play music'}</button></div></div>`:''}
-    <div class="tmenu" ${!LAUNCH.open||needSignIn()?'hidden':''}>${LP?`<button class="hero-card" data-a="cont"><span class="portrait" style="--ac:${CLS_HUE[LP.cls]}">${icon(CLS_ICON[LP.cls])}<b>${LP.level}</b></span><span><small>Continue your legend</small><b>${E(LP.name)}</b><small>${E(LP.adv?ADV_CLASSES[LP.adv].name:CLASSES[LP.cls].name)} · ${E(LOCS[LP.loc]?LOCS[LP.loc].n:'')}</small></span><i>▶</i></button>`:''}
+    <div class="tmenu" ${!LAUNCH.open||needSignIn()?'hidden':''}>${LP?`<button class="hero-card" data-a="cont"><span class="portrait ${ptClass(LP.cls,LP.gender,LP.name)?'hasp':''}" style="--ac:${CLS_HUE[LP.cls]}">${ptClass(LP.cls,LP.gender,LP.name)||icon(CLS_ICON[LP.cls])}<b>${LP.level}</b></span><span><small>Continue your legend</small><b>${E(LP.name)}</b><small>${E(LP.adv?ADV_CLASSES[LP.adv].name:CLASSES[LP.cls].name)} · ${E(LOCS[LP.loc]?LOCS[LP.loc].n:'')}</small></span><i>▶</i></button>`:''}
      ${cloud&&(!LP||cloud.t>local.t+5000)?`<button class="b gilt big" data-a="contcloud">Continue from your account <small>${E(cloud.user)} · Lv.${cloud.level}</small></button>`:''}
-     <button class="b ${LP?'':'gilt'} big" data-a="newchar">${LP?'New character':'Begin your adventure'}</button>
-     <div class="row tsub"><button class="b ghost" data-a="importask">Import save</button><button class="b ghost" data-a="help">How to play</button><button class="b ghost" data-a="sound" id="tsound">${AUD.on?'♪ Music on':'♪ Play music'}</button></div></div>
-    ${LAUNCH.open?`<p class="hint">${E(NET.status)}</p>`:''}</div>`;requestAnimationFrame(()=>startTitleScene(document.getElementById('titlebg')));
+     <button class="tp ${LP?'':'prime'}" data-a="newchar"><i>${icon('swords')}</i><span><b>${LP?'New character':'Begin your adventure'}</b><small>${LP?'Start over with a new hero':'Create your hero and enter the Realms'}</small></span></button>
+     <a class="tp apk" id="apkbtn" href="eternal-realms.apk" download="eternal-realms.apk" hidden><i>${icon('download')}</i><span><b>Get the Android app</b><small>Download the game for your phone (APK)</small></span></a>
+     <div class="row tsub"><button class="b ghost" data-a="help">${icon('codex')} How to play</button><button class="b ghost" data-a="importask">${icon('bag')} Import save</button><button class="b ghost" data-a="sound" id="tsound">${AUD.on?'♪ Music on':'♪ Play music'}</button></div></div>
+    <p class="tfoot">${LAUNCH.open?E(NET.status)+' · ':''}v1.1</p></div></div>`;requestAnimationFrame(()=>{startTitleScene(document.getElementById('titlebg'));startEmbers(document.getElementById('tembers'));});apkCheck();
   if(AUD.on)audMood('title');}
 async function startGame(){if(!LAUNCH.open){showTitle();return;}if(!S.P){renderCreate();return;}$('#app').hidden=true;document.body.classList.add('ingame');
   // the world keeps moving: adopt the newest shared world, then fast-forward through the time nobody was watching

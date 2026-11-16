@@ -7,8 +7,8 @@ const shot=async n=>{if(process.env.SHOTS)await p.screenshot({path:`${process.en
 await shot('01-title');
 await p.click('[data-a=newchar]');await p.waitForTimeout(300);
 await p.fill('#cc_user','Wanderly');await p.fill('#cc_name','Ysolde Brightwater');
-await p.click('[data-v="race|halfelf"]');await p.fill('#cc_user','Wanderly');await p.fill('#cc_name','Ysolde Brightwater');
-await p.click('[data-v="cls|bard"]');await p.fill('#cc_user','Wanderly');await p.fill('#cc_name','Ysolde Brightwater');await p.fill('#cc_hair','silver braids');await p.click('[data-v="start|brookhollow"]');await p.fill('#cc_user','Wanderly');await p.fill('#cc_name','Ysolde Brightwater');
+await p.click('.ccsteps [data-v="1"]');await p.click('[data-v="race|halfelf"]');await p.click('.ccsteps [data-v=\"0\"]');await p.fill('#cc_user','Wanderly');await p.fill('#cc_name','Ysolde Brightwater');
+await p.click('.ccsteps [data-v="2"]');await p.click('[data-v="cls|bard"]');await p.click('.ccsteps [data-v=\"0\"]');await p.fill('#cc_user','Wanderly');await p.fill('#cc_name','Ysolde Brightwater');await p.click('.ccsteps [data-v="0"]');await p.click('.ccmore summary');await p.fill('#cc_hair','silver braids');await p.click('.ccsteps [data-v="4"]');await p.click('[data-v="start|brookhollow"]');await p.click('.ccsteps [data-v=\"0\"]');await p.fill('#cc_user','Wanderly');await p.fill('#cc_name','Ysolde Brightwater');
 await shot('02-create');
 await p.click('.ccside .b.gilt');await p.waitForTimeout(800);await shot('03-world');
 const tryClick=async sel=>{const el=await p.$(sel);if(el&&await el.isVisible()){try{await el.click({timeout:4000});}catch(e){console.log('click skipped',sel);return false;}await p.waitForTimeout(250);return true;}return false;};
