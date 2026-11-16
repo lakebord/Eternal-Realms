@@ -70,7 +70,7 @@ function itemName(it){
   let pre='',suf='';for(const a of it.a||[]){const A=AFFIXES[a];if(A.pre&&!pre)pre=A.n+' ';else if(!A.pre&&!suf)suf=' '+A.n;}
   return `${pre}${mat} ${base.n}${suf}`;
 }
-function affUnit(l){return 1+Math.floor(l/6);}
+function affUnit(l){return 1+Math.floor(l/10);}   // was l/6: stacked affixes on nine slots ran away with the numbers
 function itemStats(it){
   const s={atk:0,matk:0,def:0,mdef:0,crit:0,spd:0,steal:0,gold:0,el:{},res:{}};
   if(!isGear(it))return s;
@@ -136,8 +136,9 @@ function calcStats(a){
   d.mdef=gs.mdef+st.wis*1.0+st.int*0.4+st.vit*0.3+L*1.5;
   d.acc=85+st.dex*0.6+st.luck*0.2+L*0.4+(R.acc||0);
   d.eva=Math.min(45,4+st.agi*0.45+st.luck*0.15+(R.eva||0));
-  d.crit=Math.min(60,4+st.dex*0.2+st.luck*0.35+gs.crit+(a.race==='halfling'?5:0));
-  d.critDmg=150+st.str*0.15+st.dex*0.15;
+  // crits are a spike, not the default: precise and lucky builds reach ~35-45%, a plate fighter sits in the low teens
+  d.crit=4+st.dex*0.08+st.luck*0.14+gs.crit*0.6+(a.race==='halfling'?5:0);
+  d.critDmg=150+(st.str+st.dex)*0.06;
   d.spd=(10+st.agi*0.8+gs.spd)*(R.spd||1);
   d.steal=gs.steal;d.goldFind=gs.gold;d.wt=wt;d.reach=!!(wb&&(wb.reach||wb.ranged));d.ranged=!!(wb&&wb.ranged);
   d.el=gs.el;d.res=Object.assign({},R.res);for(const e in gs.res)d.res[e]=(d.res[e]||0)+gs.res[e];
@@ -156,6 +157,7 @@ function calcStats(a){
   const ctier=classTier(a);if(ctier){const m=[1,1.05,1.1][ctier];d.patk*=m;d.matk*=m;d.mhp=Math.round(d.mhp*m);d.pdef*=1+ctier*0.03;d.mdef*=1+ctier*0.03;}
   // weapon mastery bonus: +0.6%/lvl, crit at 25, penetration at 75
   const wm=mLv(a,wt);d.patk*=1+wm*0.006;if(wm>=25)d.crit+=5;d.pen=wm>=75?0.15:0;
+  d.crit=Math.min(50,d.crit);d.critDmg=Math.min(200,d.critDmg);
   d.gs=gearScore(eq);
   d.power=Math.round(d.mhp*0.15+Math.max(d.patk,d.matk)*1.2+d.pdef*0.6+d.mdef*0.4+d.spd*0.8+d.crit*2);
   return d;
@@ -191,11 +193,11 @@ function makeMonster(id,l,opts={}){
   const ez=Math.max(0,1-l/45)*(M.boss?0.4:1),hc=1.04+0.16*ez,hh=1.15+0.2*ez;
   const m={id,name:M.n,mon:1,level:l,cat:M.cat,boss:!!M.boss,b:M.b||[],e:M.e||null,w:M.w||[],r:M.r||[],st:M.st||null,
     mhp:Math.round((40+l*16)*(M.hp||1)*diff*hh),atk:(10+l*4.5)*(M.at||1)*diff*hc,matk:(10+l*4.5)*(M.md||M.at||1)*0.85*diff*hc,pdef:(3+l*1.5)*(M.df||1),mdef:(3+l*1.5)*(M.md||1),
-    acc:85+l*0.8,eva:Math.min(40,(4+l*0.3)*(M.ev||1)),spd:(9+l*0.5)*(M.sp||1),crit:5,critDmg:150,row:(M.b||[]).includes('ranged')||(M.b||[]).includes('caster')?'back':'front'};
+    acc:90+l*0.3,eva:Math.min(40,(4+l*0.3)*(M.ev||1)),spd:(9+l*0.5)*(M.sp||1),crit:5,critDmg:150,row:(M.b||[]).includes('ranged')||(M.b||[]).includes('caster')?'back':'front'};
   // damage pass: monsters hit ~20-30% softer (more so at high level, where their attack outgrew hero HP) and ordinary ones are a bit
   // tougher, so a fight is a few exchanged blows instead of a coin flip. Dungeon bosses lost the huge HP wall and the spike damage:
   // a solo hero can grind one down in a dozen-odd turns; they grow with party size instead (see startCombat).
-  const soft=0.80-0.10*Math.min(1,l/80);m.atk*=soft;m.matk*=soft;m.critDmg=140;if(!M.boss)m.mhp=Math.round(m.mhp*1.12);
+  const soft=0.80-0.10*Math.min(1,l/80);m.atk*=soft;m.matk*=soft;m.critDmg=140;m.mhp=Math.round(m.mhp*(M.boss?1+l*0.004:0.95*(1+l*0.006)));   // hero damage grows faster than the old HP curve: keep kills at ~3 blows all the way up
   if(M.boss&&!M.world&&!/^trial|^warlord/.test(id)){m.pdef*=1.1;m.critDmg=135;m.dungeonBoss=1;m.atk*=0.9;m.matk*=0.9;const early=0.6+0.4*U.clamp((l-8)/22,0,1);m.mhp=Math.round(m.mhp*early);}   // the first dungeons are met with few skills and weak potions
   m.hp=m.mhp;m.mp=999;m.fx={};m.cd={};m.phase=1;
   return m;

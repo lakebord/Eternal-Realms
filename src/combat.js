@@ -98,7 +98,8 @@ function checkEnd(){if(C.ended||C.cinema)return true;
 function elemOf(att,sk){if(sk&&sk.e)return sk.e;if(att.e)return att.e;let best=null,bv=0;for(const e in att.el||{})if(att.el[e]>bv){bv=att.el[e];best=e;}return best;}
 function hitRoll(att,def,kind,bonus=0){if(hasFx(def,'stealth')&&att.side!==def.side)bonus-=40;if(hasFx(att,'stealth'))return true;
   let eva=def.eva+(hasFx(def,'dodge')?35:0)-(hasFx(def,'root')?def.eva:0);if(hasFx(att,'blind'))bonus-=30;
-  const p=kind==='mag'?95-eva*0.3+bonus*0.5:att.acc+bonus-eva;return U.r()*100<U.clamp(p,5,98);}
+  const gap=U.clamp(((att.level||1)-(def.level||1))*1.2,-15,15);
+  const p=(kind==='mag'?95-eva*0.3+bonus*0.5:att.acc+bonus-eva)+gap;return U.r()*100<U.clamp(p,5,98);}
 function damage(att,def,opts={}){
   const kind=opts.kind||'phys';const sk=opts.sk||null;const power=opts.power||1;
   const pa=att.patk!=null?att.patk:(att.atk||0),ma=att.matk!=null?att.matk:(att.atk||0);let base=kind==='mag'?ma:pa;if(opts.hybrid)base=(pa+ma)*0.62;
@@ -106,15 +107,19 @@ function damage(att,def,opts={}){
   let d=base*power*K/(K+Math.max(0,dv));
   const e=kind==='mag'||opts.hybrid||sk&&sk.e?elemOf(att,sk):(att.e&&att.mon?att.e:null);
   let tag='';
-  if(e){if((def.w||[]).includes(e)){d*=1.5;tag=' (weak!)';}if((def.r||[]).includes(e)){d*=0.5;tag=' (resisted)';}d*=1-Math.min(75,(def.res||{})[e]||0)/100;}
-  if(!att.mon&&att.el)for(const x in att.el)if(x!==e)d*=1+att.el[x]*0.5;else d*=1+att.el[x];
+  if(e){let em=1;if((def.w||[]).includes(e)){em*=1.5;tag=' (weak!)';}if((def.r||[]).includes(e)){em*=0.5;tag=' (resisted)';}em*=1-Math.min(75,(def.res||{})[e]||0)/100;d*=Math.max(0.2,em);}   // resist + resistance gear never drops below 20%
+  if(!att.mon&&att.el){let eb=1;for(const x in att.el)if(x!==e)eb*=1+att.el[x]*0.5;else eb*=1+att.el[x];d*=Math.min(1.4,eb);}
   if(sk&&sk.m&&att.char)d*=1+mLv(att.char,sk.m)*0.006;
   if(att.race==='draconian'&&e==='fire')d*=1.15;if(att.race==='orc'&&att.hp<att.mhp*0.3)d*=1.15;
-  if(hasFx(att,'resolve'))d*=1.3;if(hasFx(def,'resolve'))d*=0.75;
-  if(hasFx(att,'might'))d*=1.25;if(kind==='mag'&&hasFx(att,'focus'))d*=1.4;if(hasFx(att,'frenzy'))d*=1.4;if(kind==='phys'&&hasFx(att,'bear'))d*=1.5;if(hasFx(att,'blessed'))d*=1.15;if(hasFx(att,'weaken'))d*=0.75;
+  // level matters: each level of advantage is worth 2% damage either way (capped), so zones above you are dangerous and old ones are safe
+  d*=U.clamp(1+0.02*((att.level||1)-(def.level||1)),0.7,1.3);
+  // buffs add together inside each group and are capped, instead of multiplying into one-shots
+  let off=0;if(hasFx(att,'resolve'))off+=0.3;if(hasFx(att,'might'))off+=0.25;if(kind==='mag'&&hasFx(att,'focus'))off+=0.4;if(hasFx(att,'frenzy'))off+=0.4;if(kind==='phys'&&hasFx(att,'bear'))off+=0.5;if(hasFx(att,'blessed'))off+=0.15;
+  d*=1+Math.min(0.8,off);if(hasFx(att,'weaken'))d*=0.75;
   if(att.phase>=2&&att.boss&&!att.finalBoss)d*=1.2;
   if(e&&typeof evMod==='function')d*=evMod(e);
-  if(hasFx(def,'marked'))d*=1.3;if(hasFx(def,'weaken'))d*=1.15;if(hasFx(def,'defend'))d*=0.5;if(hasFx(def,'fortify'))d*=0.6;if(hasFx(def,'bear'))d*=0.67;if(hasFx(def,'blessed'))d*=0.87;if(hasFx(def,'frenzy'))d*=1.2;
+  let vul=0;if(hasFx(def,'marked'))vul+=0.3;if(hasFx(def,'weaken'))vul+=0.15;if(hasFx(def,'frenzy'))vul+=0.2;d*=1+Math.min(0.5,vul);
+  let grd=1;if(hasFx(def,'resolve'))grd*=0.75;if(hasFx(def,'defend'))grd*=0.5;if(hasFx(def,'fortify'))grd*=0.6;if(hasFx(def,'bear'))grd*=0.67;if(hasFx(def,'blessed'))grd*=0.87;d*=Math.max(0.3,grd);
   // rows
   if(kind==='phys'&&!opts.ranged&&!att.reach&&!(sk&&sk.reach)&&!att.ranged&&att.mon!==1){if(att.row==='back')d*=0.5;if(def.row==='back'&&alive(def.side==='a'?C.allies:C.enemies).some(x=>x.row==='front'))d*=0.6;}
   if(att.mon&&kind==='phys'&&!att.b.includes('ranged')&&def.row==='back'&&alive(def.side==='a'?C.allies:C.enemies).some(x=>x.row==='front'))d*=0.6;

@@ -899,7 +899,7 @@ const SKILLS = {
 };
 
 const STATUS = {
-  poison:{n:'Poisoned',bad:1,dot:0.05},burn:{n:'Burning',bad:1,dot:0.06},bleed:{n:'Bleeding',bad:1,dot:0.05},
+  poison:{n:'Poisoned',bad:1,dot:0.04},burn:{n:'Burning',bad:1,dot:0.05},bleed:{n:'Bleeding',bad:1,dot:0.04},
   stun:{n:'Stunned',bad:1},freeze:{n:'Frozen',bad:1},root:{n:'Rooted',bad:1},slow:{n:'Slowed',bad:1},weaken:{n:'Weakened',bad:1},
   marked:{n:'Marked',bad:1},sunder:{n:'Sundered',bad:1},blind:{n:'Blinded',bad:1},
   might:{n:'Mighty'},fortify:{n:'Fortified'},shield:{n:'Shielded'},blessed:{n:'Blessed'},regen:{n:'Regenerating'},focus:{n:'Focused'},
@@ -930,8 +930,8 @@ const TIERS = [ // [minLevel, weapon material, cloth, leather, plate, jewel]
   [32,'Mithril','Moonweave','Wyvern','Mithril','Sapphire'],[45,'Adamantite','Spellsilk','Basilisk','Adamantite','Ruby'],[60,'Dragonbone','Starweave','Dragonscale','Dragonbone','Diamond'],
   [78,'Aetherium','Voidsilk','Shadowhide','Aetherium','Starstone'],[92,'Eternal','Eternal','Eternal','Eternal','Eternal']];
 const RARITY = [
-  {n:'Common',c:'r0',m:1.0,aff:0,v:1},{n:'Uncommon',c:'r1',m:1.12,aff:1,v:2.2},{n:'Rare',c:'r2',m:1.28,aff:2,v:5},
-  {n:'Epic',c:'r3',m:1.5,aff:3,v:12},{n:'Legendary',c:'r4',m:1.8,aff:4,v:35}];
+  {n:'Common',c:'r0',m:1.0,aff:0,v:1},{n:'Uncommon',c:'r1',m:1.07,aff:1,v:2.2},{n:'Rare',c:'r2',m:1.15,aff:2,v:5},
+  {n:'Epic',c:'r3',m:1.24,aff:3,v:12},{n:'Legendary',c:'r4',m:1.34,aff:4,v:35}];
 const AFFIXES = {
   mighty:{n:'Mighty',pre:1,s:{str:1}},keen:{n:'Keen',pre:1,s:{crit:0.4}},swift:{n:'Swift',pre:1,s:{agi:1}},sturdy:{n:'Sturdy',pre:1,s:{vit:1}},
   arcane:{n:'Arcane',pre:1,s:{int:1}},blessed:{n:'Blessed',pre:1,s:{wis:1}},vampiric:{n:'Vampiric',pre:1,s:{steal:0.15},wOnly:1},
@@ -1634,8 +1634,8 @@ const CLASS_TIERS={
   artificer:{t:['Engineer','Grand Tinker'],d:['Better gadgets.','Clockwork wonders.']},
   ranger:{t:['Pathfinder','Wildstalker'],d:['Never lost.','The hunter of hunters.']}
 };
-const CLASS_MOD={knight:{atk:1.86,def:1.2,hp:1.24},spearman:{atk:1.26,hp:1.12},merchant:{atk:1.52,hp:1.16},bard:{atk:1.58,hp:1.18},artificer:{atk:1.46,hp:1.12},berserker:{atk:1.14,hp:1.14},
-  monk:{atk:1.18,hp:1.12},ranger:{hp:1.04},mage:{hp:1.12,def:1.06},rogue:{atk:1.06,hp:1.08},swordsman:{atk:1.1,hp:1.08},archer:{atk:1.08,hp:1.06},warlock:{atk:1.14,hp:1.22},necromancer:{hp:1.06},summoner:{atk:1.5,hp:1.26},paladin:{atk:1.12,hp:1.06},cleric:{atk:0.95},druid:{atk:0.95},shaman:{atk:0.95}};
+const CLASS_MOD={knight:{atk:1.86,def:1.2,hp:1.24},spearman:{atk:1.26,hp:1.12},merchant:{atk:1.62,hp:1.16},bard:{atk:1.66,hp:1.18},artificer:{atk:1.46,hp:1.12},berserker:{atk:1.2,hp:1.18},
+  monk:{atk:1.18,hp:1.12},ranger:{atk:1.08,hp:1.04},mage:{hp:1.12,def:1.06},rogue:{atk:1.14,hp:1.08},swordsman:{atk:1.22,hp:1.08},archer:{atk:1.16,hp:1.06},warlock:{atk:1.2,hp:1.22},necromancer:{atk:1.07,hp:1.08},summoner:{atk:1.5,hp:1.26},paladin:{atk:1.12,hp:1.06},cleric:{atk:0.95},druid:{atk:0.95},shaman:{atk:0.95}};
 const TIER_REQ=[null,{lvl:20,mast:15},{lvl:50,mast:40}];
 const TIER_SKILLS={ // [lv35 class skill, tier1 skill, tier2 skill]
   warrior:['shield_crush','rally','warlords_command'],knight:['holy_bulwark','challenge','last_stand'],swordsman:['phantom_slash','duel_stance','sword_saint_art'],
@@ -1792,7 +1792,7 @@ function itemName(it){
   let pre='',suf='';for(const a of it.a||[]){const A=AFFIXES[a];if(A.pre&&!pre)pre=A.n+' ';else if(!A.pre&&!suf)suf=' '+A.n;}
   return `${pre}${mat} ${base.n}${suf}`;
 }
-function affUnit(l){return 1+Math.floor(l/6);}
+function affUnit(l){return 1+Math.floor(l/10);}   // was l/6: stacked affixes on nine slots ran away with the numbers
 function itemStats(it){
   const s={atk:0,matk:0,def:0,mdef:0,crit:0,spd:0,steal:0,gold:0,el:{},res:{}};
   if(!isGear(it))return s;
@@ -1858,8 +1858,9 @@ function calcStats(a){
   d.mdef=gs.mdef+st.wis*1.0+st.int*0.4+st.vit*0.3+L*1.5;
   d.acc=85+st.dex*0.6+st.luck*0.2+L*0.4+(R.acc||0);
   d.eva=Math.min(45,4+st.agi*0.45+st.luck*0.15+(R.eva||0));
-  d.crit=Math.min(60,4+st.dex*0.2+st.luck*0.35+gs.crit+(a.race==='halfling'?5:0));
-  d.critDmg=150+st.str*0.15+st.dex*0.15;
+  // crits are a spike, not the default: precise and lucky builds reach ~35-45%, a plate fighter sits in the low teens
+  d.crit=4+st.dex*0.08+st.luck*0.14+gs.crit*0.6+(a.race==='halfling'?5:0);
+  d.critDmg=150+(st.str+st.dex)*0.06;
   d.spd=(10+st.agi*0.8+gs.spd)*(R.spd||1);
   d.steal=gs.steal;d.goldFind=gs.gold;d.wt=wt;d.reach=!!(wb&&(wb.reach||wb.ranged));d.ranged=!!(wb&&wb.ranged);
   d.el=gs.el;d.res=Object.assign({},R.res);for(const e in gs.res)d.res[e]=(d.res[e]||0)+gs.res[e];
@@ -1878,6 +1879,7 @@ function calcStats(a){
   const ctier=classTier(a);if(ctier){const m=[1,1.05,1.1][ctier];d.patk*=m;d.matk*=m;d.mhp=Math.round(d.mhp*m);d.pdef*=1+ctier*0.03;d.mdef*=1+ctier*0.03;}
   // weapon mastery bonus: +0.6%/lvl, crit at 25, penetration at 75
   const wm=mLv(a,wt);d.patk*=1+wm*0.006;if(wm>=25)d.crit+=5;d.pen=wm>=75?0.15:0;
+  d.crit=Math.min(50,d.crit);d.critDmg=Math.min(200,d.critDmg);
   d.gs=gearScore(eq);
   d.power=Math.round(d.mhp*0.15+Math.max(d.patk,d.matk)*1.2+d.pdef*0.6+d.mdef*0.4+d.spd*0.8+d.crit*2);
   return d;
@@ -1913,11 +1915,11 @@ function makeMonster(id,l,opts={}){
   const ez=Math.max(0,1-l/45)*(M.boss?0.4:1),hc=1.04+0.16*ez,hh=1.15+0.2*ez;
   const m={id,name:M.n,mon:1,level:l,cat:M.cat,boss:!!M.boss,b:M.b||[],e:M.e||null,w:M.w||[],r:M.r||[],st:M.st||null,
     mhp:Math.round((40+l*16)*(M.hp||1)*diff*hh),atk:(10+l*4.5)*(M.at||1)*diff*hc,matk:(10+l*4.5)*(M.md||M.at||1)*0.85*diff*hc,pdef:(3+l*1.5)*(M.df||1),mdef:(3+l*1.5)*(M.md||1),
-    acc:85+l*0.8,eva:Math.min(40,(4+l*0.3)*(M.ev||1)),spd:(9+l*0.5)*(M.sp||1),crit:5,critDmg:150,row:(M.b||[]).includes('ranged')||(M.b||[]).includes('caster')?'back':'front'};
+    acc:90+l*0.3,eva:Math.min(40,(4+l*0.3)*(M.ev||1)),spd:(9+l*0.5)*(M.sp||1),crit:5,critDmg:150,row:(M.b||[]).includes('ranged')||(M.b||[]).includes('caster')?'back':'front'};
   // damage pass: monsters hit ~20-30% softer (more so at high level, where their attack outgrew hero HP) and ordinary ones are a bit
   // tougher, so a fight is a few exchanged blows instead of a coin flip. Dungeon bosses lost the huge HP wall and the spike damage:
   // a solo hero can grind one down in a dozen-odd turns; they grow with party size instead (see startCombat).
-  const soft=0.80-0.10*Math.min(1,l/80);m.atk*=soft;m.matk*=soft;m.critDmg=140;if(!M.boss)m.mhp=Math.round(m.mhp*1.12);
+  const soft=0.80-0.10*Math.min(1,l/80);m.atk*=soft;m.matk*=soft;m.critDmg=140;m.mhp=Math.round(m.mhp*(M.boss?1+l*0.004:0.95*(1+l*0.006)));   // hero damage grows faster than the old HP curve: keep kills at ~3 blows all the way up
   if(M.boss&&!M.world&&!/^trial|^warlord/.test(id)){m.pdef*=1.1;m.critDmg=135;m.dungeonBoss=1;m.atk*=0.9;m.matk*=0.9;const early=0.6+0.4*U.clamp((l-8)/22,0,1);m.mhp=Math.round(m.mhp*early);}   // the first dungeons are met with few skills and weak potions
   m.hp=m.mhp;m.mp=999;m.fx={};m.cd={};m.phase=1;
   return m;
@@ -2896,7 +2898,8 @@ function checkEnd(){if(C.ended||C.cinema)return true;
 function elemOf(att,sk){if(sk&&sk.e)return sk.e;if(att.e)return att.e;let best=null,bv=0;for(const e in att.el||{})if(att.el[e]>bv){bv=att.el[e];best=e;}return best;}
 function hitRoll(att,def,kind,bonus=0){if(hasFx(def,'stealth')&&att.side!==def.side)bonus-=40;if(hasFx(att,'stealth'))return true;
   let eva=def.eva+(hasFx(def,'dodge')?35:0)-(hasFx(def,'root')?def.eva:0);if(hasFx(att,'blind'))bonus-=30;
-  const p=kind==='mag'?95-eva*0.3+bonus*0.5:att.acc+bonus-eva;return U.r()*100<U.clamp(p,5,98);}
+  const gap=U.clamp(((att.level||1)-(def.level||1))*1.2,-15,15);
+  const p=(kind==='mag'?95-eva*0.3+bonus*0.5:att.acc+bonus-eva)+gap;return U.r()*100<U.clamp(p,5,98);}
 function damage(att,def,opts={}){
   const kind=opts.kind||'phys';const sk=opts.sk||null;const power=opts.power||1;
   const pa=att.patk!=null?att.patk:(att.atk||0),ma=att.matk!=null?att.matk:(att.atk||0);let base=kind==='mag'?ma:pa;if(opts.hybrid)base=(pa+ma)*0.62;
@@ -2904,15 +2907,19 @@ function damage(att,def,opts={}){
   let d=base*power*K/(K+Math.max(0,dv));
   const e=kind==='mag'||opts.hybrid||sk&&sk.e?elemOf(att,sk):(att.e&&att.mon?att.e:null);
   let tag='';
-  if(e){if((def.w||[]).includes(e)){d*=1.5;tag=' (weak!)';}if((def.r||[]).includes(e)){d*=0.5;tag=' (resisted)';}d*=1-Math.min(75,(def.res||{})[e]||0)/100;}
-  if(!att.mon&&att.el)for(const x in att.el)if(x!==e)d*=1+att.el[x]*0.5;else d*=1+att.el[x];
+  if(e){let em=1;if((def.w||[]).includes(e)){em*=1.5;tag=' (weak!)';}if((def.r||[]).includes(e)){em*=0.5;tag=' (resisted)';}em*=1-Math.min(75,(def.res||{})[e]||0)/100;d*=Math.max(0.2,em);}   // resist + resistance gear never drops below 20%
+  if(!att.mon&&att.el){let eb=1;for(const x in att.el)if(x!==e)eb*=1+att.el[x]*0.5;else eb*=1+att.el[x];d*=Math.min(1.4,eb);}
   if(sk&&sk.m&&att.char)d*=1+mLv(att.char,sk.m)*0.006;
   if(att.race==='draconian'&&e==='fire')d*=1.15;if(att.race==='orc'&&att.hp<att.mhp*0.3)d*=1.15;
-  if(hasFx(att,'resolve'))d*=1.3;if(hasFx(def,'resolve'))d*=0.75;
-  if(hasFx(att,'might'))d*=1.25;if(kind==='mag'&&hasFx(att,'focus'))d*=1.4;if(hasFx(att,'frenzy'))d*=1.4;if(kind==='phys'&&hasFx(att,'bear'))d*=1.5;if(hasFx(att,'blessed'))d*=1.15;if(hasFx(att,'weaken'))d*=0.75;
+  // level matters: each level of advantage is worth 2% damage either way (capped), so zones above you are dangerous and old ones are safe
+  d*=U.clamp(1+0.02*((att.level||1)-(def.level||1)),0.7,1.3);
+  // buffs add together inside each group and are capped, instead of multiplying into one-shots
+  let off=0;if(hasFx(att,'resolve'))off+=0.3;if(hasFx(att,'might'))off+=0.25;if(kind==='mag'&&hasFx(att,'focus'))off+=0.4;if(hasFx(att,'frenzy'))off+=0.4;if(kind==='phys'&&hasFx(att,'bear'))off+=0.5;if(hasFx(att,'blessed'))off+=0.15;
+  d*=1+Math.min(0.8,off);if(hasFx(att,'weaken'))d*=0.75;
   if(att.phase>=2&&att.boss&&!att.finalBoss)d*=1.2;
   if(e&&typeof evMod==='function')d*=evMod(e);
-  if(hasFx(def,'marked'))d*=1.3;if(hasFx(def,'weaken'))d*=1.15;if(hasFx(def,'defend'))d*=0.5;if(hasFx(def,'fortify'))d*=0.6;if(hasFx(def,'bear'))d*=0.67;if(hasFx(def,'blessed'))d*=0.87;if(hasFx(def,'frenzy'))d*=1.2;
+  let vul=0;if(hasFx(def,'marked'))vul+=0.3;if(hasFx(def,'weaken'))vul+=0.15;if(hasFx(def,'frenzy'))vul+=0.2;d*=1+Math.min(0.5,vul);
+  let grd=1;if(hasFx(def,'resolve'))grd*=0.75;if(hasFx(def,'defend'))grd*=0.5;if(hasFx(def,'fortify'))grd*=0.6;if(hasFx(def,'bear'))grd*=0.67;if(hasFx(def,'blessed'))grd*=0.87;d*=Math.max(0.3,grd);
   // rows
   if(kind==='phys'&&!opts.ranged&&!att.reach&&!(sk&&sk.reach)&&!att.ranged&&att.mon!==1){if(att.row==='back')d*=0.5;if(def.row==='back'&&alive(def.side==='a'?C.allies:C.enemies).some(x=>x.row==='front'))d*=0.6;}
   if(att.mon&&kind==='phys'&&!att.b.includes('ranged')&&def.row==='back'&&alive(def.side==='a'?C.allies:C.enemies).some(x=>x.row==='front'))d*=0.6;

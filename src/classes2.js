@@ -24,8 +24,8 @@ const CLASS_TIERS={
   artificer:{t:['Engineer','Grand Tinker'],d:['Better gadgets.','Clockwork wonders.']},
   ranger:{t:['Pathfinder','Wildstalker'],d:['Never lost.','The hunter of hunters.']}
 };
-const CLASS_MOD={knight:{atk:1.86,def:1.2,hp:1.24},spearman:{atk:1.26,hp:1.12},merchant:{atk:1.52,hp:1.16},bard:{atk:1.58,hp:1.18},artificer:{atk:1.46,hp:1.12},berserker:{atk:1.14,hp:1.14},
-  monk:{atk:1.18,hp:1.12},ranger:{hp:1.04},mage:{hp:1.12,def:1.06},rogue:{atk:1.06,hp:1.08},swordsman:{atk:1.1,hp:1.08},archer:{atk:1.08,hp:1.06},warlock:{atk:1.14,hp:1.22},necromancer:{hp:1.06},summoner:{atk:1.5,hp:1.26},paladin:{atk:1.12,hp:1.06},cleric:{atk:0.95},druid:{atk:0.95},shaman:{atk:0.95}};
+const CLASS_MOD={knight:{atk:1.86,def:1.2,hp:1.24},spearman:{atk:1.26,hp:1.12},merchant:{atk:1.62,hp:1.16},bard:{atk:1.66,hp:1.18},artificer:{atk:1.46,hp:1.12},berserker:{atk:1.2,hp:1.18},
+  monk:{atk:1.18,hp:1.12},ranger:{atk:1.08,hp:1.04},mage:{hp:1.12,def:1.06},rogue:{atk:1.14,hp:1.08},swordsman:{atk:1.22,hp:1.08},archer:{atk:1.16,hp:1.06},warlock:{atk:1.2,hp:1.22},necromancer:{atk:1.07,hp:1.08},summoner:{atk:1.5,hp:1.26},paladin:{atk:1.12,hp:1.06},cleric:{atk:0.95},druid:{atk:0.95},shaman:{atk:0.95}};
 const TIER_REQ=[null,{lvl:20,mast:15},{lvl:50,mast:40}];
 const TIER_SKILLS={ // [lv35 class skill, tier1 skill, tier2 skill]
   warrior:['shield_crush','rally','warlords_command'],knight:['holy_bulwark','challenge','last_stand'],swordsman:['phantom_slash','duel_stance','sword_saint_art'],

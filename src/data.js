@@ -276,7 +276,7 @@ const SKILLS = {
 };
 
 const STATUS = {
-  poison:{n:'Poisoned',bad:1,dot:0.05},burn:{n:'Burning',bad:1,dot:0.06},bleed:{n:'Bleeding',bad:1,dot:0.05},
+  poison:{n:'Poisoned',bad:1,dot:0.04},burn:{n:'Burning',bad:1,dot:0.05},bleed:{n:'Bleeding',bad:1,dot:0.04},
   stun:{n:'Stunned',bad:1},freeze:{n:'Frozen',bad:1},root:{n:'Rooted',bad:1},slow:{n:'Slowed',bad:1},weaken:{n:'Weakened',bad:1},
   marked:{n:'Marked',bad:1},sunder:{n:'Sundered',bad:1},blind:{n:'Blinded',bad:1},
   might:{n:'Mighty'},fortify:{n:'Fortified'},shield:{n:'Shielded'},blessed:{n:'Blessed'},regen:{n:'Regenerating'},focus:{n:'Focused'},
@@ -307,8 +307,8 @@ const TIERS = [ // [minLevel, weapon material, cloth, leather, plate, jewel]
   [32,'Mithril','Moonweave','Wyvern','Mithril','Sapphire'],[45,'Adamantite','Spellsilk','Basilisk','Adamantite','Ruby'],[60,'Dragonbone','Starweave','Dragonscale','Dragonbone','Diamond'],
   [78,'Aetherium','Voidsilk','Shadowhide','Aetherium','Starstone'],[92,'Eternal','Eternal','Eternal','Eternal','Eternal']];
 const RARITY = [
-  {n:'Common',c:'r0',m:1.0,aff:0,v:1},{n:'Uncommon',c:'r1',m:1.12,aff:1,v:2.2},{n:'Rare',c:'r2',m:1.28,aff:2,v:5},
-  {n:'Epic',c:'r3',m:1.5,aff:3,v:12},{n:'Legendary',c:'r4',m:1.8,aff:4,v:35}];
+  {n:'Common',c:'r0',m:1.0,aff:0,v:1},{n:'Uncommon',c:'r1',m:1.07,aff:1,v:2.2},{n:'Rare',c:'r2',m:1.15,aff:2,v:5},
+  {n:'Epic',c:'r3',m:1.24,aff:3,v:12},{n:'Legendary',c:'r4',m:1.34,aff:4,v:35}];
 const AFFIXES = {
   mighty:{n:'Mighty',pre:1,s:{str:1}},keen:{n:'Keen',pre:1,s:{crit:0.4}},swift:{n:'Swift',pre:1,s:{agi:1}},sturdy:{n:'Sturdy',pre:1,s:{vit:1}},
   arcane:{n:'Arcane',pre:1,s:{int:1}},blessed:{n:'Blessed',pre:1,s:{wis:1}},vampiric:{n:'Vampiric',pre:1,s:{steal:0.15},wOnly:1},
