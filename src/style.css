@@ -678,3 +678,8 @@ html.art .vignette{background:radial-gradient(ellipse at 50% 42%,transparent 45%
 .tsnd:not(.on)::after{content:"";position:absolute;width:30px;height:2px;background:#c0503a;transform:rotate(-45deg);top:22px;left:8px;border-radius:2px}
 body.ingame .tsnd{display:none}
 @media (prefers-reduced-motion:reduce){.tsnd.on i{animation:none;height:11px}}
+/* phones: background blur behind panels is expensive on mobile GPUs; panels are opaque enough without it */
+@media (pointer:coarse){*,*::before,*::after{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+  .tp,.title.t2 .ticker,.title.t2 .tsub .b{background-color:#12141bf2}
+  /* glows that pulsed by repainting a box-shadow every frame now hold still on phones */
+  .actor.turn,.actor.low,.actor.enrage,#combat.final1 .actor.boss,#combat.final2 .actor.me{animation:none!important}}

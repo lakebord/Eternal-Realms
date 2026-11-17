@@ -1,11 +1,13 @@
 /* ETERNAL REALMS — visual effects: particle layer, combat VFX, animated HP bars, ambient weather, animated title scene */
 'use strict';
 const FX={on:true,parts:[],raf:0,cv:null,g:null,dpr:1};
+// phones and low-power devices draw effects at lower resolution and without canvas glow (shadowBlur is very slow there)
+FX.lite=(()=>{try{return matchMedia('(pointer:coarse)').matches||(navigator.hardwareConcurrency||8)<=4||(navigator.deviceMemory||8)<=4;}catch(e){return false;}})();
 const ELEM_COL={fire:['#ff8a3a','#ffd36a'],frost:['#9fe2ff','#ffffff'],lightning:['#fff27a','#8fd0ff'],holy:['#fff4b0','#ffffff'],shadow:['#a070ff','#3a1a6a'],nature:['#8fe06a','#d8ff9a'],
   poison:['#b8e84a','#5a8a1a'],arcane:['#d79cff','#7a8cff'],phys:['#ffffff','#ff5a4a'],heal:['#9fe07a','#e8ffd0'],buff:['#ffd36a','#fff4c0'],debuff:['#b06aff','#ff6a8a'],gold:['#ffd36a','#e0a030']};
 function fxReduced(){return !FX.on||matchMedia('(prefers-reduced-motion: reduce)').matches;}
-function fxCanvas(){if(FX.cv)return;const c=document.createElement('canvas');c.id='vfx';c.setAttribute('aria-hidden','true');document.body.appendChild(c);FX.cv=c;FX.g=c.getContext('2d');fxResize();addEventListener('resize',fxResize);}
-function fxResize(){if(!FX.cv)return;FX.dpr=Math.min(2,devicePixelRatio||1);FX.cv.width=innerWidth*FX.dpr;FX.cv.height=innerHeight*FX.dpr;}
+function fxCanvas(){if(FX.cv)return;const c=document.createElement('canvas');c.id='vfx';c.setAttribute('aria-hidden','true');document.body.appendChild(c);FX.cv=c;FX.g=c.getContext('2d');if(FX.lite){try{Object.defineProperty(FX.g,'shadowBlur',{get(){return 0},set(){}});}catch(e){}}fxResize();addEventListener('resize',fxResize);}
+function fxResize(){if(!FX.cv)return;FX.dpr=Math.min(FX.lite?1.25:2,devicePixelRatio||1);FX.cv.width=innerWidth*FX.dpr;FX.cv.height=innerHeight*FX.dpr;}
 function fxLoop(){const g=FX.g;g.setTransform(FX.dpr,0,0,FX.dpr,0,0);g.clearRect(0,0,innerWidth,innerHeight);const now=performance.now();
   FX.parts=FX.parts.filter(p=>{const t=(now-p.t0)/p.life;if(t>=1)return false;if(t<0)return true;p.x+=p.vx;p.y+=p.vy;p.vy+=p.g;p.vx*=p.drag;p.vy*=p.drag;const a=p.fade?1-t:1;g.globalAlpha=Math.max(0,a);
     if(p.k==='spark'){g.fillStyle=p.c;g.beginPath();g.arc(p.x,p.y,Math.max(0.1,p.s*(1-t*0.6)),0,7);g.fill();}
@@ -18,7 +20,8 @@ function fxLoop(){const g=FX.g;g.setTransform(FX.dpr,0,0,FX.dpr,0,0);g.clearRect
     else if(p.k==='rect'){g.fillStyle=p.c;g.save();g.translate(p.x,p.y);g.rotate(p.rot+=p.vr);g.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6);g.restore();}
     return true;});
   g.globalAlpha=1;FX.raf=FX.parts.length?requestAnimationFrame(fxLoop):0;}
-function fxAdd(p){if(fxReduced())return;fxCanvas();FX.parts.push(Object.assign({t0:performance.now(),life:700,vx:0,vy:0,g:0,drag:0.96,s:3,fade:1,k:'spark',rot:0,vr:0},p));if(!FX.raf)FX.raf=requestAnimationFrame(fxLoop);}
+function fxAdd(p){if(fxReduced())return;if(FX.parts.length>(FX.lite?150:320)||(FX.lite&&p.k===undefined&&Math.random()<0.35))return;   // cap particles; phones skip a third of plain sparks
+  fxCanvas();FX.parts.push(Object.assign({t0:performance.now(),life:700,vx:0,vy:0,g:0,drag:0.96,s:3,fade:1,k:'spark',rot:0,vr:0},p));if(!FX.raf)FX.raf=requestAnimationFrame(fxLoop);}
 function burst(x,y,cols,n=14,sp=4,opt={}){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,v=sp*(0.4+Math.random());fxAdd(Object.assign({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-(opt.up||0),c:cols[i%cols.length],s:1.5+Math.random()*2.5,life:450+Math.random()*450,g:opt.g||0.05,k:opt.k||'spark'},opt.p||{}));}}
 function centerOf(el){const r=el.getBoundingClientRect();return [r.left+r.width/2,r.top+r.height*0.45,r];}
 function fxHit(el,e,crit){const [x,y]=centerOf(el);const C2=ELEM_COL[e]||ELEM_COL.phys;
@@ -56,7 +59,9 @@ function animBars(){startBarTicker();}
 function startBarTicker(){if(FX.barT)return;let last=performance.now();
   const tick=()=>{const now=performance.now(),dt=Math.min(50,now-last)/1000;last=now;let busy=false;
     document.querySelectorAll('.abar[data-k]').forEach(el=>{const st=FX.bars[el.dataset.k];if(!st)return;
-      const fill=el.querySelector('.fill'),gh=el.querySelector('.ghost'),edge=el.querySelector('.drainedge'),sp=el.querySelector('span');
+      const ht=now-st.hit;const moving=st.fill!==st.to||st.ghost>st.fill+0.01||Math.abs(st.num-st.numTo)>0.01||ht<420;
+      if(!moving&&el.__done===st.to){return;}
+      const P=el.__p||(el.__p={fill:el.querySelector('.fill'),gh:el.querySelector('.ghost'),edge:el.querySelector('.drainedge'),sp:el.querySelector('span')});
       // the fill snaps down on damage, rises smoothly on heals
       if(st.fill>st.to)st.fill=Math.max(st.to,st.fill-(st.fill-st.to)*Math.min(1,dt*22)-dt*30);
       else if(st.fill<st.to)st.fill=Math.min(st.to,st.fill+Math.max(dt*25,(st.to-st.fill)*dt*3.2));
@@ -65,14 +70,18 @@ function startBarTicker(){if(FX.barT)return;let last=performance.now();
       if(st.ghost<st.fill)st.ghost=st.fill;
       // the number rolls toward the real value
       if(Math.abs(st.num-st.numTo)>0.5)st.num+=(st.numTo-st.num)*Math.min(1,dt*7);else st.num=st.numTo;
-      fill.style.width=st.fill+'%';if(gh)gh.style.width=st.ghost+'%';
-      const draining=st.ghost>st.fill+0.3;el.classList.toggle('draining',draining);el.classList.toggle('pouring',now-st.gain<700);
-      if(edge){edge.style.left=st.fill+'%';edge.style.opacity=draining?1:0;}
-      const ht=now-st.hit;if(ht<420){const a=(1-ht/420);el.style.transform=`translate(${(Math.random()-0.5)*6*a}px,${(Math.random()-0.5)*3*a}px)`;el.style.filter=`brightness(${1+0.9*a})`;}else if(el.style.transform){el.style.transform='';el.style.filter='';}
-      // blood-light drips off the drain front
-      if(draining&&!fxReduced()&&st.dmg>2&&(st.dripped||0)<14&&Math.random()<0.5&&el.offsetParent){const r=el.getBoundingClientRect();const x=r.left+r.width*st.ghost/100;st.dripped=(st.dripped||0)+1;
-        fxAdd({x:x-Math.random()*r.width*(st.ghost-st.fill)/100,y:r.top+r.height*0.5,vx:(Math.random()-0.5)*0.8,vy:0.4+Math.random()*1.2,g:0.06,c:el.classList.contains('hp')?(Math.random()<0.5?'#ff5a3a':'#ffb08a'):'#9ec4ff',s:1.4+Math.random()*1.6,life:600});}
-      if(sp){const txt=`${st.lbl} ${U.fmt(Math.round(st.num))}/${U.fmt(st.max)}`;if(sp.textContent!==txt)sp.textContent=txt;}
+      const draining=st.ghost>st.fill+0.3;
+      // blood-light drips off the drain front (layout is read once per hit, before any writes)
+      if(draining&&!fxReduced()&&st.dmg>2&&(st.dripped||0)<(FX.lite?6:14)&&Math.random()<0.5){if(!st.rect||st.rectT!==st.hit){st.rect=el.offsetParent?el.getBoundingClientRect():null;st.rectT=st.hit;}const r=st.rect;
+        if(r){const x=r.left+r.width*st.ghost/100;st.dripped=(st.dripped||0)+1;
+        fxAdd({x:x-Math.random()*r.width*(st.ghost-st.fill)/100,y:r.top+r.height*0.5,vx:(Math.random()-0.5)*0.8,vy:0.4+Math.random()*1.2,g:0.06,c:el.classList.contains('hp')?(Math.random()<0.5?'#ff5a3a':'#ffb08a'):'#9ec4ff',s:1.4+Math.random()*1.6,life:600});}}
+      const fw=st.fill.toFixed(2)+'%',gw=st.ghost.toFixed(2)+'%';
+      if(P.fill.__w!==fw){P.fill.__w=fw;P.fill.style.width=fw;if(P.edge)P.edge.style.left=fw;}if(P.gh&&P.gh.__w!==gw){P.gh.__w=gw;P.gh.style.width=gw;}
+      if(el.__dr!==draining){el.__dr=draining;el.classList.toggle('draining',draining);if(P.edge)P.edge.style.opacity=draining?1:0;}
+      const pour=now-st.gain<700;if(el.__po!==pour){el.__po=pour;el.classList.toggle('pouring',pour);}
+      if(ht<420){const a=(1-ht/420);el.style.transform=`translate(${((Math.random()-0.5)*6*a).toFixed(1)}px,${((Math.random()-0.5)*3*a).toFixed(1)}px)`;el.style.filter=FX.lite?'':`brightness(${(1+0.9*a).toFixed(2)})`;}else if(el.style.transform){el.style.transform='';el.style.filter='';}
+      if(P.sp){const n=Math.round(st.num);if(P.sp.__n!==n||P.sp.__m!==st.max){P.sp.__n=n;P.sp.__m=st.max;P.sp.textContent=`${st.lbl} ${U.fmt(n)}/${U.fmt(st.max)}`;}}
+      if(!(draining||st.fill!==st.to||st.num!==st.numTo||ht<420))el.__done=st.to;else el.__done=null;
       if(draining||st.fill!==st.to||st.num!==st.numTo||ht<420)busy=true;});
     if(busy||performance.now()-FX.barsAlive<1500)FX.barT=requestAnimationFrame(tick);else FX.barT=0;};
   FX.barT=requestAnimationFrame(tick);}
@@ -108,7 +117,7 @@ function startWeather(){const v=document.querySelector('#view .locard .vista');c
 
 /* ---------- animated title scene ---------- */
 const TS={raf:0};
-function startTitleScene(cv){cancelAnimationFrame(TS.raf);if(!cv)return;const dpr=Math.min(2,devicePixelRatio||1);let W,H;const g=cv.getContext('2d');
+function startTitleScene(cv){cancelAnimationFrame(TS.raf);if(!cv||document.documentElement.classList.contains('art'))return;const dpr=Math.min(2,devicePixelRatio||1);let W,H;const g=cv.getContext('2d');
   // the title canvas is gone (or has no size) once you're in the game: stop listening instead of looping forever on a 0-wide canvas
   const resize=()=>{if(!cv.isConnected){removeEventListener('resize',resize);return;}W=cv.clientWidth;H=cv.clientHeight;if(W<10||H<10)return;cv.width=W*dpr;cv.height=H*dpr;g.setTransform(dpr,0,0,dpr,0,0);build();};
   let stars=[],ridges=[],embers=[],castle=null,mx=0,my=0;
@@ -148,8 +157,11 @@ document.addEventListener('pointerdown',e=>{const b=e.target.closest('.b,.ab,.cb
 
 /* drifting embers over the painted title art */
 const EMB={raf:0};
-function startEmbers(cv){cancelAnimationFrame(EMB.raf);if(!cv||fxReduced())return;const g=cv.getContext('2d');const dpr=Math.min(2,devicePixelRatio||1);let W,H;const fit=()=>{W=cv.clientWidth;H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;};fit();
-  const ps=[];const mk=(any)=>({x:Math.random()*W,y:any?Math.random()*H:H+10,vx:-0.15+Math.random()*0.5,vy:-0.25-Math.random()*0.7,s:0.8+Math.random()*2.2,a:0.3+Math.random()*0.7,ph:Math.random()*6.28});for(let i=0;i<46;i++)ps.push(mk(true));
-  const loop=()=>{if(!cv.isConnected)return;if(cv.clientWidth!==W||cv.clientHeight!==H)fit();g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);const t=performance.now()/1000;
-    for(let i=0;i<ps.length;i++){const p=ps[i];p.x+=p.vx+Math.sin(t*0.8+p.ph)*0.25;p.y+=p.vy;if(p.y<-10||p.x<-10||p.x>W+10)ps[i]=mk(false);const fl=0.6+0.4*Math.sin(t*3+p.ph);g.globalAlpha=p.a*fl*Math.min(1,p.y/(H*0.25));const rg=g.createRadialGradient(p.x,p.y,0,p.x,p.y,p.s*3);rg.addColorStop(0,'#ffd9a0');rg.addColorStop(0.35,'#ff8a3a');rg.addColorStop(1,'rgba(255,90,20,0)');g.fillStyle=rg;g.beginPath();g.arc(p.x,p.y,p.s*3,0,7);g.fill();}
-    g.globalAlpha=1;EMB.raf=requestAnimationFrame(loop);};loop();}
+function startEmbers(cv){cancelAnimationFrame(EMB.raf);if(!cv||fxReduced())return;const g=cv.getContext('2d');const dpr=Math.min(FX.lite?1:1.5,devicePixelRatio||1);let W,H;const fit=()=>{W=cv.clientWidth;H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;};fit();
+  // one glowing ember drawn once, then stamped (gradients per particle per frame were the expensive part)
+  const sp=document.createElement('canvas');sp.width=sp.height=32;{const s=sp.getContext('2d');const rg=s.createRadialGradient(16,16,0,16,16,16);rg.addColorStop(0,'#ffd9a0');rg.addColorStop(0.35,'#ff8a3a');rg.addColorStop(1,'rgba(255,90,20,0)');s.fillStyle=rg;s.fillRect(0,0,32,32);}
+  const N=FX.lite?26:40;const ps=[];const mk=(any)=>({x:Math.random()*W,y:any?Math.random()*H:H+10,vx:-0.15+Math.random()*0.5,vy:-0.25-Math.random()*0.7,s:0.8+Math.random()*2.2,a:0.3+Math.random()*0.7,ph:Math.random()*6.28});for(let i=0;i<N;i++)ps.push(mk(true));
+  let lastT=0;const loop=(now)=>{if(!cv.isConnected||document.body.classList.contains('ingame'))return;EMB.raf=requestAnimationFrame(loop);if(now-lastT<32)return;const k=lastT?Math.min(3,(now-lastT)/16.7):1;lastT=now;
+    if(cv.clientWidth!==W||cv.clientHeight!==H)fit();g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);const t=now/1000;
+    for(let i=0;i<ps.length;i++){const p=ps[i];p.x+=(p.vx+Math.sin(t*0.8+p.ph)*0.25)*k;p.y+=p.vy*k;if(p.y<-10||p.x<-10||p.x>W+10)ps[i]=mk(false);const fl=0.6+0.4*Math.sin(t*3+p.ph);g.globalAlpha=Math.max(0,p.a*fl*Math.min(1,p.y/(H*0.25)));const r=p.s*3;g.drawImage(sp,p.x-r,p.y-r,r*2,r*2);}
+    g.globalAlpha=1;};EMB.raf=requestAnimationFrame(loop);}

@@ -10,7 +10,7 @@ const U = {
   shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(U.r()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;},
   wpick(items,wf){let tot=0;const ws=items.map(i=>{const w=Math.max(0,wf(i));tot+=w;return w;});if(tot<=0)return null;let x=U.r()*tot;for(let i=0;i<items.length;i++){x-=ws[i];if(x<=0)return items[i];}return items[items.length-1];},
   uid(){return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);},
-  fmt(n){n=Math.floor(n);return n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e4?(n/1e3).toFixed(1)+'k':n.toLocaleString('en-US');},
+  fmt(n){n=Math.floor(n);return n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e4?(n/1e3).toFixed(1)+'k':(n<1000&&n>-1000?String(n):String(n).replace(/\B(?=(\d{3})+(?!\d))/g,','));},
   esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));},
   cap(s){return s?s[0].toUpperCase()+s.slice(1):s;},
   sig(x){return 1/(1+Math.exp(-x));},
