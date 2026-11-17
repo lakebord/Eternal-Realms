@@ -63,12 +63,21 @@ await ready();await p.waitForTimeout(250);await cap();await spell('lightning','T
 // ---- 4b. loot & gear
 await fade(true);await p.evaluate(()=>{clearTimeout(UI.ct);C=null;document.getElementById('combat').hidden=true;const P=S.P;P.inv=P.inv.filter(x=>!x.b).slice(0,2);for(const [b,r] of [['greataxe',4],['chest_plate',3],['amulet',4],['bow',2],['head_plate',3],['ring',2],['staff',3],['shield',1]])P.inv.push(makeGear(b,P.level,r));UI.tab='bag';UI.dirty=true;render();const el=[...document.querySelectorAll('#view h3')].find(h=>/^Bag/.test(h.textContent));if(el)scrollTo(0,el.getBoundingClientRect().top+scrollY-110);});await p.waitForTimeout(200);
 await fade(false);await cap('Loot and gear up',['Rare loot','Craft & upgrade']);await p.waitForTimeout(1400);await p.evaluate(()=>scrollBy({top:170,behavior:'smooth'}));await p.waitForTimeout(1300);await cap();
-// ---- 5. boss
-await fade(true);await p.evaluate(()=>{const P=S.P;P.hp=stats(P).mhp;const m=makeMonster('b_dragon',P.level+2);startCombat([m],{title:'Lair of Pyrrhax',noEscape:1});const me=C.allies[0];me.mhp*=5;me.hp=me.mhp;render();});
-marks.boss=at();await fade(false);await p.waitForTimeout(1900);await cap('Hunt legendary bosses',['Solo or co-op','Epic rewards']);
-await ready();await p.waitForTimeout(300);await spell('frost','Glacial Edge');await p.waitForTimeout(600);
-await ready();await cap();await p.waitForTimeout(250);await p.evaluate(()=>{for(const e of C.enemies)if(e.hp>0)e.hp=1;});await (await p.$('#combat [data-a=ca][data-v=heavy]')).click();
-await p.waitForTimeout(3000);
+// ---- 5. boss: joined near the end of a real fight. The dragon is already badly wounded and enraged, the hero is battered,
+//      and it takes a few genuine exchanges to finish it. Nothing is set to 1 HP: the last blow lands on its own.
+await fade(true);await p.evaluate(()=>{const P=S.P;const m=makeMonster('b_dragon',P.level+2);
+  // wounded before the scene opens (set on the monster itself so no health bar animates down on camera)
+  m.atk*=0.3;m.matk*=0.3;m.st=null;m.phase=3;m.bt=3;const st=stats(P);P.hp=Math.round(st.mhp*0.62);P.sp=Math.round(st.msp*0.7);
+  const probe=Object.assign(actorFromChar(P,'a'),{row:'front'});let avg=0;for(let i=0;i<60;i++)avg+=damage(probe,Object.assign({},m,{fx:{},row:'front',side:'e'}),{kind:'phys'}).d;avg/=60;
+  m.hp=Math.round(Math.min(m.mhp*0.15,avg*2.4));
+  startCombat([m],{title:'Lair of Pyrrhax',noEscape:1});C.round=7;clog('The dragon is desperate. Its attacks grow wild!','boss');render();
+  const el=document.querySelector('#combat .actor.boss');if(el)el.classList.add('enrage');});
+marks.boss=at();await fade(false);await p.waitForTimeout(900);await cap('Hunt legendary bosses',['Solo or co-op','Epic rewards']);
+for(let t=0;t<7;t++){await ready();if(await p.$('#combat [data-a=cclose]'))break;await p.waitForTimeout(260);
+  await (await p.$(`#combat [data-a=ca][data-v=${t===0?'attack':'heavy'}]`)).click();
+  await p.waitForTimeout(500);if(t===1)await cap();}
+const won=await p.evaluate(()=>C&&C.result);console.log('boss result',won);
+await cap();await p.waitForTimeout(2600);
 // ---- 6. end card
 await fade(true);await p.evaluate(()=>{clearTimeout(UI.ct);ACT.title();});await p.waitForTimeout(700);
 await p.evaluate(site=>{const e=document.getElementById('adend');e.innerHTML=`<h2>Play free now</h2><div class="url">${site}</div><p>In your browser · Android app</p>`;},SITE);
