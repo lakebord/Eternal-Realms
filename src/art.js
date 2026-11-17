@@ -152,7 +152,7 @@ function drawTitleBg(cv){const W=cv.width=cv.clientWidth*(window.devicePixelRati
 
 /* ---------- painted portraits & icons (sprite atlases in assets/, 4×4 cells each) ----------
    Missing files (e.g. the single-file artifact build) simply fall back to the line-icon sigils. */
-const ART={ok:false,base:'assets/',gear:['sword','greatsword','axe','greataxe','mace','spear','halberd','dagger','bow','staff','orb','fist','shield','tome','head_cloth','head_leather','head_plate','chest_cloth','chest_leather','chest_plate','legs_cloth','legs_leather','legs_plate','hands_cloth','hands_leather','hands_plate','feet_cloth','feet_leather','feet_plate','ring','amulet','_chest'],
+const ART={ok:false,actions:true,base:'assets/',gear:['sword','greatsword','axe','greataxe','mace','spear','halberd','dagger','bow','staff','orb','fist','shield','tome','head_cloth','head_leather','head_plate','chest_cloth','chest_leather','chest_plate','legs_cloth','legs_leather','legs_plate','hands_cloth','hands_leather','hands_plate','feet_cloth','feet_leather','feet_plate','ring','amulet','_chest'],
   npc:{stranger:89,merchant:90,innkeeper:91,smith:92,guard:93,priestess:94,sage:95}};
 (function(){try{const im=new Image();im.onload=()=>{ART.ok=true;document.documentElement.classList.add('art');if(typeof UI!=='undefined'){UI.dirty=true;if(typeof render==='function')try{render();}catch(e){}}};im.src=ART.base+'mon01.webp';
   for(const n of ['class01','class02','class03','mon02'])setTimeout(()=>{new Image().src=ART.base+n+'.webp';},1500);}catch(e){}})();
@@ -193,3 +193,5 @@ const STATUS_ART={poison:0,burn:1,bleed:2,stun:3,freeze:4,slow:5,root:5,weaken:6
 function ptStatus(k){return ART.ok&&STATUS_ART[k]!=null?artCell('status',STATUS_ART[k],'stic'):'';}
 function achArtIdx(id,A){const n=(A&&A.n)||'';const t=[[/First Blood/,0],[/Hunter|Exterminator/,1],[/Champion|Renowned|Legend/,2],[/Seasoned|Veteran|Eternal/,3],[/Delver|Dungeon/,4],[/Slayer|Raid/,5],[/Explorer|Cartographer|Off the Map/,6],[/Well-Off|Tycoon/,7],[/Artisan/,8],[/Duelist|Gladiator/,9],[/Beast|Evolution/,10],[/Guild|Friendly|Neighbor|Sworn/,11],[/Scholar|Higher Path/,12],[/Sun-Engine/,13],[/Defender|Marks|Outfit/,14],[/Long Night|Coal|Collector/,15]];for(const [r,i] of t)if(r.test(n))return i;return 2;}
 function ptAch(id,A){return ART.ok?artCell('ach',achArtIdx(id,A),'achic'):'';}
+const ACTION_ART={explore:0,hunt:1,search:2,gather:3,mine:4,wood:5,fish:6,camp:7,dungeon:8,travel:9,rest:10,talk:11,portal:12,pray:13,duel:14,delve:15};
+function ptAction(ic){return ART.ok&&ART.actions&&ACTION_ART[ic]!=null?artCell('actions',ACTION_ART[ic],'svic'):'';}

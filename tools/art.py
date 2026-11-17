@@ -74,5 +74,5 @@ def atlas_crop_top(name, cell, top=0.04, side=0.74):
             o.paste(im.crop((cx - s // 2, yy, cx + s // 2, yy + s)).resize((cell, cell), Image.LANCZOS), (c * cell, r * cell))
     o.save(os.path.join(out, name + '.webp'), 'WEBP', quality=82, method=6)
 atlas_crop_top('svc', 128)
-for n, c in (('skills', 128), ('folk1', 192), ('folk2', 192), ('status', 96), ('ach', 128)):
+for n, c in (('skills', 128), ('folk1', 192), ('folk2', 192), ('status', 96), ('ach', 128), ('actions', 128)):
     if os.path.exists(os.path.join(src, n + '.png')): atlas(n, c)

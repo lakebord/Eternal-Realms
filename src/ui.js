@@ -31,7 +31,7 @@ function lvlColor(l){const d=l-S.P.level;return d>=6?'lv-red':d>=3?'lv-orange':d
 function setHTML(el,html){if(!el)return false;if(el.__h===html)return false;el.innerHTML=html;el.__h=html;return true;}
 function renderHeader(){const P=S.P,st=stats(P);
   const xpN=xpNext(P.level);
-  const __hdr=`<div class="hname"><button class="portrait" data-a="tab" data-v="char" aria-label="Your hero" style="--ac:${CLS_HUE[P.cls]}">${icon(CLS_ICON[P.cls])}<b>${P.level}</b></button><div><button class="pname" data-a="tab" data-v="char">${E(P.name)}</button><small>${E(P.user)} · ${E(className(P))}</small></div></div>
+  const __hdr=`<div class="hname"><button class="portrait ${ptClass(P.cls,P.gender,P.name)?'hasp':''}" data-a="tab" data-v="char" aria-label="Your hero" style="--ac:${CLS_HUE[P.cls]}">${ptClass(P.cls,P.gender,P.name)||icon(CLS_ICON[P.cls])}<b>${P.level}</b></button><div><button class="pname" data-a="tab" data-v="char">${E(P.name)}</button><small>${E(P.user)} · ${E(className(P))}</small></div></div>
   <div class="hbars">${abar(P.hp,st.mhp,'hp','HP','hdr')}${abar(P.mp,st.mmp,'mp','MP','hdr')}${abar(P.sp,st.msp,'sp','SP','hdr')}${abar(P.xp,xpN,'xp','XP','hdr')}</div>
   <div class="hmeta"><button class="snd ${AUD.on?'on':''}" data-a="sound" aria-label="${AUD.on?'Mute music':'Play music'}" title="Music & sound">${AUD.on?'♪':'♪̸'}</button><span class="gold">${icon('coin')}${U.fmt(P.gold)}</span><span class="clock">${icon('clock')}${T.str(S.time).replace('Day ','D')}</span><span class="loc">${icon('pin')}${E(LOCS[P.loc].n)}</span>
   <button class="net ${NET.mode}" data-a="tab" data-v="social" title="${E(NET.status)}">${icon('online')}${NET.mode==='online'?`${NET.peers} online`:'solo'}</button>
@@ -55,7 +55,7 @@ function m_name(m){return m.from==='P'?S.P.user:m.real?m.name:m.from==='SYS'?'Sy
 function m_cls(m){return m.from==='P'?S.P.cls:m.real?(m.cls||'warrior'):(npc(m.from)||{}).cls;}
 
 /* ---------------- world view ---------------- */
-function abtn(ic,label,sub,act,v='',cls=''){return `<button class="ab ${cls}" data-a="${act}" data-v="${E(v)}">${icon(ic)}<span><b>${label}</b>${sub?`<small>${sub}</small>`:''}</span></button>`;}
+function abtn(ic,label,sub,act,v='',cls=''){const pa=typeof ptAction==='function'?ptAction(ic):'';return `<button class="ab ${cls} ${pa?'svcart':''}" data-a="${act}" data-v="${E(v)}">${pa||icon(ic)}<span><b>${label}</b>${sub?`<small>${sub}</small>`:''}</span></button>`;}
 const SVC_SUB={festival:'Trade Starlight Ornaments',special:'Rare & unique wares',inn:'Rest · rumors · cook',shop:'Potions & supplies',smith:'Arms & armor',market:'Buy & sell',guild:'Found or join',temple:'Healing & blessing',library:'Lore & tomes',arena:'Duels & gladiators',trainer:'Masters & training',board:'Quests',forge:'Smithing',alchemy:'Potions & enchanting',stable:'Fast travel',port:'Ships'};
 function weatherLine(loc){const L=LOCS[loc];const n=T.isNight(S.time);const b=BIOME[loc];const seed=(T.day(S.time)*7+[...loc].length)%5;
   const W={snow:['Snow drifts across the trail.','The wind bites through your cloak.','Clear and freezing.','Ice crystals glitter in the air.','A blizzard gathers on the peaks.'],desert:['Heat shimmers over the sand.','A dry wind hisses.','Dust devils spin in the distance.','The sun is merciless.','Cool stillness.'],
@@ -98,7 +98,7 @@ function renderWorld(){
     acts.push(abtn('explore','Explore','1 hour','explore'));
     if(L.mon.length)acts.push(abtn('hunt','Hunt monsters',`Lv ${L.lv[0]}–${L.lv[1]}`,'hunt','','danger'));
     if(!isTown(P.loc))acts.push(abtn('search','Search for treasure','1.5h · luck','search'));
-    for(const [k,m] of L.res||[])acts.push(abtn({mining:'mine',fishing:'fish'}[m]||'gather',`Gather ${E(ITEMS[k].n)}`,`${MASTERY[mKey(m)]?MASTERY[mKey(m)].n:''} ${mLv(P,m)}`,'gather',`${k}|${m}`));
+    for(const [k,m] of L.res||[])acts.push(abtn({mining:'mine',fishing:'fish',woodcutting:'wood'}[m]||'gather',`Gather ${E(ITEMS[k].n)}`,`${MASTERY[mKey(m)]?MASTERY[mKey(m)].n:''} ${mLv(P,m)}`,'gather',`${k}|${m}`));
     if(L.boss)acts.push(abtn('dungeon',`Enter ${L.ty==='dungeon'?'the dungeon':'the depths'}`,`${L.floors||3} floors + boss`,'dungeon','','gilt'));
     if(!isTown(P.loc))acts.push(abtn('camp','Make camp','6h · risky','camp'));
   }
