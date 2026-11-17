@@ -777,6 +777,15 @@ body.ingame .tsnd{display:none}
 .beast{display:flex;flex-direction:column;align-items:center;text-align:center;gap:.15em;padding:.5em;border-radius:10px;background:var(--panel2);border:1px solid var(--line)}
 .beast.boss{border-color:var(--blood)}.beast .pt.bic2{width:84px;height:84px;border-radius:12px;margin-bottom:.2em}.beast b{font-size:.9rem;line-height:1.15}.beast small{font-size:.72rem}
 
+.portrait.lg.hasp{width:84px;height:84px;padding:0;overflow:visible;position:relative;background:none}.portrait.lg.hasp .pt{width:100%;height:100%;border-radius:inherit;border:0}
+.portrait.lg.hasp b{position:absolute;right:-4px;bottom:-4px;min-width:24px;height:24px;border-radius:12px;display:grid;place-items:center;font-size:.75rem;font-family:var(--mono);color:#16110a;background:var(--gilt);box-shadow:0 0 0 2px #16110a}
+.skill.hasic{display:flex;gap:.6em;align-items:flex-start}.skill.hasic>.pt{flex:0 0 auto;width:44px;height:44px;border-radius:8px}
+
+.li.q{align-items:center;gap:.6em}.li.q>.pt.qic{flex:0 0 auto;width:42px;height:42px;border-radius:8px}.li.q>span{flex:1 1 auto;min-width:0}
+.storyrow{display:flex;gap:.75em;align-items:center}.storyrow>.pt.qic.lg{flex:0 0 auto;width:64px;height:64px;border-radius:10px}.storyrow p{margin:.15em 0}
+.chtabs .ct>.pt.bdic{width:22px;height:22px;border-radius:5px;margin-right:.35em;vertical-align:middle;display:inline-block}
+.li.q:has(>.pt.qic){display:grid!important;grid-template-columns:auto minmax(0,1fr);column-gap:.65em;row-gap:.35em;align-items:start}.li.q>.pt.qic{grid-row:1/span 3}.li.q:has(>.pt.qic)>.b{grid-column:2;justify-self:start}
+
 </style>
 <div id="app" aria-live="polite"><div class="title"><h1>Eternal Realms</h1><p class="tag">The Realms are waking…</p></div></div>
 <div id="game" hidden>
@@ -4538,7 +4547,7 @@ function drawTitleBg(cv){const W=cv.width=cv.clientWidth*(window.devicePixelRati
 
 /* ---------- painted portraits & icons (sprite atlases in assets/, 4×4 cells each) ----------
    Missing files (e.g. the single-file artifact build) simply fall back to the line-icon sigils. */
-const ART={ok:false,actions:true,base:'assets/',gear:['sword','greatsword','axe','greataxe','mace','spear','halberd','dagger','bow','staff','orb','fist','shield','tome','head_cloth','head_leather','head_plate','chest_cloth','chest_leather','chest_plate','legs_cloth','legs_leather','legs_plate','hands_cloth','hands_leather','hands_plate','feet_cloth','feet_leather','feet_plate','ring','amulet','_chest'],
+const ART={ok:false,actions:true,quests:true,base:'assets/',gear:['sword','greatsword','axe','greataxe','mace','spear','halberd','dagger','bow','staff','orb','fist','shield','tome','head_cloth','head_leather','head_plate','chest_cloth','chest_leather','chest_plate','legs_cloth','legs_leather','legs_plate','hands_cloth','hands_leather','hands_plate','feet_cloth','feet_leather','feet_plate','ring','amulet','_chest'],
   npc:{stranger:89,merchant:90,innkeeper:91,smith:92,guard:93,priestess:94,sage:95}};
 (function(){try{const im=new Image();im.onload=()=>{ART.ok=true;document.documentElement.classList.add('art');if(typeof UI!=='undefined'){UI.dirty=true;if(typeof render==='function')try{render();}catch(e){}}};im.src=ART.base+'mon01.webp';
   for(const n of ['class01','class02','class03','mon02'])setTimeout(()=>{new Image().src=ART.base+n+'.webp';},1500);}catch(e){}})();
@@ -4581,6 +4590,8 @@ function achArtIdx(id,A){const n=(A&&A.n)||'';const t=[[/First Blood/,0],[/Hunte
 function ptAch(id,A){return ART.ok?artCell('ach',achArtIdx(id,A),'achic'):'';}
 const ACTION_ART={explore:0,hunt:1,search:2,gather:3,mine:4,wood:5,fish:6,camp:7,dungeon:8,travel:9,rest:10,talk:11,portal:12,pray:13,duel:14,delve:15};
 function ptAction(ic){return ART.ok&&ART.actions&&ACTION_ART[ic]!=null?artCell('actions',ACTION_ART[ic],'svic'):'';}
+const QUEST_ART={kill:0,gather:1,bounty:2,explore:3,deliver:4,dungeon:5,escort:6,request:7,story:8,faction:9,trophy:10,wealth:11,pvp:12,craft:13,level:14,guild:15};
+function ptQuest(k,cls){return ART.ok&&ART.quests&&QUEST_ART[k]!=null?artCell('quests',QUEST_ART[k],cls||'qic'):'';}
 
 /* ---- audio.js ---- */
 /* ETERNAL REALMS — generative music & sound effects (Web Audio, no files).
@@ -5327,7 +5338,7 @@ function craftList(m){const P=S.P;const R=RECIPES.filter(r=>r.m===m);const st=cr
     return `<div class="li ${can?'':'dim'}"><span>${E(r.n)} <small>${Object.entries(r.in).map(([k,q])=>`${ITEMS[k].n} ${invCount(P,k)}/${q}`).join(', ')} · needs ${r.lv}</small></span>${ok&&can?btn('Craft','craft',r.id,'tiny'):''}</div>`;}).join('')}</div>`;}
 function boardView(){const P=S.P,qs=S.quests[P.loc]||[];
   let h=factionBoard(P.loc)+`<h3>Contracts</h3><p class="hint">Posted by locals and by other adventurers. Turn completed quests in here.</p><div class="list">`;
-  for(const q of qs){const has=P.quests.some(x=>x.id===q.id);const rq=q.type==='request'&&npc(q.npc);h+=`<div class="li q ${rq?'req':''}"><span>${rq?avatar(rq.user,rq.cls)+' ':''}<b>${E(q.n)}</b> <small class="${lvlColor(q.lvl)}">Lv ${q.lvl}</small><br><small>${E(q.d)} Reward: ${U.fmt(q.xp)} XP, ${U.fmt(q.gold)}g${q.reward?', '+itemName(q.reward):''}</small></span>${has?'<small>Accepted</small>':btn('Accept','qaccept',q.id,'tiny')}</div>`;}
+  for(const q of qs){const has=P.quests.some(x=>x.id===q.id);const rq=q.type==='request'&&npc(q.npc);h+=`<div class="li q ${rq?'req':''}">${rq?'':ptQuest(QUEST_ART[q.type]!=null?q.type:'request')}<span>${rq?avatar(rq.user,rq.cls)+' ':''}<b>${E(q.n)}</b> <small class="${lvlColor(q.lvl)}">Lv ${q.lvl}</small><br><small>${E(q.d)} Reward: ${U.fmt(q.xp)} XP, ${U.fmt(q.gold)}g${q.reward?', '+itemName(q.reward):''}</small></span>${has?'<small>Accepted</small>':btn('Accept','qaccept',q.id,'tiny')}</div>`;}
   h+='</div>';const ready=P.quests.map((q,i)=>[q,i]).filter(([q])=>q.done&&q.giver===P.loc);
   if(ready.length)h+=`<h3>Ready to turn in</h3><div class="list">${ready.map(([q,i])=>`<div class="li"><span>${E(q.n)}</span>${btn('Turn in','qturn',i,'tiny gilt')}</div>`).join('')}</div>`;
   return h;}
@@ -5512,7 +5523,7 @@ ACT.folksay=(k)=>folkSay(k);
 'use strict';
 function renderChar(){const P=S.P,st=stats(P),a=st.attr;const R=RACES[P.race];
   const look=P.look||{};const desc=`${P.age?P.age+'-year-old ':''}${P.gender&&P.gender!=='unspecified'?P.gender+' ':''}${R.name.toLowerCase()} with ${look.hair||'unkempt'} hair, ${look.eyes||'watchful'} eyes and a ${look.build||'wiry'} build${look.skin?`, ${look.skin} ${P.race==='beastkin'?'fur':P.race==='draconian'?'scales':'skin'}`:''}${look.mark?`. ${U.cap(look.mark)}`:''}.`;
-  let h=`<section class="panel hero"><div class="vista sm ${vistaCls(S.time)}" style="${vistaStyle(P.loc,S.time)}"></div><div class="phead"><span class="portrait lg" style="--ac:${CLS_HUE[P.cls]}">${icon(CLS_ICON[P.cls])}<b>${P.level}</b></span><div><h2>${E(P.name)} <small>“${E(P.user)}”</small></h2></div></div><p class="desc">A ${E(desc)}</p>
+  let h=`<section class="panel hero"><div class="vista sm ${vistaCls(S.time)}" style="${vistaStyle(P.loc,S.time)}"></div><div class="phead">${(()=>{const pc=ptClass(P.cls,P.gender,P.name);return `<span class="portrait lg ${pc?'hasp':''}" style="--ac:${CLS_HUE[P.cls]}">${pc||icon(CLS_ICON[P.cls])}<b>${P.level}</b></span>`;})()}<div><h2>${E(P.name)} <small>“${E(P.user)}”</small></h2></div></div><p class="desc">A ${E(desc)}</p>
     <p><b>Lv.${P.level} ${E(className(P))}</b> · ${R.name} · ${BACKGROUNDS[P.bg].name}${P.guild?` · ${E(guild(P.guild).name)}`:''} · Fame ${U.fmt(P.fame)}</p>
     <p class="hint">${E(R.perk)} <span class="bad">${E(R.flaw)}</span></p></section>`;
   h+=`<section class="panel"><h3>Attributes ${P.pts?`<span class="gilt-t">${P.pts} unspent points</span> ${btn('Auto-assign','autoalloc','','tiny gilt')}`:''}</h3><div class="attrs">${ATTRS.map(k=>`<div class="attr"><span title="${ATTR_NAMES[k]}">${k.toUpperCase()}</span><b>${a[k]}</b>${P.pts?btn('+','alloc',k,'tiny'):''}</div>`).join('')}</div>
@@ -5522,7 +5533,7 @@ function renderChar(){const P=S.P,st=stats(P),a=st.attr;const R=RACES[P.race];
     <p class="hint">STR/DEX power physical attacks (DEX for bows & daggers), INT magic, WIS magic defense and healing, VIT health, AGI speed & evasion, END stamina, LUCK crits and loot.</p></section>`;
   const ms=MASTERY_KEYS.map(k=>[k,P.mastery[k]]).filter(([k,m])=>m&&(m.lv>0||m.xp>0));
   h+=`<section class="panel"><h3>Skill mastery</h3><p class="hint">Masteries grow with use. Weapons: +0.6% damage per level, +5% crit at 25, armor piercing at 75, techniques at 15/40/75. Schools unlock spells at 1/20/55/85.</p><div class="masteries">${ms.map(([k,m])=>`<div class="mastery"><span>${MASTERY[k].n}</span><b>${m.lv}</b><small>${masteryTier(m.lv)}</small>${m.lv<100?`<div class="bar xp thin"><i style="width:${m.xp/masteryNeed(m.lv)*100}%"></i></div>`:''}</div>`).join('')||'<p class="hint">No masteries yet.</p>'}</div></section>`;
-  const sk=skillList(P);h+=`<section class="panel"><h3>Skills & spells</h3><div class="skills">${sk.map(id=>{const s=SKILLS[id];return `<div class="skill"><b>${E(s.n)}</b><small>${s.c[0]?s.c[0]+' MP ':''}${s.c[1]?s.c[1]+' SP ':''}${s.cd?'· CD '+s.cd:''}</small><p>${E(s.d||'')}</p></div>`;}).join('')}</div>
+  const sk=skillList(P);h+=`<section class="panel"><h3>Skills & spells</h3><div class="skills">${sk.map(id=>{const s=SKILLS[id];const si=ptSkill(id,'skic');return `<div class="skill ${si?'hasic':''}">${si}<div><b>${E(s.n)}</b><small>${s.c[0]?s.c[0]+' MP ':''}${s.c[1]?s.c[1]+' SP ':''}${s.cd?'· CD '+s.cd:''}</small><p>${E(s.d||'')}</p></div></div>`;}).join('')}</div>
     <p class="hint">Upcoming: ${CLASSES[P.cls].skills.filter(s=>(SKILLS[s].lv||1)>P.level).map(s=>`${SKILLS[s].n} (Lv ${SKILLS[s].lv})`).join(', ')||'all class skills learned'}</p></section>`;
   {const ct=classTier(P),CT=CLASS_TIERS[P.cls],TS=TIER_SKILLS[P.cls];const steps=[[CLASSES[P.cls].name,'Base class',null,0],[CT.t[0],`Lv ${TIER_REQ[1].lvl} · trial`,TS[1],1],[CT.t[1],`Lv ${TIER_REQ[2].lvl} · trial`,TS[2],2]];
   h+=`<section class="panel"><h3>Class path</h3><div class="cpath">${steps.map(([n,req,sk,t])=>`<div class="cstep ${ct>=t?'got':''} ${ct===t?'cur':''}"><b>${E(n)}</b><small>${t?req:'Base class'}</small>${sk?`<small class="sk">${E(SKILLS[sk].n)}: ${E(SKILLS[sk].d)}</small>`:`<small class="sk">Lv 35 skill: ${E(SKILLS[TS[0]].n)}</small>`}</div>`).join('<span class="arrow">→</span>')}</div>
@@ -5561,9 +5572,9 @@ Object.assign(ACT,{iteminfo(v){openModal(itemInfo(v),'item');},equip(i){equip(+i
     S.market.push({id:U.uid(),item:it,price,seller:'P',t:S.time});log(`Listed ${itemName(it)} for ${U.fmt(price)}g.`);closeModal();}});
 
 function renderQuests(){const P=S.P;const st=STORY[P.story];const fc=Object.keys(P.fchains||{}).filter(f=>P.fchains[f]<FACTION_CHAINS[f].steps.length);
-  let h=`<section class="panel story"><h3>Main story</h3>${st?`<p><b>${E(st.n)}</b></p><p>${E(st.step)}</p><p class="hint">Location: ${E(LOCS[st.loc].n)}${st.need?` · Requires ${ITEMS[st.need].n}`:''}</p>`:'<p class="good">You silenced the Shattered One. The Realms go on, and so does your story.</p>'}</section>`;
-  if(fc.length)h+=`<section class="panel"><h3>${icon('castle')} Faction quests</h3><div class="list">${fc.map(f=>{const s=factionStep(f);return `<div class="li q"><span><b>${E(FACTION_CHAINS[f].n)}</b> <small>step ${P.fchains[f]+1}/${FACTION_CHAINS[f].steps.length}</small><br><small>${E(s.n)}: ${E(s.d)} · ${E(LOCS[s.loc].n)}${s.type==='kill'?` (${P.fprog[f]||0}/${s.qty})`:s.type==='gather'?` (${invCount(P,s.item)}/${s.qty})`:''}</small></span></div>`;}).join('')}</div></section>`;
-  h+=`<section class="panel"><h3>Quest log <small>${P.quests.length}/10</small></h3><div class="list">${P.quests.map((q,i)=>`<div class="li q"><span><b>${E(q.n)}</b> ${q.done?'<span class="good">Ready</span>':`<small>${q.prog}/${q.qty}</small>`}<br><small>${E(q.d)} · Turn in: ${E(LOCS[q.giver].n)} · ${U.fmt(q.xp)} XP, ${U.fmt(q.gold)}g</small></span>${q.done&&q.giver===P.loc?btn('Turn in','qturn',i,'tiny gilt'):''}${btn('Abandon','qabandon',i,'tiny ghost')}</div>`).join('')||'<p class="hint">No active quests. Visit a town\'s Quest Board.</p>'}</div></section>`;
+  let h=`<section class="panel story"><h3>Main story</h3>${st?`<div class="storyrow">${ptQuest('story','qic lg')}<div><p><b>${E(st.n)}</b></p><p>${E(st.step)}</p><p class="hint">Location: ${E(LOCS[st.loc].n)}${st.need?` · Requires ${ITEMS[st.need].n}`:''}</p></div></div>`:'<p class="good">You silenced the Shattered One. The Realms go on, and so does your story.</p>'}</section>`;
+  if(fc.length)h+=`<section class="panel"><h3>${icon('castle')} Faction quests</h3><div class="list">${fc.map(f=>{const s=factionStep(f);return `<div class="li q">${ptQuest('faction')}<span><b>${E(FACTION_CHAINS[f].n)}</b> <small>step ${P.fchains[f]+1}/${FACTION_CHAINS[f].steps.length}</small><br><small>${E(s.n)}: ${E(s.d)} · ${E(LOCS[s.loc].n)}${s.type==='kill'?` (${P.fprog[f]||0}/${s.qty})`:s.type==='gather'?` (${invCount(P,s.item)}/${s.qty})`:''}</small></span></div>`;}).join('')}</div></section>`;
+  h+=`<section class="panel"><h3>Quest log <small>${P.quests.length}/10</small></h3><div class="list">${P.quests.map((q,i)=>`<div class="li q">${ptQuest(QUEST_ART[q.type]!=null?q.type:'request')}<span><b>${E(q.n)}</b> ${q.done?'<span class="good">Ready</span>':`<small>${q.prog}/${q.qty}</small>`}<br><small>${E(q.d)} · Turn in: ${E(LOCS[q.giver].n)} · ${U.fmt(q.xp)} XP, ${U.fmt(q.gold)}g</small></span>${q.done&&q.giver===P.loc?btn('Turn in','qturn',i,'tiny gilt'):''}${btn('Abandon','qabandon',i,'tiny ghost')}</div>`).join('')||'<p class="hint">No active quests. Visit a town\'s Quest Board.</p>'}</div></section>`;
   return h;}
 
 /* ---------------- chat panel ---------------- */
@@ -5669,11 +5680,12 @@ Object.assign(ACT,{settactic(t){S.P.tactic=t;},setrow(){S.P.row=S.P.row==='front
   form_found(fd){foundGuild(fd.gname.trim(),fd.gtag.trim());closeModal();UI.tab='social';}});
 
 /* ---------------- leaderboards ---------------- */
+const BOARD_ART={level:'level',power:'kill',wealth:'wealth',pvp:'pvp',dungeons:'dungeon',bosses:'bounty',crafting:'craft',explore:'explore',ach:'trophy',fame:'faction',guilds:'guild'};
 const BOARDS={level:['Highest Level',a=>a.level*1e9+(a.xp||0)],power:['Combat Power',a=>stats(a).power],wealth:['Wealth',a=>a.gold],pvp:['PvP Rating',a=>a.pvp.r],dungeons:['Dungeon Clears',a=>a===S.P?a.stats.dungeons:a.dung],
   bosses:['Boss Kills',a=>a===S.P?a.stats.bosses:a.boss],crafting:['Crafting',a=>Math.max(...['smithing','alchemy','cooking','enchanting'].map(k=>mLv(a,k)))],explore:['Exploration',a=>a===S.P?a.explored.length:a.knows.length],
   ach:['Achievements',a=>a.ach.length],fame:['Reputation & Fame',a=>a.fame],guilds:['Guild Rankings',null]};
 function renderRanks(){const k=UI.board||'level';const [title,f]=BOARDS[k];const real=SIM?UI.rankReal:true;
-  let h=`<section class="panel"><h2>Leaderboards</h2><div class="chtabs">${Object.entries(BOARDS).map(([id,[n]])=>`<button class="ct ${k===id?'on':''}" data-a="board" data-v="${id}">${n}</button>`).join('')}</div>
+  let h=`<section class="panel hero">${ART.ok?`<div class="vista sm" style="background-image:url(${ART.base}bn/ranks.webp)"></div>`:''}<h2>Leaderboards</h2><div class="chtabs">${Object.entries(BOARDS).map(([id,[n]])=>`<button class="ct ${k===id?'on':''}" data-a="board" data-v="${id}">${ptQuest(BOARD_ART[id]||'trophy','bdic')}${n}</button>`).join('')}</div>
    ${SIM?`<div class="row">${btn('Simulated world','rankreal','0',!real?'tiny gilt':'tiny ghost')}${btn('Real players','rankreal','1',real?'tiny gilt':'tiny ghost')}</div>`:''}`;
   if(real){const keys=new Set([...Object.keys(NET.players),...Object.keys(NET.peerMap)]);if(NET.myKey&&S.P&&!NET.players[NET.myKey])keys.add('__me');
     const rows=[...keys].map(id=>({id,p:id==='__me'?{user:S.P.user,level:S.P.level,cls:S.P.cls,power:stats(S.P).power,gold:S.P.gold,pvp:S.P.pvp,dungeons:S.P.stats.dungeons,bosses:S.P.stats.bosses,explored:S.P.explored.length,ach:S.P.ach.length,fame:S.P.fame}:realPlayer(id)})).filter(r=>r.p).sort((a,b)=>{const m={level:x=>x.level,power:x=>x.power||0,wealth:x=>x.gold||0,pvp:x=>(x.pvp||{}).r||0,dungeons:x=>x.dungeons||0,bosses:x=>x.bosses||0,crafting:x=>x.craft||0,explore:x=>x.explored||0,ach:x=>x.ach||0,fame:x=>x.fame||0,guilds:x=>x.level}[k];return m(b.p)-m(a.p);});

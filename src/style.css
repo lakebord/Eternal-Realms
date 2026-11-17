@@ -764,3 +764,12 @@ body.ingame .tsnd{display:none}
 .bestiary{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:.5em}
 .beast{display:flex;flex-direction:column;align-items:center;text-align:center;gap:.15em;padding:.5em;border-radius:10px;background:var(--panel2);border:1px solid var(--line)}
 .beast.boss{border-color:var(--blood)}.beast .pt.bic2{width:84px;height:84px;border-radius:12px;margin-bottom:.2em}.beast b{font-size:.9rem;line-height:1.15}.beast small{font-size:.72rem}
+
+.portrait.lg.hasp{width:84px;height:84px;padding:0;overflow:visible;position:relative;background:none}.portrait.lg.hasp .pt{width:100%;height:100%;border-radius:inherit;border:0}
+.portrait.lg.hasp b{position:absolute;right:-4px;bottom:-4px;min-width:24px;height:24px;border-radius:12px;display:grid;place-items:center;font-size:.75rem;font-family:var(--mono);color:#16110a;background:var(--gilt);box-shadow:0 0 0 2px #16110a}
+.skill.hasic{display:flex;gap:.6em;align-items:flex-start}.skill.hasic>.pt{flex:0 0 auto;width:44px;height:44px;border-radius:8px}
+
+.li.q{align-items:center;gap:.6em}.li.q>.pt.qic{flex:0 0 auto;width:42px;height:42px;border-radius:8px}.li.q>span{flex:1 1 auto;min-width:0}
+.storyrow{display:flex;gap:.75em;align-items:center}.storyrow>.pt.qic.lg{flex:0 0 auto;width:64px;height:64px;border-radius:10px}.storyrow p{margin:.15em 0}
+.chtabs .ct>.pt.bdic{width:22px;height:22px;border-radius:5px;margin-right:.35em;vertical-align:middle;display:inline-block}
+.li.q:has(>.pt.qic){display:grid!important;grid-template-columns:auto minmax(0,1fr);column-gap:.65em;row-gap:.35em;align-items:start}.li.q>.pt.qic{grid-row:1/span 3}.li.q:has(>.pt.qic)>.b{grid-column:2;justify-self:start}
