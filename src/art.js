@@ -172,3 +172,7 @@ function ptActor(a,cls){if(!a)return '';if(a.id&&MONSTERS[a.id])return ptMon(a.i
 /* the Android app download is offered on the website only: not inside the app itself, not on iPhones, and only if the file is really there */
 function apkCheck(){const el=document.getElementById('apkbtn');if(!el)return;try{const ua=navigator.userAgent||'';if(window.Capacitor||/; wv\)/.test(ua)||/iPhone|iPad|iPod/.test(ua)||location.protocol==='file:')return;
   if(ART.apk===true){el.hidden=false;return;}if(ART.apk===false)return;fetch('eternal-realms.apk',{method:'HEAD'}).then(r=>{const t=r.headers.get('content-type')||'';ART.apk=r.ok&&!/text\/html/.test(t);const e2=document.getElementById('apkbtn');if(ART.apk&&e2){e2.hidden=false;const kb=+r.headers.get('content-length');if(kb>0){const sm=e2.querySelector('small');if(sm)sm.textContent=`Download the game for your phone (APK, ${(kb/1048576).toFixed(1)} MB)`;}}}).catch(()=>{ART.apk=false;});}catch(e){}}
+/* painted scenery for each place (assets/v/<place>.webp); the drawn vista remains the fallback */
+function vistaStyle(loc,t){const L=LOCS[loc];if(L&&L.rg&&ART.ok&&typeof valeVista==='function')return valeVista(loc);
+  if(ART.ok&&L&&!L.rg)return `background-image:url(${ART.base}v/${loc}.webp)`;return `background-image:url(${drawVista(loc,t)})`;}
+function vistaCls(t){return ART.ok&&T.isNight(t)?'night':T.hour(t)>=17&&T.hour(t)<20&&ART.ok?'dusk':'';}

@@ -12,6 +12,6 @@ fs.writeFileSync(path.join(__dirname,'../index.html'),standalone);
 const pub=path.join(__dirname,'../public');fs.mkdirSync(pub,{recursive:true});
 fs.writeFileSync(path.join(pub,'index.html'),standalone);fs.copyFileSync(path.join(__dirname,'../manifest.webmanifest'),path.join(pub,'manifest.webmanifest'));
 // painted portrait / icon atlases and music
-const assets=path.join(__dirname,'../assets');if(fs.existsSync(assets)){fs.mkdirSync(path.join(pub,'assets'),{recursive:true});for(const f of fs.readdirSync(assets))fs.copyFileSync(path.join(assets,f),path.join(pub,'assets',f));}
+const assets=path.join(__dirname,'../assets');if(fs.existsSync(assets)){fs.mkdirSync(path.join(pub,'assets'),{recursive:true});fs.cpSync(assets,path.join(pub,'assets'),{recursive:true});}
 fs.writeFileSync(path.join(pub,'_headers'),'/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n/index.html\n  Cache-Control: no-cache\n/assets/*\n  Cache-Control: public, max-age=604800\n');
 console.log('built',(page.length/1024).toFixed(0)+'KB');

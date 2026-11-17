@@ -728,3 +728,7 @@ body.ingame .tsnd{display:none}
 .map.painted .node.unex .lbl{fill:#c8c0a8}
 .map.painted .jpath{stroke:#ffd36a;stroke-width:5;opacity:.9}
 .map.painted .region{text-anchor:middle}
+/* painted scenery: night and dusk follow the in-game clock */
+.vista.night{filter:brightness(.78) saturate(.8) hue-rotate(10deg)}
+.vista.night::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 70% 0%,#9fc8ff30,transparent 55%),linear-gradient(180deg,#0a1430aa,#0a143055 60%,#0a143099);pointer-events:none;z-index:1}
+.vista.dusk::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#ff8a3a33,#40206022);mix-blend-mode:soft-light;pointer-events:none;z-index:1}

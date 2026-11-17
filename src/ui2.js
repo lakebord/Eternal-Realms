@@ -2,7 +2,7 @@
 'use strict';
 function renderChar(){const P=S.P,st=stats(P),a=st.attr;const R=RACES[P.race];
   const look=P.look||{};const desc=`${P.age?P.age+'-year-old ':''}${P.gender&&P.gender!=='unspecified'?P.gender+' ':''}${R.name.toLowerCase()} with ${look.hair||'unkempt'} hair, ${look.eyes||'watchful'} eyes and a ${look.build||'wiry'} build${look.skin?`, ${look.skin} ${P.race==='beastkin'?'fur':P.race==='draconian'?'scales':'skin'}`:''}${look.mark?`. ${U.cap(look.mark)}`:''}.`;
-  let h=`<section class="panel hero"><div class="vista sm" style="background-image:url(${drawVista(P.loc,S.time)})"></div><div class="phead"><span class="portrait lg" style="--ac:${CLS_HUE[P.cls]}">${icon(CLS_ICON[P.cls])}<b>${P.level}</b></span><div><h2>${E(P.name)} <small>“${E(P.user)}”</small></h2></div></div><p class="desc">A ${E(desc)}</p>
+  let h=`<section class="panel hero"><div class="vista sm ${vistaCls(S.time)}" style="${vistaStyle(P.loc,S.time)}"></div><div class="phead"><span class="portrait lg" style="--ac:${CLS_HUE[P.cls]}">${icon(CLS_ICON[P.cls])}<b>${P.level}</b></span><div><h2>${E(P.name)} <small>“${E(P.user)}”</small></h2></div></div><p class="desc">A ${E(desc)}</p>
     <p><b>Lv.${P.level} ${E(className(P))}</b> · ${R.name} · ${BACKGROUNDS[P.bg].name}${P.guild?` · ${E(guild(P.guild).name)}`:''} · Fame ${U.fmt(P.fame)}</p>
     <p class="hint">${E(R.perk)} <span class="bad">${E(R.flaw)}</span></p></section>`;
   h+=`<section class="panel"><h3>Attributes ${P.pts?`<span class="gilt-t">${P.pts} unspent points</span> ${btn('Auto-assign','autoalloc','','tiny gilt')}`:''}</h3><div class="attrs">${ATTRS.map(k=>`<div class="attr"><span title="${ATTR_NAMES[k]}">${k.toUpperCase()}</span><b>${a[k]}</b>${P.pts?btn('+','alloc',k,'tiny'):''}</div>`).join('')}</div>
