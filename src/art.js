@@ -159,7 +159,7 @@ const ART={ok:false,base:'assets/',gear:['sword','greatsword','axe','greataxe','
 function artCell(sheet,i,cls,extra){const c=i%4,r=Math.floor(i/4)%4;return `<span class="pt ${cls||''}" ${extra||''} style="background-image:url(${ART.base}${sheet}.webp);background-position:${(c*100/3).toFixed(2)}% ${(r*100/3).toFixed(2)}%" aria-hidden="true"></span>`;}
 function artIdx(prefix,i,cls,extra){return artCell(prefix+String(Math.floor(i/16)+1).padStart(2,'0'),i%16,cls,extra);}
 function nameHash(s){let h=0;s=String(s||'');for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h);}
-function ptMon(id,cls){if(!ART.ok)return '';if(MONSTERS[id]&&MONSTERS[id].art!=null)return artCell('xmon',MONSTERS[id].art,cls);ART.mk=ART.mk||Object.keys(MONSTERS);const i=ART.mk.indexOf(id);return i<0?'':artIdx('mon',i,cls);}
+function ptMon(id,cls){if(!ART.ok)return '';if(MONSTERS[id]&&MONSTERS[id].art!=null){const a=MONSTERS[id].art;return Array.isArray(a)?artCell(a[0],a[1],cls):artCell('xmon',a,cls);}ART.mk=ART.mk||Object.keys(MONSTERS);const i=ART.mk.indexOf(id);return i<0?'':artIdx('mon',i,cls);}
 function ptNpc(kind,cls){if(!ART.ok||ART.npc[kind]==null)return '';return artIdx('mon',ART.npc[kind],cls);}
 function ptClass(cl,gender,name,cls){if(!ART.ok)return '';ART.ck=ART.ck||Object.keys(CLASSES);let i=ART.ck.indexOf(cl);if(i<0)return '';
   const f=gender==='female'?1:gender==='male'?0:nameHash(name)%2;if(i<16)return artCell(f?'class02':'class01',i,cls);if(i<20)return artCell('class03',(i-16)+(f?4:0),cls);return '';}

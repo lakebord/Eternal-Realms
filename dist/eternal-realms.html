@@ -710,6 +710,19 @@ body.ingame .tsnd{display:none}
 .wshophead{display:flex;gap:.9em;align-items:flex-start;margin-bottom:.4em}.wshophead h3{margin:0 0 .2em;color:var(--gilt)}.wshophead .wkeeper{width:84px;height:84px;border-radius:12px;flex:none}
 .li.wshop{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:.6em}.li.wshop .shopic{width:44px;height:44px;border-radius:8px}
 .li.wshop .orn{white-space:nowrap}
+/* the Vale: map, quests */
+.maptabs{display:flex;gap:.4em;margin:.2em 0 .6em}
+.mapwrap.vale{overflow:hidden;border-color:#5a7aa8}.map.vale{min-width:0!important;width:100%;display:block}
+.map.vale .route{stroke:#dff0ff;stroke-opacity:.55;stroke-width:3;stroke-dasharray:6 7}.map.vale .route.near{stroke:#ffd36a;stroke-opacity:.9;stroke-dasharray:none}
+.map.vale .vnode circle{fill:#0e1a2c;stroke:#dff0ff;stroke-width:4}.map.vale .vnode.ty-village circle{fill:#5a4520;stroke:#ffd36a}.map.vale .vnode.ty-dungeon circle{fill:#3a1010;stroke:#ff8a6a}.map.vale .vnode.ty-lair circle{fill:#2a1030;stroke:#d79cff}
+.map.vale .vnode .here{fill:none;stroke:#ffd36a;stroke-width:3;animation:pulse 1.6s ease-in-out infinite}.map.vale .vnode .goal{fill:none;stroke:#8fe06a;stroke-width:3;stroke-dasharray:5 6}
+.map.vale .lbl{fill:#fff;font-size:31px;font-family:var(--display);paint-order:stroke;stroke:#000;stroke-width:5px;stroke-linejoin:round;text-anchor:middle}
+.map.vale .jpath{stroke:#ffd36a}
+@keyframes pulse{50%{stroke-opacity:.3}}
+.wqs{display:grid;gap:.45em;margin:.6em 0}
+.wq{display:flex;flex-direction:column;gap:.15em;padding:.55em .7em;border-radius:10px;background:#0a1220cc;border:1px solid #3a5a88;border-left:3px solid #8fd0ff}
+.wq small{font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:#9fd0ff}.wq b{color:#fff;font-family:var(--display);font-weight:400;font-size:1.05rem}.wq span{color:#cfdcea;font-size:.88rem}.wq em{color:#ffd36a;font-style:normal}
+.wq.done{border-left-color:#ffd36a}.wq .b{align-self:flex-start;margin-top:.3em}
 
 </style>
 <div id="app" aria-live="polite"><div class="title"><h1>Eternal Realms</h1><p class="tag">The Realms are waking…</p></div></div>
@@ -1835,7 +1848,7 @@ function tierEligible(P,t){const R=TIER_REQ[t];const why=[];if(classTier(P)!==t-
    This file is loaded before engine.js (so the new places join the travel graph); runtime functions use U lazily. */
 'use strict';
 const WINTER={id:'longnight',n:'The Long Night',tag:'The Long Night 2026',start:[2026,11,1],end:[2027,0,6],home:'hollyhearth',
-  locs:['hollyhearth','glimmerfrost','coalvault']};
+  locs:[]};
 function winterNow(){return (typeof window!=='undefined'&&window.__WINTER_NOW)||Date.now();}
 // test switch for previews: ?winter in the address, or localStorage er_winter=1
 function winterForced(){try{return typeof location!=='undefined'&&(/[?&]winter\b/.test(location.search)||localStorage.getItem('er_winter')==='1');}catch(e){return false;}}
@@ -1844,23 +1857,44 @@ function winterDaysLeft(){const e=new Date(...WINTER.end,23,59,59);return Math.m
 function winterDayKey(){const n=new Date(winterNow());return `${n.getFullYear()}-${n.getMonth()+1}-${n.getDate()}`;}
 function locOpen(l){const L=LOCS[l];return !L||!L.ev||winterOn();}
 
-/* ---------- places ---------- */
+/* ---------- the Frostbound Vale: a separate region with its own map (x,y are positions on the painted region map) ---------- */
 Object.assign(LOCS,{
-  hollyhearth:{n:'Hollyhearth',ty:'village',ev:'winter',x:785,y:170,f:null,lv:[1,100],sv:['inn','shop','temple','festival','market'],mon:[],res:[['w_holly','herbalism']],
-    d:'A snowbound village that only appears on the maps during the Long Night. Lanterns hang from every eave, and the Frostmother hands out gifts beneath the great tree.',
+  hollyhearth:{n:'Hollyhearth',ty:'village',ev:'winter',rg:'winter',x:685,y:440,f:null,lv:[1,100],sv:['inn','shop','temple','festival','market'],mon:[],res:[['w_holly','herbalism']],vis:'winter',
+    d:'The heart of the Frostbound Vale: a lantern-lit village around a great decorated tree. The Frostmother hands out gifts here, and every road in the Vale starts at her door.',
     feat:['The great lantern tree','The Frostmother\'s sleigh','A frozen wishing well']},
-  glimmerfrost:{n:'Glimmerfrost Woods',ty:'wild',ev:'winter',x:872,y:112,f:null,lv:[3,95],mon:['w_ginger','w_imp','w_wolf','w_wraith','w_nut','w_deer','w_snowman','w_gremlin'],
+  snowdrift:{n:'Snowdrift Fields',ty:'wild',ev:'winter',rg:'winter',x:650,y:655,f:null,lv:[1,95],mon:['w_snowman','w_wolf','w_deer','w_imp','w_gumdrop','w_owl'],res:[['w_holly','herbalism'],['w_ginger','herbalism']],
+    d:'Gentle white fields south of the village, where snowmen grin a little too widely. A good first hunt in the Vale.',feat:['A ring of melted snowmen','A sledding hill','Footprints that stop in the middle of the field']},
+  glimmerfrost:{n:'Glimmerfrost Woods',ty:'wild',ev:'winter',rg:'winter',x:255,y:200,f:null,lv:[1,95],mon:['w_ginger','w_wolf','w_deer','w_icewolf','w_treant','w_bats','w_imp','w_elf'],
     res:[['w_holly','herbalism'],['w_yulelog','woodcutting'],['w_tinsel','herbalism']],
-    d:'Pines heavy with snow and stolen tinsel. Something has woken the old toys and the hungry things of winter. Its creatures match the strength of whoever walks in.',
-    feat:['A ring of melted snowmen','Gingerbread crumbs leading off the path','A sleigh overturned in the drifts']},
-  coalvault:{n:'Coalheart\'s Vault',ty:'dungeon',ev:'winter',x:885,y:228,f:null,lv:[10,95],mon:['w_gremlin','w_nut','w_mimic','w_knight','w_serpent','w_star'],res:[['w_coal','mining']],
-    boss:'b_coalheart',floors:3,scale:1,
-    d:'A black stone vault where Old Coalheart hoards every gift he has ever stolen. Its guardians grow as strong as the thieves who come for them.',
-    feat:['Mountains of unopened gifts','A furnace that burns stolen wishes','Cages of tin soldiers']}
+    d:'Pines heavy with snow and stolen tinsel. Something has woken the old trees and the hungry things of winter.',
+    feat:['Gingerbread crumbs leading off the path','A sleigh overturned in the drifts','A pine hung with broken baubles that whisper']},
+  silverglass:{n:'Silverglass Lake',ty:'wild',ev:'winter',rg:'winter',x:365,y:360,f:null,lv:[1,95],mon:['w_fish','w_bear','w_revenant','w_serpent','w_icespider','w_owl'],res:[['fish_trout','fishing'],['crystal_frost','mining']],
+    d:'A frozen lake as smooth as a mirror. Things swim under the ice, and drowned knights stand frozen in it.',feat:['Fishing holes cut into the ice','A frozen knight beneath your feet','An ice-fishing shack, abandoned mid-meal']},
+  candlewick:{n:'Candlewick Hollow',ty:'wild',ev:'winter',rg:'winter',x:190,y:585,f:null,lv:[2,95],mon:['w_lantern','w_wax','w_witch','w_wraith','w_owl','w_star'],res:[['w_tinsel','herbalism']],
+    d:'A misty hollow lit by hundreds of candles that nobody lit. Follow the lights and they follow you back.',feat:['A thousand candles in the snow','A witch\'s wax-sealed door','Lantern-wisps dancing in a circle']},
+  toyworks:{n:'Tinker\'s Toyworks',ty:'dungeon',ev:'winter',rg:'winter',x:710,y:120,f:null,lv:[5,95],mon:['w_tin','w_jack','w_mouseking','w_doll','w_horse','w_puppet','w_windup','w_teddy','w_ratknight'],res:[['ore_iron','mining']],
+    boss:'b_toymaster',floors:3,scale:1,d:'The great clockwork workshop where the Vale\'s toys were made. The Toymaster has wound them all up again, and they are not playing.',
+    feat:['Conveyor belts of half-built soldiers','A room of staring dolls','The Toymaster\'s winding key, big as a door']},
+  ruins:{n:'Gingerbread Ruins',ty:'ruin',ev:'winter',rg:'winter',x:870,y:265,f:null,lv:[5,95],mon:['w_ginger','w_gumdrop','w_sugarplum','w_mummy','w_elf','w_mimic','w_gremlin'],res:[['w_ginger','herbalism'],['w_tinsel','herbalism']],
+    d:'A sugar town that crumbled long ago. The candy canes still stand like gravestones.',feat:['Toppled candy canes','A gingerbread chapel','Gift boxes that breathe']},
+  peaks:{n:'Peppermint Peaks',ty:'lair',ev:'winter',rg:'winter',x:1065,y:125,f:null,lv:[8,95],mon:['w_drake','w_giant','w_mammoth','w_icewolf','w_sugarplum'],res:[['crystal_frost','mining'],['w_antler','herbalism']],
+    d:'Striped mountains where peppermint drakes nest and frost giants herd mammoths. The Yule Wyrm sleeps somewhere above.',feat:['A drake nest of candy shells','Giant footprints full of snow','A mammoth graveyard']},
+  aurora:{n:'Aurora Spire',ty:'dungeon',ev:'winter',rg:'winter',x:1295,y:215,f:null,lv:[12,95],mon:['w_sprite','w_starfall','w_star','w_revenant','w_knight','w_icespider'],res:[['w_spirit','mining']],
+    boss:'b_aurora',floors:4,scale:1,d:'A spire of living crystal that pulls the northern lights out of the sky. Its queen has stolen the Frostmother\'s star.',
+    feat:['Staircases of frozen light','Starlight trapped in crystal','The Queen\'s empty throne, still humming']},
+  coalvault:{n:'Coalheart\'s Vault',ty:'dungeon',ev:'winter',rg:'winter',x:1220,y:400,f:null,lv:[8,95],mon:['w_gremlin','w_nut','w_mimic','w_knight','w_elf','w_serpent'],res:[['w_coal','mining']],
+    boss:'b_coalheart',floors:3,scale:1,d:'A black stone vault on a cliff where Old Coalheart hoards every gift he has ever stolen.',
+    feat:['Mountains of unopened gifts','A furnace that burns stolen wishes','Cages of tin soldiers']},
+  grimhollow:{n:'Grimwinter\'s Hollow',ty:'lair',ev:'winter',rg:'winter',x:1180,y:650,f:null,lv:[10,95],mon:['w_revenant','w_wraith','w_knight','w_bats','w_icewolf','w_treant'],res:[['w_coal','mining']],
+    d:'Thorns, horns and chains. The Horned Collector keeps the naughty here, and comes out when the snow is deepest.',feat:['Iron cages hung from thorn trees','Horned statues with burning eyes','A sack big enough for a village']}
 });
+WINTER.locs=Object.keys(LOCS).filter(l=>LOCS[l].ev==='winter');
 // closed outside the festival: every system that skips hidden places (quests, invasions, treasure, travel) skips these too
 for(const l of WINTER.locs)Object.defineProperty(LOCS[l],'hid',{get(){return !winterOn();},enumerable:true});
-ROUTES.push(['hollyhearth','khazgard',3],['hollyhearth','deepforge',2],['hollyhearth','glimmerfrost',1],['glimmerfrost','coalvault',1],['hollyhearth','coalvault',2]);
+// roads inside the Vale only: the Vale is reached by the festival sleigh, not on foot
+ROUTES.push(['hollyhearth','snowdrift',1],['hollyhearth','silverglass',1],['hollyhearth','glimmerfrost',2],['glimmerfrost','silverglass',1],['silverglass','candlewick',1],['hollyhearth','candlewick',2],
+  ['snowdrift','candlewick',2],['hollyhearth','toyworks',2],['glimmerfrost','toyworks',2],['hollyhearth','ruins',1],['toyworks','ruins',1],['ruins','peaks',1],['peaks','aurora',2],['ruins','coalvault',2],
+  ['aurora','coalvault',1],['coalvault','grimhollow',1],['snowdrift','grimhollow',2]);
 Object.assign(TOWNSFOLK,{hollyhearth:[['The Frostmother','frostmother'],['Bram Tallow','candlemaker'],['Little Wren','singer']]});
 
 /* ---------- monsters (art: cell in the xmon sheet) ---------- */
@@ -1881,6 +1915,45 @@ Object.assign(MONSTERS,{
     loot:[['w_coal',1,6],['w_ornament',1,12],['w_gift',1,2]],g:30,gear:1,uniq:'w_nutmaul',uq:0.12,set:'yulewarden',lim:1,art:8},
   b_grimwinter:{n:'Grimwinter, the Horned Collector',cat:'spirit',boss:1,world:1,hp:42,at:2.0,df:1.9,md:1.8,e:'frost',w:['fire','holy'],r:['frost'],st:['freeze',0.2,1],b:['boss'],
     loot:[['w_ornament',1,30],['w_spirit',1,3],['w_gift',1,3]],g:220,gear:2,uniq:'w_birch',uq:0.3,set:'yulewarden',lim:1,art:9}
+});
+// the Vale's wider bestiary (art: [sheet, cell])
+Object.assign(MONSTERS,{
+  // haunted toys (Tinker's Toyworks)
+  w_tin:{n:'Tin Soldier',cat:'construct',hp:1.1,at:1.2,df:1.4,b:['pack'],w:['lightning'],r:['poison'],loot:[['ore_iron',0.4,1],['w_ornament',0.5,1]],g:0.8,art:['xmon2',0]},
+  w_jack:{n:'Jack-in-the-Box Horror',cat:'construct',hp:0.9,at:1.4,ev:1.3,b:['ambush'],w:['fire'],loot:[['w_ornament',0.6,1]],g:1.2,art:['xmon2',1]},
+  w_mouseking:{n:'Clockwork Mouse King',cat:'construct',hp:1.8,at:1.3,df:1.3,b:['brute'],w:['lightning'],loot:[['w_ornament',0.8,2],['ore_silver',0.3,1]],g:2,gear:0.12,art:['xmon2',2]},
+  w_doll:{n:'Porcelain Haunt',cat:'undead',hp:0.9,at:1.0,md:1.5,ev:1.3,e:'shadow',b:['caster'],w:['holy'],r:['shadow','poison'],st:['weaken',0.3,2],loot:[['ectoplasm',0.4,1],['w_ornament',0.5,1]],g:1.2,art:['xmon2',3]},
+  w_horse:{n:'Nightmare Rocking Horse',cat:'construct',hp:1.3,at:1.4,sp:1.4,e:'fire',b:['aggressive'],w:['frost'],r:['fire'],st:['burn',0.25,2],loot:[['wood_oak',0.5,2],['w_ornament',0.5,1]],g:0.9,art:['xmon2',4]},
+  w_puppet:{n:'Marionette Assassin',cat:'construct',hp:0.9,at:1.5,ev:1.6,sp:1.4,b:['ambush'],w:['fire'],st:['bleed',0.3,2],loot:[['silk',0.5,1],['w_ornament',0.5,1]],g:1.5,art:['xmon2',5]},
+  w_windup:{n:'Wind-up Knight',cat:'construct',hp:1.7,at:1.3,df:1.7,sp:0.8,b:['brute'],w:['lightning'],r:['poison'],loot:[['ingot_iron',0.3,1],['w_ornament',0.6,1]],g:1.4,gear:0.1,art:['xmon2',6]},
+  w_teddy:{n:'Stitched Bear Brute',cat:'construct',hp:2.0,at:1.3,df:1.0,b:['brute'],w:['fire'],loot:[['silk',0.4,2],['w_ornament',0.6,1]],g:1.0,art:['xmon2',7]},
+  w_ratknight:{n:'Mouse King\'s Champion',cat:'beast',hp:1.1,at:1.3,ev:1.4,b:['pack','aggressive'],loot:[['w_ornament',0.5,1]],g:1.2,art:['xmon3',14]},
+  // lake & hollow
+  w_fish:{n:'Glassfang Pike',cat:'beast',hp:0.8,at:1.2,ev:1.3,e:'frost',b:['pack'],w:['lightning'],r:['frost'],loot:[['fish_trout',0.6,1],['w_ornament',0.4,1]],g:0.4,art:['xmon2',9]},
+  w_bear:{n:'Polar Bear Warlord',cat:'beast',hp:1.9,at:1.5,df:1.3,b:['brute','aggressive'],w:['fire'],r:['frost'],loot:[['hide',0.8,2],['meat',0.7,2],['w_ornament',0.5,1]],g:0.8,art:['xmon2',10]},
+  w_revenant:{n:'Frost Revenant',cat:'undead',hp:1.5,at:1.4,df:1.4,e:'frost',b:['undead'],w:['holy','fire'],r:['frost','shadow','poison'],st:['freeze',0.15,1],loot:[['crystal_frost',0.4,1],['w_ornament',0.6,1]],g:1.3,gear:0.1,art:['xmon2',11]},
+  w_owl:{n:'Snow Owl Harpy',cat:'beast',hp:0.9,at:1.2,ev:1.5,sp:1.5,b:['ranged'],w:['lightning'],loot:[['roc_feather',0.15,1],['w_ornament',0.4,1]],g:0.6,art:['xmon2',12]},
+  w_lantern:{n:'Lantern Wisp',cat:'spirit',hp:0.6,at:0.9,md:1.4,ev:1.8,e:'fire',b:['caster','pack'],w:['frost'],r:['fire'],loot:[['w_tinsel',0.3,1],['w_ornament',0.5,1]],g:0.6,art:['xmon2',13]},
+  w_wax:{n:'Wax Golem',cat:'construct',hp:1.9,at:1.2,df:1.2,sp:0.7,e:'fire',b:['brute'],w:['frost'],r:['fire'],loot:[['w_yulelog',0.3,1],['w_ornament',0.6,1]],g:0.9,art:['xmon2',14]},
+  w_witch:{n:'Candle Witch',cat:'humanoid',hp:1.0,at:0.9,md:1.6,e:'fire',b:['caster','healer'],w:['frost'],st:['burn',0.35,2],loot:[['crystal_fire',0.3,1],['w_ornament',0.7,1]],g:2.5,gear:0.15,art:['xmon2',15]},
+  // aurora, peaks & ruins
+  w_sprite:{n:'Aurora Sprite',cat:'spirit',hp:0.7,at:0.9,md:1.6,ev:1.7,e:'arcane',b:['caster','pack'],r:['arcane'],w:['shadow'],loot:[['crystal_mana',0.3,1],['w_ornament',0.5,1]],g:0.8,art:['xmon3',0]},
+  w_starfall:{n:'Starfall Golem',cat:'construct',hp:2.2,at:1.4,df:1.8,md:1.4,e:'holy',b:['brute'],r:['holy','frost'],w:['shadow'],loot:[['w_spirit',0.15,1],['w_ornament',0.7,1]],g:1.0,art:['xmon3',1]},
+  w_giant:{n:'Frost Giant',cat:'humanoid',hp:2.4,at:1.6,df:1.4,sp:0.8,e:'frost',b:['brute'],w:['fire'],r:['frost'],st:['stun',0.15,1],loot:[['crystal_frost',0.5,2],['w_ornament',0.7,2]],g:2,gear:0.15,art:['xmon3',2]},
+  w_mammoth:{n:'Bellwool Mammoth',cat:'beast',hp:2.6,at:1.4,df:1.5,sp:0.7,b:['brute'],w:['fire'],r:['frost'],loot:[['hide',0.8,3],['w_bell',0.06,1],['w_ornament',0.6,1]],g:0.8,art:['xmon3',3]},
+  w_drake:{n:'Peppermint Drake',cat:'dragon',hp:1.6,at:1.5,sp:1.3,e:'frost',b:['dragon'],w:['fire'],r:['frost'],loot:[['scale_drake',0.4,1],['w_candycane',0.5,2],['w_ornament',0.6,1]],g:1.4,art:['xmon3',4]},
+  w_sugarplum:{n:'Sugarplum Fiend',cat:'spirit',hp:0.9,at:1.1,md:1.4,ev:1.6,e:'poison',b:['caster'],w:['holy'],st:['poison',0.35,3],loot:[['w_candycane',0.4,1],['w_ornament',0.5,1]],g:1.2,art:['xmon3',5]},
+  w_gumdrop:{n:'Gumdrop Ooze',cat:'elemental',hp:1.1,at:0.9,df:0.8,b:['pack'],w:['fire'],r:['poison'],loot:[['w_candycane',0.3,1],['w_ornament',0.4,1]],g:0.4,art:['xmon3',6]},
+  w_elf:{n:'Hollow Elf Saboteur',cat:'humanoid',hp:1.0,at:1.3,ev:1.5,sp:1.3,b:['ambush','surrender'],st:['bleed',0.3,2],loot:[['w_gift',0.12,1],['w_ornament',0.6,1]],g:2.4,gear:0.12,art:['xmon3',7]},
+  w_mummy:{n:'Giftwrapped Mummy',cat:'undead',hp:1.4,at:1.2,df:1.2,b:['undead'],w:['fire','holy'],r:['poison','shadow'],st:['weaken',0.25,2],loot:[['w_gift',0.1,1],['w_ornament',0.6,1]],g:1.0,art:['xmon3',8]},
+  w_icewolf:{n:'Crystalmane Alpha',cat:'beast',hp:1.4,at:1.4,sp:1.4,e:'frost',b:['pack','aggressive'],w:['fire'],r:['frost'],loot:[['pelt_wolf',0.7,1],['w_ornament',0.5,1]],g:0.6,tame:'wolf',art:['xmon3',9]},
+  w_bats:{n:'Snowbat Swarm',cat:'beast',hp:0.8,at:1.1,ev:1.8,sp:1.6,b:['pack'],w:['fire','lightning'],st:['bleed',0.2,2],loot:[['w_ornament',0.4,1]],g:0.3,art:['xmon3',10]},
+  w_treant:{n:'Evergloom Treant',cat:'spirit',hp:2.3,at:1.3,df:1.6,sp:0.6,e:'nature',b:['brute','regen'],w:['fire'],r:['nature','frost'],loot:[['w_yulelog',0.5,1],['wood_elder',0.3,1],['w_ornament',0.6,1]],g:0.8,art:['xmon3',11]},
+  w_icespider:{n:'Rimefang Spider',cat:'beast',hp:1.2,at:1.3,ev:1.3,e:'frost',b:['ambush'],w:['fire'],r:['frost'],st:['slow',0.3,2],loot:[['silk',0.6,1],['w_ornament',0.5,1]],g:0.6,tame:'spider',art:['xmon3',15]},
+  // bosses
+  b_toymaster:{n:'The Toymaster',cat:'humanoid',boss:1,hp:6,at:1.5,df:1.4,md:1.6,e:'arcane',b:['boss','caster'],w:['fire','lightning'],loot:[['w_ornament',1,12],['w_gift',1,2],['ingot_steel',1,3]],g:30,gear:1,uniq:'w_bellbow',uq:0.12,set:'yulewarden',lim:1,art:['xmon2',8]},
+  b_aurora:{n:'The Aurora Queen',cat:'spirit',boss:1,hp:7,at:1.6,df:1.5,md:2.0,e:'arcane',b:['boss','caster'],w:['shadow','fire'],r:['arcane','frost','holy'],st:['stun',0.2,1],loot:[['w_ornament',1,16],['w_spirit',1,2],['w_gift',1,2]],g:40,gear:1,uniq:'w_frostorb',uq:0.12,set:'yulewarden',lim:1,art:['xmon3',12]},
+  b_yulewyrm:{n:'The Yule Wyrm',cat:'dragon',boss:1,world:1,hp:46,at:2.1,df:2.0,md:1.8,e:'frost',w:['fire'],r:['frost'],b:['boss','dragon'],loot:[['w_ornament',1,30],['scale_drake',1,4],['w_gift',1,3]],g:240,gear:2,uniq:'w_pepperblade',uq:0.3,set:'yulewarden',lim:1,art:['xmon3',13]}
 });
 const WINTER_FOLK_ART={'The Frostmother':10,'Bram Tallow':11};
 
@@ -1946,7 +2019,11 @@ function winterLoot(id,l,out){if(!winterOn()||!S||!S.P)return;const M=MONSTERS[i
   if(!fest){if(U.chance(0.07))out.items.push({k:'w_ornament',q:U.ri(1,2)});if(U.chance(0.015))out.items.push({k:'w_gift',q:1});return;}
   if(U.chance(0.03))out.items.push(wGear('set',l));if(U.chance(0.006))out.items.push(wGear(U.pick(['w_pepperblade','w_bellbow','w_icicle','w_frostorb','w_candystaff']),l));}
 // festive wanderers show up outside Hollyhearth too
-function winterSwap(loc,id){if(!winterOn()||isTown(loc)||LOCS[loc].ev||!U.chance(0.08))return id;return U.pick(['w_imp','w_gremlin','w_snowman','w_mimic','w_wolf']);}
+function winterSwap(loc,id){if(!winterOn()||isTown(loc)||LOCS[loc].ev||!U.chance(0.08))return id;return U.pick(['w_imp','w_gremlin','w_snowman','w_mimic','w_wolf','w_elf','w_gumdrop','w_bats','w_lantern']);}
+// the Vale is crowded: bigger packs than anywhere else (each extra monster is softened a little by startCombat)
+// swarms: the more monsters in a Vale pack, the weaker each one, so a pack of four is about as hard as a normal pair
+function winterSoften(loc,en){if(!LOCS[loc]||!LOCS[loc].ev||en.length<2)return;const k=({2:0.82,3:0.64,4:0.53})[Math.min(4,en.length)];for(const e of en){if(e.boss)continue;e.mhp=Math.max(1,Math.round(e.mhp*k));e.hp=e.mhp;e.atk*=k;e.matk*=k;}}
+function winterPack(loc,n){if(!LOCS[loc]||!LOCS[loc].ev)return n;return Math.max(n,U.wpick([1,2,3,4],k=>({1:2,2:5,3:3,4:1})[k]));}
 
 function openGift(){const P=S.P;const got=[];const add=(k,q)=>{wGive(k,q);got.push(`${ITEMS[k].n}${q>1?' ×'+q:''}`);};
   add('w_ornament',U.ri(3,8));
@@ -1992,13 +2069,14 @@ function winterBuy(i){const P=S.P;const e=WINTER_SHOP[+i];if(!e)return;const [k,
 function winterPanel(){if(!winterOn()||!S||!S.P)return '';const P=S.P;const here=LOCS[P.loc].ev;const left=winterDaysLeft();const orn=invCount(P,'w_ornament');
   const canSleigh=!P.dungeon&&!here&&isTown(P.loc);
   return `<section class="panel winter"><div class="wbg" aria-hidden="true"></div><div class="wcontent"><p class="wpre">Festival · ${left} day${left===1?'':'s'} left</p><h3>❄ The Long Night</h3>
-    <p>Snow has fallen on the Realms. In <b>Hollyhearth</b> the Frostmother trades Starlight Ornaments for limited gear, festive creatures roam Glimmerfrost Woods, and Old Coalheart guards his vault of stolen gifts.</p>
+    ${here?'':'<p>The <b>Frostbound Vale</b> has opened. Take the festival sleigh to Hollyhearth: haunted toys, frost giants and stolen-gift thieves wait in eleven new places, with three dungeons and two world bosses.</p>'}
+    ${winterQuestHtml()}
     <p class="wstat"><span class="orn">${U.fmt(orn)} ✦</span> ornaments${invCount(P,'w_gift')?` · <b>${invCount(P,'w_gift')}</b> gift${invCount(P,'w_gift')>1?'s':''} to open`:''}</p>
     <div class="row wrap">${winterGiftReady()?btn('🎁 Claim today\'s gift','wgift','','gilt'):'<span class="hint">Today\'s gift claimed. Come back tomorrow.</span>'}
-    ${canSleigh?btn('🛷 Festival sleigh to Hollyhearth','wsleigh','',''):''}${P.loc==='hollyhearth'&&P.wPrev&&LOCS[P.wPrev]?btn(`🛷 Sleigh back to ${LOCS[P.wPrev].n}`,'wsleighback',''):''}
+    ${canSleigh?btn('🛷 Festival sleigh to the Vale','wsleigh','','gilt'):''}${here?btn('🗺 Map of the Vale','wmap','',''):''}${here&&!P.dungeon?btn(`🛷 Sleigh home to ${LOCS[P.wPrev&&LOCS[P.wPrev]&&!LOCS[P.wPrev].ev?P.wPrev:'valeria'].n}`,'wsleighback',''):''}
     ${invCount(P,'w_gift')?btn('Open a gift','wopen','',''):''}</div></div></section>`;}
-function winterSleigh(back){const P=S.P;if(UI.inCombat()||P.dungeon)return;const to=back?P.wPrev:'hollyhearth';if(!to||!LOCS[to])return;if(!back)P.wPrev=P.loc;
-  spend(60);P.loc=to;if(!P.explored.includes(to))P.explored.push(to);log(back?`The festival sleigh drops you back in ${LOCS[to].n}.`:'Bells jingle through the snow as the festival sleigh carries you to Hollyhearth.','good');UI.tab='world';window.scrollTo(0,0);}
+function winterSleigh(back){const P=S.P;if(UI.inCombat()||P.dungeon)return;const to=back?(P.wPrev&&LOCS[P.wPrev]&&!LOCS[P.wPrev].ev?P.wPrev:'valeria'):'hollyhearth';if(!to||!LOCS[to])return;if(!back)P.wPrev=P.loc;
+  spend(60);P.loc=to;if(!P.explored.includes(to))P.explored.push(to);log(back?`The festival sleigh drops you back in ${LOCS[to].n}.`:'Bells jingle through the snow as the festival sleigh carries you into the Frostbound Vale, to Hollyhearth.','good');UI.tab='world';window.scrollTo(0,0);if(!back)winterVisit(to);}
 // after the festival: nobody is left stranded in a region that has closed
 function winterCleanup(){if(!S||!S.P||winterOn())return;const P=S.P;if(LOCS[P.loc]&&LOCS[P.loc].ev){P.loc=P.wPrev&&LOCS[P.wPrev]&&!LOCS[P.wPrev].ev?P.wPrev:'khazgard';P.dungeon=null;}}
 
@@ -2007,7 +2085,53 @@ function winterActs(){Object.assign(ACT,{
   wgift(){claimDailyGift();},
   wopen(){const P=S.P;const i=P.inv.findIndex(x=>x.k==='w_gift');if(i>=0)useItem(i);},
   wsleigh(){winterSleigh(false);},wsleighback(){winterSleigh(true);},
-  wbuy(i){winterBuy(i);if(typeof refreshModal==='function')refreshModal();}});}
+  wbuy(i){winterBuy(i);if(typeof refreshModal==='function')refreshModal();},
+  wbounty(){claimBounty();},wmap(){UI.tab='map';UI.mapRegion='winter';UI.mapSel=null;window.scrollTo(0,0);},mapregion(v){UI.mapRegion=v;UI.mapSel=null;}});}
+
+
+/* ---------- the Frostmother's quest chain and daily bounties ---------- */
+const WINTER_CHAIN=[
+  {n:'The Call of the Long Night',d:'Take the festival sleigh to Hollyhearth and speak with the Frostmother.',t:'visit',loc:'hollyhearth',orn:15},
+  {n:'Clear the Roads',d:'Defeat 20 creatures anywhere in the Frostbound Vale.',t:'kills',qty:20,orn:30},
+  {n:'Unwound',d:'Stop the Toymaster in Tinker\'s Toyworks.',t:'boss',mon:'b_toymaster',orn:60,gift:2},
+  {n:'Coal for Coalheart',d:'Take back the stolen gifts from Old Coalheart\'s Vault.',t:'boss',mon:'b_coalheart',orn:70,gift:2},
+  {n:'The Stolen Star',d:'Climb the Aurora Spire and defeat the Aurora Queen.',t:'boss',mon:'b_aurora',orn:90,gift:3},
+  {n:'Hero of the Long Night',d:'Fight the Yule Wyrm or Grimwinter when either appears in the Vale.',t:'world',orn:120,gift:3,cloak:1}];
+const WINTER_BOUNTY_LOCS=['snowdrift','glimmerfrost','silverglass','candlewick','ruins','peaks','grimhollow'];
+function wQuest(){const W=wState();W.q=W.q||0;W.qp=W.qp||0;return W;}
+function wBounty(){const W=wState();const day=winterDayKey();if(!W.b||W.b.day!==day){let h=0;for(const c of day)h=(h*31+c.charCodeAt(0))|0;const loc=WINTER_BOUNTY_LOCS[Math.abs(h)%WINTER_BOUNTY_LOCS.length];W.b={day,loc,qty:12,prog:0,done:false,paid:false};}return W.b;}
+function wAdvance(){const W=wQuest();const st=WINTER_CHAIN[W.q];if(!st)return;const P=S.P;
+  wGive('w_ornament',st.orn);if(st.gift)wGive('w_gift',st.gift);let extra='';if(st.cloak){const g=wGear('w_cloak',P.level);P.inv.push(g);extra=` and ${itemName(g)}`;P.title='Hero of the Long Night';}
+  log(`✦ The Frostmother: “${st.n}” complete! +${st.orn} ornaments${st.gift?`, ${st.gift} gift${st.gift>1?'s':''}`:''}${extra}.`,'epic');UI.toast(`Quest complete: ${st.n}`,'epic');if(typeof sfx==='function')sfx('levelup');
+  W.q++;W.qp=0;checkAch();if(W.q<WINTER_CHAIN.length&&WINTER_CHAIN[W.q].t==='visit'&&P.loc===WINTER_CHAIN[W.q].loc)wAdvance();}
+function winterVisit(loc){if(!winterOn()||!S||!S.P)return;const W=wQuest();const st=WINTER_CHAIN[W.q];if(st&&st.t==='visit'&&st.loc===loc)wAdvance();}
+// called for every monster the player defeats
+function winterKill(id,loc){if(!winterOn()||!S||!S.P||!LOCS[loc]||!LOCS[loc].ev)return;const W=wQuest();const st=WINTER_CHAIN[W.q];
+  if(st&&st.t==='kills'){W.qp++;if(W.qp>=st.qty)wAdvance();}
+  else if(st&&st.t==='boss'&&st.mon===id)wAdvance();
+  const B=wBounty();if(!B.done&&loc===B.loc){B.prog++;if(B.prog>=B.qty){B.done=true;UI.toast(`Daily bounty done in ${LOCS[B.loc].n}! Claim it from the festival panel.`,'epic');}}}
+function winterWorldBoss(id){if(!winterOn()||!S||!S.P)return;if(id!=='b_grimwinter'&&id!=='b_yulewyrm')return;const W=wQuest();if(id==='b_grimwinter')W.grim=1;const st=WINTER_CHAIN[W.q];if(st&&st.t==='world')wAdvance();checkAch();}
+function claimBounty(){const B=wBounty();if(!B.done||B.paid)return;B.paid=true;wGive('w_ornament',25);wGive('w_gift',1);log(`Daily bounty in ${LOCS[B.loc].n} complete: +25 ornaments and a Festival Gift.`,'epic');UI.toast('Bounty claimed: 25 ✦ and a gift','epic');}
+function winterQuestHtml(){const W=wQuest();const st=WINTER_CHAIN[W.q];const B=wBounty();
+  const chain=st?`<div class="wq"><small>Quest ${W.q+1} of ${WINTER_CHAIN.length}</small><b>${E(st.n)}</b><span>${E(st.d)}${st.t==='kills'?` <em>(${W.qp}/${st.qty})</em>`:''}</span></div>`:`<div class="wq done"><b>✦ Hero of the Long Night</b><span>You finished the Frostmother's story. Thank you, hero.</span></div>`;
+  const bounty=`<div class="wq"><small>Daily bounty</small><b>Hunt in ${E(LOCS[B.loc].n)}</b><span>Defeat ${B.qty} creatures there. <em>(${Math.min(B.prog,B.qty)}/${B.qty})</em></span>${B.done&&!B.paid?btn('Claim 25 ✦ + gift','wbounty','','tiny gilt'):B.paid?'<span class="good">Claimed. A new bounty tomorrow.</span>':''}</div>`;
+  return `<div class="wqs">${chain}${bounty}</div>`;}
+
+/* ---------- the Vale's own map ---------- */
+function inVale(loc){return !!(LOCS[loc]&&LOCS[loc].rg==='winter');}
+function renderValeMap(){const P=S.P;const L=Object.keys(LOCS).filter(l=>inVale(l));const here=inVale(P.loc);
+  const lines=ROUTES.filter(([a,b])=>inVale(a)&&inVale(b)).map(([a,b])=>`<line x1="${LOCS[a].x}" y1="${LOCS[a].y}" x2="${LOCS[b].x}" y2="${LOCS[b].y}" class="route ${a===P.loc||b===P.loc?'near':''}"/>`).join('');
+  const W=wQuest();const qst=WINTER_CHAIN[W.q];const B=wBounty();
+  const nodes=L.map(l=>{const X=LOCS[l],t=isTown(l);const r=t?16:X.boss?14:12;const goal=(qst&&qst.t==='boss'&&LOCS[l].boss===qst.mon)||(!B.done&&B.loc===l);
+    return `<g class="node vnode ${l===P.loc?'cur':''} ty-${X.ty} ${UI.mapSel===l?'sel':''}" data-a="mapsel" data-v="${l}" tabindex="0" role="button" aria-label="${E(X.n)}">${l===P.loc?`<circle cx="${X.x}" cy="${X.y}" r="${r+9}" class="here"/>`:''}${goal?`<circle cx="${X.x}" cy="${X.y}" r="${r+15}" class="goal"/>`:''}<circle cx="${X.x}" cy="${X.y}" r="${r}"/>${S.boss&&S.boss.loc===l?`<circle cx="${X.x}" cy="${X.y}" r="${r+8}" class="bossring"/>`:''}<text x="${X.x}" y="${X.y+r+32}" class="lbl">${E(X.n)}</text></g>`;}).join('');
+  const sel=inVale(UI.mapSel)?UI.mapSel:here?P.loc:'hollyhearth';const X=LOCS[sel];const p=here&&sel!==P.loc?path(P.loc,sel):null;
+  const pathLine=p?`<polyline class="jpath" points="${p.path.map(x=>LOCS[x].x+','+LOCS[x].y).join(' ')}"/>`:'';
+  let go;if(sel===P.loc)go='<p class="good">You are here.</p>';else if(!here)go=sel==='hollyhearth'&&!P.dungeon&&isTown(P.loc)?btn('🛷 Take the festival sleigh (1h)','wsleigh','','gilt'):'<p class="hint">The Vale is reached by the festival sleigh from any town. It arrives in Hollyhearth.</p>';
+  else go=GRAPH[P.loc][sel]!=null?btn(`Travel (${GRAPH[P.loc][sel]}h)`,'travel',sel,'gilt'):p?`<p>Route: ${p.path.map(x=>E(LOCS[x].n)).join(' → ')} (${p.hours}h)</p>${btn('Journey there','journey',sel,'gilt')}`:'';
+  return `<svg viewBox="0 0 1376 768" class="map vale" role="img" aria-label="Map of the Frostbound Vale"><image href="${ART.base}xmap.webp" x="0" y="0" width="1376" height="768" preserveAspectRatio="xMidYMid slice"/>${lines}${pathLine}${nodes}</svg>
+    <div class="mapinfo"><div class="vista sm" style="${valeVista(sel)}"></div><h3>${E(X.n)}</h3><p>${E(X.d)}</p><p><small>${U.cap(X.ty)}${!isTown(sel)?' · creatures match your level':''}${X.boss?` · boss: ${E(MONSTERS[X.boss].n)}`:''}</small></p>${go}</div>`;}
+function valeVista(l){const X=LOCS[l];if(l==='hollyhearth')return `background-image:url(${ART.base}winter.webp);background-size:cover;background-position:50% 55%`;
+  return `background-image:url(${ART.base}xmap.webp);background-size:420%;background-position:${(X.x/1376*100).toFixed(1)}% ${(X.y/768*100).toFixed(1)}%`;}
 
 /* ---- engine.js ---- */
 /* ETERNAL REALMS — core engine: rng, time, items, stats, progression */
@@ -2635,7 +2759,7 @@ function goalText(g){return ({level:`reach level ${g.target}`,gear:'upgrade equi
 
 /* ---------------- WORLD BOSSES ---------------- */
 const WORLD_BOSSES=[['b_grubnak','whisperwood',20,3],['b_hydra','mire',45,2],['b_frostwyrm','summit',58,2],['b_dragon','ashen',80,1.2],['b_lich','necropolis',90,1]];
-function spawnBoss(){const pool=WORLD_BOSSES.concat(WORLD_BOSSES_EXT).filter(b=>locOpen(b[1]));if(typeof winterOn==='function'&&winterOn())pool.push(['b_grimwinter','glimmerfrost',45,4]);const [id,loc,lvl]=U.wpick(pool,b=>b[3]);const m=makeMonster(id,lvl);S.boss={id,loc,lvl,hp:m.mhp,mhp:m.mhp,contrib:{},start:S.time,end:S.time+U.ri(20,36)*60,deaths:0};
+function spawnBoss(){const pool=WORLD_BOSSES.concat(WORLD_BOSSES_EXT).filter(b=>locOpen(b[1]));if(typeof winterOn==='function'&&winterOn())pool.push(['b_grimwinter','grimhollow',45,4],['b_yulewyrm','peaks',55,4]);const [id,loc,lvl]=U.wpick(pool,b=>b[3]);const m=makeMonster(id,lvl);S.boss={id,loc,lvl,hp:m.mhp,mhp:m.mhp,contrib:{},start:S.time,end:S.time+U.ri(20,36)*60,deaths:0};
   news(`World Boss ${MONSTERS[id].n} has appeared in ${LOCS[loc].n}!`,'boss');BUS.emit('boss_spawn',{boss:S.boss});}
 function raidBoss(group){const B=S.boss;if(!B)return;const m=makeMonster(B.id,B.lvl);
   for(const n of group){if(n.busy>S.time&&n.act==='raiding')continue;const st=stats(n);const d=estDmg(st,n.level,m)*U.ri(6,12);B.hp-=d;B.contrib[n.id]=(B.contrib[n.id]||0)+d;n.act='raiding';n.busy=S.time+60;
@@ -3001,7 +3125,7 @@ function readBook(id){spend(45);if(!unlockLore(id))log(`You re-read "${LORE[id].
 
 /* ---------------- quests ---------------- */
 function acceptQuest(q){const P=S.P;if(P.quests.length>=10){log('Your quest log is full (10).','bad');return;}if(P.quests.some(x=>x.id===q.id))return;q.taken=true;const c=JSON.parse(JSON.stringify(q));P.quests.push(c);log(`Quest accepted: ${q.n}`,'good');}
-function questKill(monId,loc,elite){const P=S.P;checkFactionChain('kill',{mon:monId,loc});for(const q of P.quests)if(!q.done&&(q.type==='kill'||q.type==='bounty')&&q.mon===monId&&q.loc===loc&&(!q.elite||elite)){q.prog++;if(q.prog>=q.qty){q.done=true;log(`Quest ready: ${q.n} (return to ${LOCS[q.giver].n})`,'good');}}}
+function questKill(monId,loc,elite){const P=S.P;if(typeof winterKill==='function')winterKill(monId,loc);checkFactionChain('kill',{mon:monId,loc});for(const q of P.quests)if(!q.done&&(q.type==='kill'||q.type==='bounty')&&q.mon===monId&&q.loc===loc&&(!q.elite||elite)){q.prog++;if(q.prog>=q.qty){q.done=true;log(`Quest ready: ${q.n} (return to ${LOCS[q.giver].n})`,'good');}}}
 function turnInQuest(i){const P=S.P,q=P.quests[i];if(!q||!q.done)return;if(q.giver!==P.loc&&q.type!=='deliver'){log(`Turn this in at ${LOCS[q.giver].n}.`,'bad');return;}
   if(q.type==='gather'||q.type==='request'){if(invCount(P,q.item)<q.qty){q.done=false;q.prog=invCount(P,q.item);log('You no longer have enough items.','bad');return;}invRemove(P,q.item,q.qty);}
   completeQuest(q);}
@@ -3131,11 +3255,12 @@ function startEncounter(loc,opts={}){
   const P=S.P,dm=DIFFS[P.diff].m;
   let id=U.pick(L.mon);if(typeof winterSwap==='function')id=winterSwap(loc,id);let n=1;const M=MONSTERS[id];
   const lowLv=P.level<6;if((M.b||[]).includes('pack'))n=lowLv?U.ri(1,2):U.ri(2,3);else if(U.chance(lowLv?0.15:0.3))n=2;if(L.ty==='dungeon'&&U.chance(0.5))n++;
-  n=Math.min(n,2+partyMembers().length);
+  n=Math.min(n,2+partyMembers().length);if(typeof winterPack==='function')n=winterPack(loc,n);
   // monsters scale within the zone's range toward your level (a zone above you stays dangerous)
   let lv=U.clamp(P.level+U.ri(-2,1),L.lv[0],L.lv[1])+Math.round(evMod('monLv')-1);const en=[];
   if(evMod('drakes')>1&&!isTown(loc)&&U.chance(0.25))id='drake';if(evMod('lightning')>1&&U.chance(0.2))id='storm_elemental';
   for(let i=0;i<n;i++){const mid=i===0?id:(U.chance(0.6)?id:U.pick(L.mon));en.push(makeMonster(mid,U.clamp(lv+U.ri(-1,1),1,120),{diff:dm}));}
+  if(typeof winterSoften==='function')winterSoften(loc,en);
   // bounty elite
   const bq=P.quests.find(q=>q.type==='bounty'&&q.loc===loc&&!q.done);if(bq&&U.chance(0.35)){const e=makeMonster(bq.mon,bq.lvl,{diff:dm*1.3});e.name=`${MONSTERS[bq.mon].n} Alpha`;e.mhp*=2.5;e.hp=e.mhp;e.elite=1;en.splice(0,1,e);}
   // PvP zone: hostile adventurer instead
@@ -3445,6 +3570,7 @@ function finishCombatInner(result){
     if(o.type==='trial'){P.hp=Math.max(1,Math.round(stats(P).mhp*0.25));C.summary.push('The champion lowers their blade. "Train harder, and return."');}
     else{const r=playerDeath();C.summary.push(r==='perma'?'Your hero has died.':'You were defeated.');C.perma=r==='perma';}
   } else C.summary.push('You got away.');
+  if(o.worldBoss&&typeof winterWorldBoss==='function')winterWorldBoss((C.enemies.find(e=>e.boss)||{}).id);
   if(o.worldBoss)worldBossEnd(result);
   if(o.dungeon&&result==='win')dungeonProgress();
   if(o.dungeon&&result!=='win')P.dungeon=null;
@@ -4366,7 +4492,7 @@ const ART={ok:false,base:'assets/',gear:['sword','greatsword','axe','greataxe','
 function artCell(sheet,i,cls,extra){const c=i%4,r=Math.floor(i/4)%4;return `<span class="pt ${cls||''}" ${extra||''} style="background-image:url(${ART.base}${sheet}.webp);background-position:${(c*100/3).toFixed(2)}% ${(r*100/3).toFixed(2)}%" aria-hidden="true"></span>`;}
 function artIdx(prefix,i,cls,extra){return artCell(prefix+String(Math.floor(i/16)+1).padStart(2,'0'),i%16,cls,extra);}
 function nameHash(s){let h=0;s=String(s||'');for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h);}
-function ptMon(id,cls){if(!ART.ok)return '';if(MONSTERS[id]&&MONSTERS[id].art!=null)return artCell('xmon',MONSTERS[id].art,cls);ART.mk=ART.mk||Object.keys(MONSTERS);const i=ART.mk.indexOf(id);return i<0?'':artIdx('mon',i,cls);}
+function ptMon(id,cls){if(!ART.ok)return '';if(MONSTERS[id]&&MONSTERS[id].art!=null){const a=MONSTERS[id].art;return Array.isArray(a)?artCell(a[0],a[1],cls):artCell('xmon',a,cls);}ART.mk=ART.mk||Object.keys(MONSTERS);const i=ART.mk.indexOf(id);return i<0?'':artIdx('mon',i,cls);}
 function ptNpc(kind,cls){if(!ART.ok||ART.npc[kind]==null)return '';return artIdx('mon',ART.npc[kind],cls);}
 function ptClass(cl,gender,name,cls){if(!ART.ok)return '';ART.ck=ART.ck||Object.keys(CLASSES);let i=ART.ck.indexOf(cl);if(i<0)return '';
   const f=gender==='female'?1:gender==='male'?0:nameHash(name)%2;if(i<16)return artCell(f?'class02':'class01',i,cls);if(i<20)return artCell('class03',(i-16)+(f?4:0),cls);return '';}
@@ -5039,7 +5165,7 @@ const SVC_NAMES={festival:'Gift Exchange',special:'Specialty Shop',inn:'Inn',sho
 function renderWorld(){
   const P=S.P,L=LOCS[P.loc];const f=S.control[P.loc];const war=S.wars.find(w=>w.front===P.loc);
   const here=(S.byLoc[P.loc]||[]).filter(n=>online(n)&&!n.inParty);const realHere=Object.values(NET.peerMap).filter(p=>p.loc===P.loc).map(p=>[p.key,{user:p.user,level:p.lvl,cls:p.cls}]);
-  let h=`<section class="locard"><div class="vista ${L.ev?'wv-'+P.loc:''}" style="background-image:url(${drawVista(P.loc,S.time)})"></div><div class="lochead"><h2>${E(L.n)}</h2><div class="chips"><span class="chip">${U.cap(L.ty)}</span>${L.lv&&!isTown(P.loc)?`<span class="chip ${lvlColor(L.lv[0])}">Lv ${L.lv[0]}–${L.lv[1]}</span>`:''}
+  let h=`<section class="locard"><div class="vista" style="${L.rg&&ART.ok?valeVista(P.loc):`background-image:url(${drawVista(P.loc,S.time)})`}"></div><div class="lochead"><h2>${E(L.n)}</h2><div class="chips"><span class="chip">${U.cap(L.ty)}</span>${L.lv&&!isTown(P.loc)?`<span class="chip ${lvlColor(L.lv[0])}">Lv ${L.lv[0]}–${L.lv[1]}</span>`:''}
     ${f?`<span class="chip">${E(FACTIONS[f].n)}</span>`:''}${L.pvp?'<span class="chip danger">PvP zone</span>':''}${war?'<span class="chip danger">War front</span>':''}<span class="chip">${T.part(S.time)}</span></div></div>
     <p class="desc">${E(L.d)}</p>${S.P.dungeon?'':`<p class="weather">${E(weatherLine(P.loc))}</p>`}</section>`;
   if(typeof winterPanel==='function')h+=winterPanel();
@@ -5152,15 +5278,20 @@ function guildHallView(){const P=S.P;let h='';const g=guild(P.guild);
   h+=`<div class="row">${btn('Quest board','svc','board')}</div>`;return h;}
 
 /* ---------------- map ---------------- */
-function renderMap(){const P=S.P;const vis=l=>locOpen(l)&&(!LOCS[l].hid||P.explored.includes(l)||P.flags['found_'+l]);
+function renderMap(){const P=S.P;
+  // during the Long Night the Frostbound Vale has its own map; tabs switch between the two
+  const valeOn=typeof winterOn==='function'&&winterOn();if(valeOn&&UI.mapRegion==null&&inVale(P.loc))UI.mapRegion='winter';const showVale=valeOn&&UI.mapRegion==='winter';
+  const tabs=valeOn?`<div class="maptabs">${btn('The Realms','mapregion','main',showVale?'tiny ghost':'tiny gilt')}${btn('❄ Frostbound Vale','mapregion','winter',showVale?'tiny gilt':'tiny ghost')}</div>`:'';
+  if(showVale)return `<section class="panel"><h2>The Frostbound Vale</h2>${tabs}<div class="mapwrap vale">${renderValeMap()}</div></section>`;
+  const vis=l=>locOpen(l)&&!LOCS[l].rg&&(!LOCS[l].hid||P.explored.includes(l)||P.flags['found_'+l]);
   const lines=ROUTES.filter(([a,b])=>vis(a)&&vis(b)).map(([a,b,h])=>`<line x1="${LOCS[a].x}" y1="${LOCS[a].y}" x2="${LOCS[b].x}" y2="${LOCS[b].y}" class="route ${a===P.loc||b===P.loc?'near':''}"/>`).join('');
   const regions=[['ALDMERE',230,470],['SYLVANETH',180,60],['KHAZ DURRIM',640,95],['GOR\'THAK WASTES',830,560],['FERAL COAST',650,690],['THE FREE LANDS',470,420],['THE TORN SKY',920,120]];
   const nodes=Object.keys(LOCS).filter(vis).map(l=>{const L=LOCS[l],ex=P.explored.includes(l);const t=isTown(l);const r=L.ty==='city'?9:t?7:6;
     return `<g class="node ${l===P.loc?'cur':''} ${ex?'ex':'unex'} ty-${L.ty} ${UI.mapSel===l?'sel':''}" data-a="mapsel" data-v="${l}" tabindex="0" role="button" aria-label="${E(L.n)}">${l===P.loc?`<circle cx="${L.x}" cy="${L.y}" r="${r+7}" class="here"/>`:''}${Object.values(NET.peerMap).some(p=>p.loc===l)?`<circle cx="${L.x+r+3}" cy="${L.y-r-3}" r="4" class="friend"/>`:''}<circle cx="${L.x}" cy="${L.y}" r="${r}"/>${S.boss&&S.boss.loc===l?`<circle cx="${L.x}" cy="${L.y}" r="${r+6}" class="bossring"/>`:''}
     ${S.wars.some(w=>w.front===l)?`<text x="${L.x+10}" y="${L.y-8}" class="war">⚔</text>`:''}<text x="${L.x}" y="${L.y+r+12}" class="lbl">${E(L.n)}</text></g>`;}).join('');
-  const sel=UI.mapSel||P.loc;const L=LOCS[sel];const p=sel!==P.loc?path(P.loc,sel):null;
+  const sel=UI.mapSel&&!LOCS[UI.mapSel].rg?UI.mapSel:LOCS[P.loc].rg?'valeria':P.loc;const L=LOCS[sel];const p=sel!==P.loc?path(P.loc,sel):null;
   const pathLine=p?`<polyline class="jpath" points="${p.path.map(x=>LOCS[x].x+','+LOCS[x].y).join(' ')}"/>`:'';
-  return `<section class="panel"><h2>The Eternal Realms</h2><p class="hint maphint">Swipe the map sideways to see the whole realm · tap a place for details.</p><div class="mapwrap"><svg viewBox="0 0 1000 720" class="map" role="img" aria-label="World map"><defs><filter id="rough"><feTurbulence baseFrequency="0.018" numOctaves="3" seed="7"/><feDisplacementMap in="SourceGraphic" scale="38"/></filter></defs><rect x="0" y="0" width="1000" height="720" class="sea"/>
+  return `<section class="panel"><h2>The Eternal Realms</h2>${tabs}<p class="hint maphint">Swipe the map sideways to see the whole realm · tap a place for details.</p><div class="mapwrap"><svg viewBox="0 0 1000 720" class="map" role="img" aria-label="World map"><defs><filter id="rough"><feTurbulence baseFrequency="0.018" numOctaves="3" seed="7"/><feDisplacementMap in="SourceGraphic" scale="38"/></filter></defs><rect x="0" y="0" width="1000" height="720" class="sea"/>
     <g filter="url(#rough)">${[[260,330,250,190,'land'],[230,130,170,100,'forest'],[620,170,170,120,'mount'],[820,420,190,200,'waste'],[620,600,170,90,'land'],[480,400,110,170,'land'],[340,520,90,70,'land'],[560,670,80,30,'land'],[950,190,60,60,'waste']].map(([x,y,rx,ry,c])=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" class="terr ${c}"/>`).join('')}</g>
     ${regions.map(([n,x,y])=>`<text x="${x}" y="${y}" class="region">${n}</text>`).join('')}${lines}${pathLine}${nodes}</svg></div><p class="legend"><span class="lg city"></span>City <span class="lg dng"></span>Dungeon / lair <span class="lg ruin"></span>Ruin <span class="lg fr"></span>Real player</p>
     <div class="mapinfo"><div class="vista sm" style="background-image:url(${drawVista(sel,S.time)})"></div><h3>${E(L.n)}</h3><p>${E(L.d)}</p>${P.explored.includes(sel)?'':'<p class="hint">You have not been here yet.</p>'}

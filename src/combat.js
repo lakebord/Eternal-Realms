@@ -20,11 +20,12 @@ function startEncounter(loc,opts={}){
   const P=S.P,dm=DIFFS[P.diff].m;
   let id=U.pick(L.mon);if(typeof winterSwap==='function')id=winterSwap(loc,id);let n=1;const M=MONSTERS[id];
   const lowLv=P.level<6;if((M.b||[]).includes('pack'))n=lowLv?U.ri(1,2):U.ri(2,3);else if(U.chance(lowLv?0.15:0.3))n=2;if(L.ty==='dungeon'&&U.chance(0.5))n++;
-  n=Math.min(n,2+partyMembers().length);
+  n=Math.min(n,2+partyMembers().length);if(typeof winterPack==='function')n=winterPack(loc,n);
   // monsters scale within the zone's range toward your level (a zone above you stays dangerous)
   let lv=U.clamp(P.level+U.ri(-2,1),L.lv[0],L.lv[1])+Math.round(evMod('monLv')-1);const en=[];
   if(evMod('drakes')>1&&!isTown(loc)&&U.chance(0.25))id='drake';if(evMod('lightning')>1&&U.chance(0.2))id='storm_elemental';
   for(let i=0;i<n;i++){const mid=i===0?id:(U.chance(0.6)?id:U.pick(L.mon));en.push(makeMonster(mid,U.clamp(lv+U.ri(-1,1),1,120),{diff:dm}));}
+  if(typeof winterSoften==='function')winterSoften(loc,en);
   // bounty elite
   const bq=P.quests.find(q=>q.type==='bounty'&&q.loc===loc&&!q.done);if(bq&&U.chance(0.35)){const e=makeMonster(bq.mon,bq.lvl,{diff:dm*1.3});e.name=`${MONSTERS[bq.mon].n} Alpha`;e.mhp*=2.5;e.hp=e.mhp;e.elite=1;en.splice(0,1,e);}
   // PvP zone: hostile adventurer instead
@@ -334,6 +335,7 @@ function finishCombatInner(result){
     if(o.type==='trial'){P.hp=Math.max(1,Math.round(stats(P).mhp*0.25));C.summary.push('The champion lowers their blade. "Train harder, and return."');}
     else{const r=playerDeath();C.summary.push(r==='perma'?'Your hero has died.':'You were defeated.');C.perma=r==='perma';}
   } else C.summary.push('You got away.');
+  if(o.worldBoss&&typeof winterWorldBoss==='function')winterWorldBoss((C.enemies.find(e=>e.boss)||{}).id);
   if(o.worldBoss)worldBossEnd(result);
   if(o.dungeon&&result==='win')dungeonProgress();
   if(o.dungeon&&result!=='win')P.dungeon=null;

@@ -372,7 +372,7 @@ function goalText(g){return ({level:`reach level ${g.target}`,gear:'upgrade equi
 
 /* ---------------- WORLD BOSSES ---------------- */
 const WORLD_BOSSES=[['b_grubnak','whisperwood',20,3],['b_hydra','mire',45,2],['b_frostwyrm','summit',58,2],['b_dragon','ashen',80,1.2],['b_lich','necropolis',90,1]];
-function spawnBoss(){const pool=WORLD_BOSSES.concat(WORLD_BOSSES_EXT).filter(b=>locOpen(b[1]));if(typeof winterOn==='function'&&winterOn())pool.push(['b_grimwinter','glimmerfrost',45,4]);const [id,loc,lvl]=U.wpick(pool,b=>b[3]);const m=makeMonster(id,lvl);S.boss={id,loc,lvl,hp:m.mhp,mhp:m.mhp,contrib:{},start:S.time,end:S.time+U.ri(20,36)*60,deaths:0};
+function spawnBoss(){const pool=WORLD_BOSSES.concat(WORLD_BOSSES_EXT).filter(b=>locOpen(b[1]));if(typeof winterOn==='function'&&winterOn())pool.push(['b_grimwinter','grimhollow',45,4],['b_yulewyrm','peaks',55,4]);const [id,loc,lvl]=U.wpick(pool,b=>b[3]);const m=makeMonster(id,lvl);S.boss={id,loc,lvl,hp:m.mhp,mhp:m.mhp,contrib:{},start:S.time,end:S.time+U.ri(20,36)*60,deaths:0};
   news(`World Boss ${MONSTERS[id].n} has appeared in ${LOCS[loc].n}!`,'boss');BUS.emit('boss_spawn',{boss:S.boss});}
 function raidBoss(group){const B=S.boss;if(!B)return;const m=makeMonster(B.id,B.lvl);
   for(const n of group){if(n.busy>S.time&&n.act==='raiding')continue;const st=stats(n);const d=estDmg(st,n.level,m)*U.ri(6,12);B.hp-=d;B.contrib[n.id]=(B.contrib[n.id]||0)+d;n.act='raiding';n.busy=S.time+60;

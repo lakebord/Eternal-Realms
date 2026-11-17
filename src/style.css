@@ -698,3 +698,16 @@ body.ingame .tsnd{display:none}
 .wshophead{display:flex;gap:.9em;align-items:flex-start;margin-bottom:.4em}.wshophead h3{margin:0 0 .2em;color:var(--gilt)}.wshophead .wkeeper{width:84px;height:84px;border-radius:12px;flex:none}
 .li.wshop{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:.6em}.li.wshop .shopic{width:44px;height:44px;border-radius:8px}
 .li.wshop .orn{white-space:nowrap}
+/* the Vale: map, quests */
+.maptabs{display:flex;gap:.4em;margin:.2em 0 .6em}
+.mapwrap.vale{overflow:hidden;border-color:#5a7aa8}.map.vale{min-width:0!important;width:100%;display:block}
+.map.vale .route{stroke:#dff0ff;stroke-opacity:.55;stroke-width:3;stroke-dasharray:6 7}.map.vale .route.near{stroke:#ffd36a;stroke-opacity:.9;stroke-dasharray:none}
+.map.vale .vnode circle{fill:#0e1a2c;stroke:#dff0ff;stroke-width:4}.map.vale .vnode.ty-village circle{fill:#5a4520;stroke:#ffd36a}.map.vale .vnode.ty-dungeon circle{fill:#3a1010;stroke:#ff8a6a}.map.vale .vnode.ty-lair circle{fill:#2a1030;stroke:#d79cff}
+.map.vale .vnode .here{fill:none;stroke:#ffd36a;stroke-width:3;animation:pulse 1.6s ease-in-out infinite}.map.vale .vnode .goal{fill:none;stroke:#8fe06a;stroke-width:3;stroke-dasharray:5 6}
+.map.vale .lbl{fill:#fff;font-size:31px;font-family:var(--display);paint-order:stroke;stroke:#000;stroke-width:5px;stroke-linejoin:round;text-anchor:middle}
+.map.vale .jpath{stroke:#ffd36a}
+@keyframes pulse{50%{stroke-opacity:.3}}
+.wqs{display:grid;gap:.45em;margin:.6em 0}
+.wq{display:flex;flex-direction:column;gap:.15em;padding:.55em .7em;border-radius:10px;background:#0a1220cc;border:1px solid #3a5a88;border-left:3px solid #8fd0ff}
+.wq small{font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:#9fd0ff}.wq b{color:#fff;font-family:var(--display);font-weight:400;font-size:1.05rem}.wq span{color:#cfdcea;font-size:.88rem}.wq em{color:#ffd36a;font-style:normal}
+.wq.done{border-left-color:#ffd36a}.wq .b{align-self:flex-start;margin-top:.3em}

@@ -66,7 +66,7 @@ const SVC_NAMES={festival:'Gift Exchange',special:'Specialty Shop',inn:'Inn',sho
 function renderWorld(){
   const P=S.P,L=LOCS[P.loc];const f=S.control[P.loc];const war=S.wars.find(w=>w.front===P.loc);
   const here=(S.byLoc[P.loc]||[]).filter(n=>online(n)&&!n.inParty);const realHere=Object.values(NET.peerMap).filter(p=>p.loc===P.loc).map(p=>[p.key,{user:p.user,level:p.lvl,cls:p.cls}]);
-  let h=`<section class="locard"><div class="vista ${L.ev?'wv-'+P.loc:''}" style="background-image:url(${drawVista(P.loc,S.time)})"></div><div class="lochead"><h2>${E(L.n)}</h2><div class="chips"><span class="chip">${U.cap(L.ty)}</span>${L.lv&&!isTown(P.loc)?`<span class="chip ${lvlColor(L.lv[0])}">Lv ${L.lv[0]}–${L.lv[1]}</span>`:''}
+  let h=`<section class="locard"><div class="vista" style="${L.rg&&ART.ok?valeVista(P.loc):`background-image:url(${drawVista(P.loc,S.time)})`}"></div><div class="lochead"><h2>${E(L.n)}</h2><div class="chips"><span class="chip">${U.cap(L.ty)}</span>${L.lv&&!isTown(P.loc)?`<span class="chip ${lvlColor(L.lv[0])}">Lv ${L.lv[0]}–${L.lv[1]}</span>`:''}
     ${f?`<span class="chip">${E(FACTIONS[f].n)}</span>`:''}${L.pvp?'<span class="chip danger">PvP zone</span>':''}${war?'<span class="chip danger">War front</span>':''}<span class="chip">${T.part(S.time)}</span></div></div>
     <p class="desc">${E(L.d)}</p>${S.P.dungeon?'':`<p class="weather">${E(weatherLine(P.loc))}</p>`}</section>`;
   if(typeof winterPanel==='function')h+=winterPanel();
@@ -179,15 +179,20 @@ function guildHallView(){const P=S.P;let h='';const g=guild(P.guild);
   h+=`<div class="row">${btn('Quest board','svc','board')}</div>`;return h;}
 
 /* ---------------- map ---------------- */
-function renderMap(){const P=S.P;const vis=l=>locOpen(l)&&(!LOCS[l].hid||P.explored.includes(l)||P.flags['found_'+l]);
+function renderMap(){const P=S.P;
+  // during the Long Night the Frostbound Vale has its own map; tabs switch between the two
+  const valeOn=typeof winterOn==='function'&&winterOn();if(valeOn&&UI.mapRegion==null&&inVale(P.loc))UI.mapRegion='winter';const showVale=valeOn&&UI.mapRegion==='winter';
+  const tabs=valeOn?`<div class="maptabs">${btn('The Realms','mapregion','main',showVale?'tiny ghost':'tiny gilt')}${btn('❄ Frostbound Vale','mapregion','winter',showVale?'tiny gilt':'tiny ghost')}</div>`:'';
+  if(showVale)return `<section class="panel"><h2>The Frostbound Vale</h2>${tabs}<div class="mapwrap vale">${renderValeMap()}</div></section>`;
+  const vis=l=>locOpen(l)&&!LOCS[l].rg&&(!LOCS[l].hid||P.explored.includes(l)||P.flags['found_'+l]);
   const lines=ROUTES.filter(([a,b])=>vis(a)&&vis(b)).map(([a,b,h])=>`<line x1="${LOCS[a].x}" y1="${LOCS[a].y}" x2="${LOCS[b].x}" y2="${LOCS[b].y}" class="route ${a===P.loc||b===P.loc?'near':''}"/>`).join('');
   const regions=[['ALDMERE',230,470],['SYLVANETH',180,60],['KHAZ DURRIM',640,95],['GOR\'THAK WASTES',830,560],['FERAL COAST',650,690],['THE FREE LANDS',470,420],['THE TORN SKY',920,120]];
   const nodes=Object.keys(LOCS).filter(vis).map(l=>{const L=LOCS[l],ex=P.explored.includes(l);const t=isTown(l);const r=L.ty==='city'?9:t?7:6;
     return `<g class="node ${l===P.loc?'cur':''} ${ex?'ex':'unex'} ty-${L.ty} ${UI.mapSel===l?'sel':''}" data-a="mapsel" data-v="${l}" tabindex="0" role="button" aria-label="${E(L.n)}">${l===P.loc?`<circle cx="${L.x}" cy="${L.y}" r="${r+7}" class="here"/>`:''}${Object.values(NET.peerMap).some(p=>p.loc===l)?`<circle cx="${L.x+r+3}" cy="${L.y-r-3}" r="4" class="friend"/>`:''}<circle cx="${L.x}" cy="${L.y}" r="${r}"/>${S.boss&&S.boss.loc===l?`<circle cx="${L.x}" cy="${L.y}" r="${r+6}" class="bossring"/>`:''}
     ${S.wars.some(w=>w.front===l)?`<text x="${L.x+10}" y="${L.y-8}" class="war">⚔</text>`:''}<text x="${L.x}" y="${L.y+r+12}" class="lbl">${E(L.n)}</text></g>`;}).join('');
-  const sel=UI.mapSel||P.loc;const L=LOCS[sel];const p=sel!==P.loc?path(P.loc,sel):null;
+  const sel=UI.mapSel&&!LOCS[UI.mapSel].rg?UI.mapSel:LOCS[P.loc].rg?'valeria':P.loc;const L=LOCS[sel];const p=sel!==P.loc?path(P.loc,sel):null;
   const pathLine=p?`<polyline class="jpath" points="${p.path.map(x=>LOCS[x].x+','+LOCS[x].y).join(' ')}"/>`:'';
-  return `<section class="panel"><h2>The Eternal Realms</h2><p class="hint maphint">Swipe the map sideways to see the whole realm · tap a place for details.</p><div class="mapwrap"><svg viewBox="0 0 1000 720" class="map" role="img" aria-label="World map"><defs><filter id="rough"><feTurbulence baseFrequency="0.018" numOctaves="3" seed="7"/><feDisplacementMap in="SourceGraphic" scale="38"/></filter></defs><rect x="0" y="0" width="1000" height="720" class="sea"/>
+  return `<section class="panel"><h2>The Eternal Realms</h2>${tabs}<p class="hint maphint">Swipe the map sideways to see the whole realm · tap a place for details.</p><div class="mapwrap"><svg viewBox="0 0 1000 720" class="map" role="img" aria-label="World map"><defs><filter id="rough"><feTurbulence baseFrequency="0.018" numOctaves="3" seed="7"/><feDisplacementMap in="SourceGraphic" scale="38"/></filter></defs><rect x="0" y="0" width="1000" height="720" class="sea"/>
     <g filter="url(#rough)">${[[260,330,250,190,'land'],[230,130,170,100,'forest'],[620,170,170,120,'mount'],[820,420,190,200,'waste'],[620,600,170,90,'land'],[480,400,110,170,'land'],[340,520,90,70,'land'],[560,670,80,30,'land'],[950,190,60,60,'waste']].map(([x,y,rx,ry,c])=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" class="terr ${c}"/>`).join('')}</g>
     ${regions.map(([n,x,y])=>`<text x="${x}" y="${y}" class="region">${n}</text>`).join('')}${lines}${pathLine}${nodes}</svg></div><p class="legend"><span class="lg city"></span>City <span class="lg dng"></span>Dungeon / lair <span class="lg ruin"></span>Ruin <span class="lg fr"></span>Real player</p>
     <div class="mapinfo"><div class="vista sm" style="background-image:url(${drawVista(sel,S.time)})"></div><h3>${E(L.n)}</h3><p>${E(L.d)}</p>${P.explored.includes(sel)?'':'<p class="hint">You have not been here yet.</p>'}

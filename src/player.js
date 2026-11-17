@@ -169,7 +169,7 @@ function readBook(id){spend(45);if(!unlockLore(id))log(`You re-read "${LORE[id].
 
 /* ---------------- quests ---------------- */
 function acceptQuest(q){const P=S.P;if(P.quests.length>=10){log('Your quest log is full (10).','bad');return;}if(P.quests.some(x=>x.id===q.id))return;q.taken=true;const c=JSON.parse(JSON.stringify(q));P.quests.push(c);log(`Quest accepted: ${q.n}`,'good');}
-function questKill(monId,loc,elite){const P=S.P;checkFactionChain('kill',{mon:monId,loc});for(const q of P.quests)if(!q.done&&(q.type==='kill'||q.type==='bounty')&&q.mon===monId&&q.loc===loc&&(!q.elite||elite)){q.prog++;if(q.prog>=q.qty){q.done=true;log(`Quest ready: ${q.n} (return to ${LOCS[q.giver].n})`,'good');}}}
+function questKill(monId,loc,elite){const P=S.P;if(typeof winterKill==='function')winterKill(monId,loc);checkFactionChain('kill',{mon:monId,loc});for(const q of P.quests)if(!q.done&&(q.type==='kill'||q.type==='bounty')&&q.mon===monId&&q.loc===loc&&(!q.elite||elite)){q.prog++;if(q.prog>=q.qty){q.done=true;log(`Quest ready: ${q.n} (return to ${LOCS[q.giver].n})`,'good');}}}
 function turnInQuest(i){const P=S.P,q=P.quests[i];if(!q||!q.done)return;if(q.giver!==P.loc&&q.type!=='deliver'){log(`Turn this in at ${LOCS[q.giver].n}.`,'bad');return;}
   if(q.type==='gather'||q.type==='request'){if(invCount(P,q.item)<q.qty){q.done=false;q.prog=invCount(P,q.item);log('You no longer have enough items.','bad');return;}invRemove(P,q.item,q.qty);}
   completeQuest(q);}
