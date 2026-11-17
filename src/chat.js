@@ -163,7 +163,7 @@ BUS.on((type,d)=>{if(!S||!S.P||S.catchup)return;const P=S.P;const cl=(n,ch,txt,d
   case 'player_meet':{const n=d.n;if(U.chance(0.5+n.tr.social*0.3))pm(n,U.pick(['hey 👋','oh hi, farming here too?','yo! what level are you?',`hey ${P.user}`]),2000);break;}
   case 'player_adv':{const k=talker();if(k)say(k,'global',`${P.user} just became a ${d.A.name}? nice`,4000);break;}
   case 'player_guild_join':{say(d.L,'guild',`Welcome ${P.user}!`,2000);const m=guild(P.guild).members.map(npc).filter(x=>x&&x!==d.L&&online(x)).slice(0,2);m.forEach((x,i)=>say(x,'guild',U.pick(['welcome!','o/','hi new person','welcome aboard']),4000+i*2000));break;}
-  case 'player_sold':{const b=d.buyer;if(b&&b.user&&U.chance(0.5))pm(b,`bought your ${itemName(d.L.item)}, thanks!`,3000);sys(`Your auction sold: ${itemName(d.L.item)} for ${U.fmt(d.L.price)}g (5% fee).`);break;}
+  case 'player_sold':{const b=d.buyer;if(b&&b.user&&!b.merchant&&U.chance(0.5))pm(b,`bought your ${itemName(d.L.item)}, thanks!`,3000);sys(`Your auction sold: ${itemName(d.L.item)} for ${U.fmt(d.L.price)}g (5% fee).`);break;}
   case 'player_dungeon':{for(const n of partyMembers())say(n,'party',U.pick(['gg!!','clean run','ty for the group','that boss was nuts']),U.ri(1000,4000));break;}
   case 'pvp_result':{const n=d.n;if(d.type==='wpvp'||d.type==='tourney'||!online(n))break;if(d.won){pm(n,n.tr.arrog>0.6?U.pick(['lucky.','rematch. now.','whatever, lag']):U.pick(['gg wp!','nice fight','you got me','well played']),2500);}else pm(n,n.tr.arrog>0.6?U.pick(['ez','not even close','stay down']):U.pick(['gg!','good fight','close one']),2500);break;}
   case 'newday':if(T.day(S.time)%3===0)npcInitiatedPM();break;
@@ -288,7 +288,7 @@ function slashCmd(t){const [cmd,...rest]=t.slice(1).split(' ');const arg=rest.jo
   if(cmd==='invite'||cmd==='inv'){const n=S.npcs.find(x=>x.user.toLowerCase()===arg.toLowerCase());if(n)invite(n);else chatPush('system','SYS',`No adventurer named ${arg}.`);return;}
   if(cmd==='who'){const n=S.npcs.find(x=>x.user.toLowerCase()===arg.toLowerCase());if(n&&typeof UI!=='undefined')UI.profile(n.id);return;}
   if(cmd==='roll'){chatPush('local','P',`rolls ${U.ri(1,100)} (1-100)`);return;}
-  if(cmd==='online'){chatPush('system','SYS',`${onlineNpcs().length} simulated adventurers online${typeof NET!=='undefined'&&NET.peers?`, ${NET.peers} real players here`:''}.`);return;}
+  if(cmd==='online'){chatPush('system','SYS',typeof NET!=='undefined'&&NET.peers?`${NET.peers} other player${NET.peers===1?'':'s'} online.`:'No other players are online right now.');return;}
   if(cmd==='help'){chatPush('system','SYS','Commands: /w <name> <msg>, /invite <name>, /who <name>, /roll, /online. Use @name to mention someone.');return;}
   chatPush('system','SYS','Unknown command. Try /help.');}
 

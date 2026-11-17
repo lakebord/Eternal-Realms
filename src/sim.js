@@ -18,7 +18,19 @@ function traitsLabel(n){const t=n.tr;const L=[];const m={friendly:t.kind>0.65&&t
   for(const k in m)if(m[k])L.push(k);return L.slice(0,4).length?L.slice(0,4):['easygoing'];}
 
 /* ---------------- WORLD CREATION ---------------- */
-function newWorld(seed){
+/* Simulated adventurers are OFF in the game: the only players in the Realms are real ones. The generator is kept for the
+   balance tools (newWorld(seed,{sim:1})) and so old saves can be cleaned up (purgeSim). */
+let SIM=false;
+function purgeSim(){if(SIM||!S)return;const P=S.P;
+  S.npcs=[];S.byId={};S.byLoc={};
+  S.guilds=(S.guilds||[]).filter(g=>g.isPlayer);for(const g of S.guilds)g.members=(g.members||[]).filter(id=>id==='P'||String(id).startsWith('R:'));
+  S.market=(S.market||[]).filter(L=>L.seller==='P'||L.seller==='merchant'||String(L.seller).startsWith('R:'));
+  if(S.chat){for(const ch in S.chat){if(ch==='pm'){for(const k in S.chat.pm)if(!String(k).startsWith('R:'))delete S.chat.pm[k];}else if(Array.isArray(S.chat[ch]))S.chat[ch]=S.chat[ch].filter(m=>m.from==='SYS'||m.from==='P'||m.real);}}
+  S.pmUnread={};S.hall=[];S.rumors=[];S.news=(S.news||[]).filter(n=>n[2]==='world'||n[2]==='event'||n[2]==='war').slice(-20);
+  if(S.tourney){S.tourney.entrants=(S.tourney.entrants||[]).filter(e=>e==='P');S.tourney.matches=[];S.tourney.log=[];S.tourney.state='idle';S.tourney.reg=false;}
+  if(P){P.party=[];P.friends=(P.friends||[]).filter(id=>String(id).startsWith('R:'));if(P.rivals)P.rivals=[];if(P.guild&&!S.guilds.some(g=>g.id===P.guild)){P.guild=null;P.grank=null;}}
+  if(typeof reindex==='function')reindex();}
+function newWorld(seed,opts){SIM=!!(opts&&opts.sim);
   const rng=U.seeded(seed||20261104);const saved=U.r;U.r=rng;
   S={v:3,seed:seed||20261104,time:8*60,real:Date.now(),npcs:[],byId:{},guilds:[],rel:Object.assign({},INIT_RELATIONS),wars:[],control:{},econ:{},market:[],boss:null,nextBoss:30*60,
     tourney:{next:7*1440+18*60,state:'idle',entrants:[],reg:false,round:0,matches:[],log:[]},news:[],chat:{global:[],local:[],trade:[],guild:[],party:[],recruit:[],system:[],pm:{}},
@@ -26,6 +38,7 @@ function newWorld(seed){
   for(const k of KINGDOMS)S.kd[k]={army:U.ri(80,120),treasury:U.ri(5000,20000),weary:0};
   for(const l in LOCS)if(LOCS[l].f)S.control[l]=LOCS[l].f;
   for(const l in LOCS)if(hasSvc(l,'market')||hasSvc(l,'shop')){S.econ[l]={};for(const c of ['weapon','armor','con','mat','food'])S.econ[l][c]={s:50,d:50};}
+  if(SIM){
   const taken=new Set(['p']);
   // famous adventurers
   const FAMOUS=[['DragonSlayer','human','warrior','dragonknight',97],['VoidKnight','darkelf','knight','deathknight',95],['LunaMist','highelf','mage','archmage',93],
@@ -41,10 +54,12 @@ function newWorld(seed){
     if(n.tr.compet>0.6&&U.chance(0.4)){const o=U.pick(S.npcs.filter(o=>Math.abs(o.level-n.level)<8&&o!==n));if(o){n.rivals.push(o.id);if(U.chance(0.5))o.rivals.push(n.id);}}
   }
   S.npcs.find(n=>n.user==='IronFang').goal={type:'level',target:15};
+  }
+  reindex();
   for(const l in LOCS)if(hasSvc(l,'board'))S.quests[l]=genQuests(l);
-  for(let i=0;i<30;i++)npcListLoot(U.pick(S.npcs),true);
+  if(SIM)for(let i=0;i<30;i++)npcListLoot(U.pick(S.npcs),true);
   U.r=saved;
-  news('The Realms awaken. Adventurers gather in Valeria\'s Plaza.','world');
+  news(SIM?'The Realms awaken. Adventurers gather in Valeria\'s Plaza.':'The Realms awaken.','world');
   return S;
 }
 function newNpcId(){return 'n'+(S.idn++);}
@@ -259,7 +274,7 @@ function buyListing(buyer,L){const i=S.market.indexOf(L);if(i<0)return false;S.m
   if(L.seller==='P'){S.P.gold+=L.price-tax;S.P.stats.sold=(S.P.stats.sold||0)+1;BUS.emit('player_sold',{L,buyer:b});}
   else if(L.seller&&L.seller.startsWith&&L.seller.startsWith('n')){const s=npc(L.seller);if(s){s.gold+=L.price-tax;if(L.price>500)hist(s,`Sold ${itemName(L.item)} for ${U.fmt(L.price)}g`);
     if(isP)remember(s,`Bought my ${itemName(L.item)} for ${U.fmt(L.price)}g`,4);}}
-  if(isP){invAdd(S.P,L.item.b!=null?L.item:L.item.k,L.item.q||1);}else{npcConsiderEquip(b,L.item)||b.inv.push(L.item);hist(b,`Bought ${itemName(L.item)} at auction`);}
+  if(isP){invAdd(S.P,L.item.b!=null?L.item:L.item.k,L.item.q||1);}else if(b.merchant){b.gold=1e9;}else{npcConsiderEquip(b,L.item)||b.inv.push(L.item);hist(b,`Bought ${itemName(L.item)} at auction`);}
   return true;}
 function npcCraft(n){const R=RECIPES.filter(r=>r.m===n.prof&&(n.mastery[n.prof]||0)>=r.lv&&!r.ench);if(!R.length)return false;
   const r=U.pick(R.slice(-4));n.mastery[n.prof]=Math.min(100,(n.mastery[n.prof]||0)+(U.chance(0.3)?1:0));n.crafted++;
@@ -438,6 +453,7 @@ function playerGuildTick(g){
 
 /* ---------------- TOURNAMENT ---------------- */
 function tourneyTick(){
+  if(!SIM)return;   // the Grand Tournament needs a field of entrants: it returns when real-player brackets exist
   const T_=S.tourney;
   if(T_.state==='idle'&&S.time>=T_.next-12*60){T_.state='reg';T_.entrants=[];T_.log=[];news(`Registration for the Grand Tournament in Valeria is open! It starts at ${T.str(T_.next)}.`,'arena');BUS.emit('tourney_reg',{});}
   if(T_.state==='reg'&&S.time>=T_.next){
@@ -522,7 +538,7 @@ function processHour(){
 /* population churn: newcomers arrive, burned-out veterans retire */
 function populationDay(){const active=S.npcs.filter(n=>!n.retired);
   const arrivals=U.ri(0,2)+(active.length<480?2:0);const taken=new Set(S.npcs.map(n=>n.user.toLowerCase()));if(S.P)taken.add(S.P.user.toLowerCase());
-  for(let i=0;i<arrivals&&active.length+i<560;i++){const n=genNpc({user:genUsername(taken),level:U.ri(1,4)});n.loc=n.home;S.npcs.push(n);S.byId[n.id]=n;hist(n,'Joined the Realms');if(U.chance(0.5))BUS.emit('newcomer',{n});}
+  if(SIM)for(let i=0;i<arrivals&&active.length+i<560;i++){const n=genNpc({user:genUsername(taken),level:U.ri(1,4)});n.loc=n.home;S.npcs.push(n);S.byId[n.id]=n;hist(n,'Joined the Realms');if(U.chance(0.5))BUS.emit('newcomer',{n});}
   for(const n of active){if(n.level>=95&&U.chance(0.01)||n.level>=60&&n.deaths>20&&U.chance(0.02)){n.retired=true;hist(n,'Retired from adventuring');news(`${n.user} (Lv.${n.level}) has retired from adventuring.`,'fame');BUS.emit('retire',{n});if(n.guild)leaveGuild(n);}}
   // keep the world (and the save file) from growing forever on long sessions
   if(S.npcs.length>600){const keep=n=>!n.retired||(n.mem&&n.mem.P)||(S.P&&(S.P.friends||[]).includes(n.id));S.npcs=S.npcs.filter(keep);reindex();}

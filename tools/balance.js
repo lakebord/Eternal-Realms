@@ -5,7 +5,7 @@ const files=['data','expansion','classes2','engine','sim','player','combat','cha
 const src=files.map(f=>fs.readFileSync(path.join(__dirname,'../src',f+'.js'),'utf8')).join('\n;\n');
 const ctx={performance,console,Math,Date,JSON,Object,Array,String,Number,Set,Map,Promise,setTimeout};vm.createContext(ctx);
 vm.runInContext(src+`\n;if(typeof rarityName==='undefined')var rarityName=()=>'';if(typeof E==='undefined')var E=s=>String(s);\n;this.G={compActor,newWorld,createPlayer,setP:p=>S.P=p,getS:()=>S,stats,makeMonster,makeGear,baseAttrs,CLASSES,CLASS_PRIO,classGrowth,startCombat,combatStep,allyAI,endTurn,getC:()=>C,dirty,LOCS,ITEM_BASES,isTown,checkEnd,monXp,xpNext};`,ctx);
-const G=ctx.G;G.newWorld(7);
+const G=ctx.G;G.newWorld(7,{sim:1});
 const ZONES={1:'greenmarch',5:'whisperwood',10:'watchtower',20:'frostpeak',30:'mire',45:'citadel',60:'necropolis',80:'spire'};
 function hero(cls,L){const P=G.createPlayer({user:'B',name:'B',race:'human',cls,bg:'commoner',diff:'normal',start:'brookhollow'});G.setP(P);
   P.level=L;const C=G.CLASSES[cls];const g=C.growth,pr=G.CLASS_PRIO[cls];for(let i=1;i<L;i++){for(const k in g)P.attr[k]+=g[k];P.attr[pr[0]]++;P.attr[pr[1]]++;}

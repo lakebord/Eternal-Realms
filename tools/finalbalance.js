@@ -5,7 +5,7 @@ const files=['data','expansion','classes2','engine','sim','player','combat','cha
 const src=files.map(f=>fs.readFileSync(path.join(__dirname,'../src',f+'.js'),'utf8')).join('\n;\n');
 const ctx={performance,console,Math,Date,JSON,Object,Array,String,Number,Set,Map,Promise,setTimeout};vm.createContext(ctx);
 vm.runInContext(src+`\n;if(typeof rarityName==='undefined')var rarityName=()=>'';if(typeof E==='undefined')var E=s=>String(s);this.G={newWorld,createPlayer,setP:p=>S.P=p,stats,makeGear,CLASSES,CLASS_PRIO,combatStep,allyAI,endTurn,getC:()=>C,dirty,ITEM_BASES,checkEnd,startFinalBattle,finalRebirth,invAdd,compActor,SPECIES};`,ctx);
-const G=ctx.G;G.newWorld(7);
+const G=ctx.G;G.newWorld(7,{sim:1});
 function hero(cls,L,pots){const P=G.createPlayer({user:'B',name:'B',race:'human',cls,bg:'commoner',diff:'normal',start:'brookhollow'});G.setP(P);
   P.level=L;const C=G.CLASSES[cls];const g=C.growth,pr=G.CLASS_PRIO[cls];for(let i=1;i<L;i++){for(const k in g)P.attr[k]+=g[k];P.attr[pr[0]]++;P.attr[pr[1]]++;}
   P.equip={weapon:G.makeGear(C.weapons.find(w=>G.ITEM_BASES[w]),L,3)};for(const sl of ['head','chest','legs','hands','feet'])P.equip[sl]=G.makeGear(`${sl}_${C.armor}`,L,3);

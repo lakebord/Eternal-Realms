@@ -3,7 +3,7 @@ const fs=require('fs'),vm=require('vm'),path=require('path');
 const src=['data','expansion','classes2','engine','sim','player','combat','chat','chat2','events','net'].map(f=>fs.readFileSync(path.join(__dirname,'../src',f+'.js'),'utf8')).join('\n;\n');
 const ctx={performance,console,Math,Date,JSON,Object,Array,String,Number,Set,Map,Promise,setTimeout,Blob:undefined,btoa:s=>Buffer.from(s,'binary').toString('base64'),atob:s=>Buffer.from(s,'base64').toString('binary')};
 vm.createContext(ctx);vm.runInContext(src+`\n;this.G={fastForward,startEvent,specialStock,factionAccept,FACTION_CHAINS,makeSetItem,getS2:()=>S,CLASSES,CLASS_PRIO,baseAttrs,startCombat,newWorld,createPlayer,processHour,advance,startEncounter,combatStep,playerAction,stats,makeMonster,serialize,ambient,flushChat,CQ,getS:()=>S,getC:()=>C,setP:p=>S.P=p,playerChat,LOCS,winChance,npcGainXp,xpNext,makeGear,itemName,calcStats,enterDungeon,BUS};`,ctx);
-const G=ctx.G;let t0=Date.now();const S=G.newWorld(12345);console.log('world gen ms',Date.now()-t0,'npcs',S.npcs.length,'guilds',S.guilds.length);
+const G=ctx.G;let t0=Date.now();const S=G.newWorld(12345,{sim:1});console.log('world gen ms',Date.now()-t0,'npcs',S.npcs.length,'guilds',S.guilds.length);
 const P=G.createPlayer({user:'Tester',name:'Test',race:'human',cls:process.argv[2]||'warrior',bg:'soldier',gender:'f',age:20,diff:'normal'});G.setP(P);
 t0=Date.now();for(let i=0;i<72;i++)G.advance(60);console.log('72h sim ms',Date.now()-t0);
 const lv=S.npcs.map(n=>n.level);console.log('avg lvl',(lv.reduce((a,b)=>a+b)/lv.length).toFixed(1),'max',Math.max(...lv),'news',S.news.slice(0,8).map(n=>n[1]));

@@ -5,7 +5,7 @@ const files=['data','expansion','classes2','engine','sim','player','combat','cha
 const src=files.map(f=>fs.readFileSync(path.join(__dirname,'../src',f+'.js'),'utf8')).join('\n;\n');
 const ctx={performance,console,Math,Date,JSON,Object,Array,String,Number,Set,Map,Promise,setTimeout};vm.createContext(ctx);
 vm.runInContext(src+`\n;if(typeof rarityName==='undefined')var rarityName=()=>'';if(typeof E==='undefined')var E=s=>String(s);\n;this.G={newWorld,createPlayer,setP:p=>S.P=p,stats,makeMonster,makeGear,CLASSES,CLASS_PRIO,ITEM_BASES,LOCS,MONSTERS,dirty:p=>p._st=null,actorFromChar,actorFromMon,damage,kConst};`,ctx);
-const G=ctx.G;G.newWorld(7);
+const G=ctx.G;G.newWorld(7,{sim:1});
 function hero(cls,L,casual){const P=G.createPlayer({user:'B',name:'B',race:'human',cls,bg:'commoner',diff:'normal',start:'brookhollow'});G.setP(P);P.level=L;const C=G.CLASSES[cls];const g=C.growth,pr=G.CLASS_PRIO[cls];
   for(let i=1;i<L;i++){for(const k in g)P.attr[k]+=g[k];if(!casual){P.attr[pr[0]]++;P.attr[pr[1]]++;}}
   const gl=Math.max(1,Math.round(casual?L*0.6:L-1)),r=casual?0:(L<30?1:2);P.equip={weapon:G.makeGear(C.weapons.find(w=>G.ITEM_BASES[w]),gl,r)};for(const sl of ['head','chest','legs','hands','feet'])P.equip[sl]=G.makeGear(`${sl}_${C.armor}`,gl,r);

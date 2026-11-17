@@ -4,7 +4,7 @@ const files=['data','expansion','classes2','engine','sim','player','combat','cha
 const src=files.map(f=>fs.readFileSync(path.join(__dirname,'../src',f+'.js'),'utf8')).join('\n;\n');
 const ctx={performance,console,Math,Date,JSON,Object,Array,String,Number,Set,Map,Promise,setTimeout};vm.createContext(ctx);
 vm.runInContext(src+`\n;if(typeof rarityName==='undefined')var rarityName=()=>'';if(typeof E==='undefined')var E=s=>String(s);\n;this.G={newWorld,createPlayer,setP:p=>S.P=p,stats,makeMonster,makeGear,CLASSES,CLASS_PRIO,ITEM_BASES,LOCS,MONSTERS,SKILLS,STATUS,AFFIXES,dirty:p=>p._st=null,actorFromChar,actorFromMon,damage,kConst,skillList,setC:c=>{C=c}};`,ctx);
-const G=ctx.G;G.newWorld(7);
+const G=ctx.G;G.newWorld(7,{sim:1});
 function hero(cls,L,o={}){const P=G.createPlayer({user:'B',name:'B',race:'human',cls,bg:'commoner',diff:'normal',start:'brookhollow'});G.setP(P);P.level=L;const C=G.CLASSES[cls];const g=C.growth,pr=G.CLASS_PRIO[cls];
   for(let i=1;i<L;i++){for(const k in g)P.attr[k]+=g[k];if(!o.nopts){P.attr[pr[0]]++;P.attr[pr[1]]++;}}
   P.equip={};if(o.r!=null&&o.r>=0){const gl=Math.max(1,L+(o.gl||0));const aff=o.aff;const mk=(b)=>{const it=G.makeGear(b,gl,o.r);if(aff)it.a=it.a.map((_,i)=>aff[i%aff.length]);return it;};

@@ -115,5 +115,5 @@ async function adoptWorld(meta){ // merge the shared world into the local save, 
     if(P){P.party=party.filter(id=>S.npcs.some(n=>n.id===id));for(const g of myGuilds){if(!S.guilds.some(x=>x.id===g.id))S.guilds.push(g);for(const id of g.members)if(id!=='P'){const n=S.npcs.find(x=>x.id===id);if(n&&!n.guild){n.guild=g.id;n.grank='Member';}}}
       const g=guild(P.guild);if(P.guild&&g&&!g.members.includes('P'))g.members.push('P');if(P.guild&&!g){P.guild=null;P.grank=null;}
       S.market=S.market.filter(L=>L.seller!=='P').concat(myListings);if(S.tourney)S.tourney.reg=false;}
-    reindex();S.real=meta.real;S.worldFrom=meta.host;return true;}
+    reindex();purgeSim();S.real=meta.real;S.worldFrom=meta.host;return true;}
   catch(e){console.warn('adopt world',e);return false;}}

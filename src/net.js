@@ -13,7 +13,7 @@ async function compress(str){try{if(typeof CompressionStream==='undefined')throw
   let bin='';const b=new Uint8Array(buf);for(let i=0;i<b.length;i+=0x8000)bin+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));return 'gz:'+btoa(bin);}catch(e){return 'js:'+str;}}
 async function decompress(s){if(s.startsWith('js:'))return s.slice(3);if(s.startsWith('{'))return s;const bin=atob(s.slice(3));const b=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)b[i]=bin.charCodeAt(i);
   const ds=new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'));return await new Response(ds).text();}
-function hydrate(obj){S=obj;if(S.P&&S.P.diff!=='normal')S.P.diff='normal';if(S.P&&!S.P.tiers)S.P.tiers={};for(const n of S.npcs){n.inParty=S.P&&S.P.party.includes(n.id);}reindex();if(!S.pmUnread)S.pmUnread={};if(!S.chat.pm)S.chat.pm={};if(!S.hall)S.hall=[];return S;}
+function hydrate(obj){S=obj;if(!S.npcs)S.npcs=[];if(S.P&&S.P.diff!=='normal')S.P.diff='normal';if(S.P&&!S.P.tiers)S.P.tiers={};for(const n of S.npcs){n.inParty=S.P&&S.P.party.includes(n.id);}reindex();purgeSim();if(!S.pmUnread)S.pmUnread={};if(!S.chat.pm)S.chat.pm={};if(!S.hall)S.hall=[];return S;}
 async function saveLocal(pre){if(!S||!S.P)return false;try{const str=pre||await compress(serialize());localStorage.setItem(LS_KEY,str);localStorage.setItem(LS_KEY+'_t',String(Date.now()));return true;}catch(e){console.warn('local save failed',e);return false;}}
 async function loadLocal(){try{const s=localStorage.getItem(LS_KEY);if(!s)return null;const t=+localStorage.getItem(LS_KEY+'_t')||0;return {t,obj:JSON.parse(await decompress(s))};}catch(e){console.warn('local load failed',e);return null;}}
 function hasLocal(){try{return !!localStorage.getItem(LS_KEY);}catch(e){return false;}}
