@@ -727,6 +727,23 @@ body.ingame .tsnd{display:none}
 .wq{display:flex;flex-direction:column;gap:.15em;padding:.55em .7em;border-radius:10px;background:#0a1220cc;border:1px solid #3a5a88;border-left:3px solid #8fd0ff}
 .wq small{font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:#9fd0ff}.wq b{color:#fff;font-family:var(--display);font-weight:400;font-size:1.05rem}.wq span{color:#cfdcea;font-size:.88rem}.wq em{color:#ffd36a;font-style:normal}
 .wq.done{border-left-color:#ffd36a}.wq .b{align-self:flex-start;margin-top:.3em}
+/* painted world map */
+.mapwrap.painted{background:#0d2238;border-color:#3a4a60}
+.map.painted{min-width:760px}
+.map.painted .region{fill:#f3ead2;font-size:26px;opacity:.85;letter-spacing:.28em;paint-order:stroke;stroke:#00000099;stroke-width:4px;stroke-linejoin:round}
+.map.painted .route{stroke:#f3ead2;stroke-opacity:.45;stroke-width:2.5;stroke-dasharray:3 6;stroke-linecap:round}.map.painted .route.near{stroke:#ffd36a;stroke-opacity:.95;stroke-dasharray:none;stroke-width:3}
+.map.painted .node .pin{fill:#1a1712;stroke:#d8c8a0;stroke-width:2.5;filter:drop-shadow(0 2px 3px #000c)}
+.map.painted .node.ty-city .pin,.map.painted .node.ty-town .pin,.map.painted .node.ty-village .pin{fill:#3a2c12;stroke:#ffd36a}
+.map.painted .node.ty-dungeon .pin,.map.painted .node.ty-lair .pin{fill:#3a1010;stroke:#ff8a6a}.map.painted .node.ty-ruin .pin{fill:#16261a;stroke:#9fd08a}
+.map.painted .node .glyph{fill:none;stroke:#f3ead2;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.map.painted .node.ty-city .glyph,.map.painted .node.ty-town .glyph,.map.painted .node.ty-village .glyph{stroke:#ffe9a8}.map.painted .node.ty-dungeon .glyph,.map.painted .node.ty-lair .glyph{stroke:#ffc0a8}
+.map.painted .node.unex .pin{opacity:.65}.map.painted .node.unex .glyph{opacity:.6}
+.map.painted .node.cur .pin{fill:#ffd36a;stroke:#fff}.map.painted .node.cur .glyph{stroke:#2a1e08}
+.map.painted .node.sel .pin{stroke-width:4.5}
+.map.painted .lbl{fill:#fbf4e0;font-size:15px;font-family:var(--display);paint-order:stroke;stroke:#000000cc;stroke-width:4px;stroke-linejoin:round;text-anchor:middle}
+.map.painted .node.unex .lbl{fill:#c8c0a8}
+.map.painted .jpath{stroke:#ffd36a;stroke-width:5;opacity:.9}
+.map.painted .region{text-anchor:middle}
 
 </style>
 <div id="app" aria-live="polite"><div class="title"><h1>Eternal Realms</h1><p class="tag">The Realms are waking…</p></div></div>
@@ -5282,6 +5299,9 @@ function guildHallView(){const P=S.P;let h='';const g=guild(P.guild);
   h+=`<div class="row">${btn('Quest board','svc','board')}</div>`;return h;}
 
 /* ---------------- map ---------------- */
+// small symbol inside each painted-map marker: towns get a tower, dungeons a skull, lairs a claw, wilds a tree, ruins a broken arch
+const MAP_GLYPH={city:'M-5 5V-2l2-2v-3h2v3h2v-3h2v3l2 2v7z',town:'M-5 5V-1l5-4 5 4v6z',village:'M-4 5V0l4-3 4 3v5z',dungeon:'M-4 1a4 4 0 1 1 8 0v3h-8z M-2 0h1 M1 0h1',lair:'M-5 4l2-8 2 6 1-7 2 7 2-5 1 7z',ruin:'M-5 5v-7h2v7 M3 5v-7h2v7 M-5 -2h10',wild:'M0 -6l5 9h-10z M0 3v3'};
+function mapGlyph(L,r){const g=MAP_GLYPH[L.ty]||MAP_GLYPH.wild;const k=r/10;return `<path d="${g}" transform="translate(${L.x},${L.y}) scale(${k.toFixed(2)})" class="glyph"/>`;}
 function renderMap(){const P=S.P;
   // during the Long Night the Frostbound Vale has its own map; tabs switch between the two
   const valeOn=typeof winterOn==='function'&&winterOn();if(valeOn&&UI.mapRegion==null&&inVale(P.loc))UI.mapRegion='winter';const showVale=valeOn&&UI.mapRegion==='winter';
@@ -5289,14 +5309,14 @@ function renderMap(){const P=S.P;
   if(showVale)return `<section class="panel"><h2>The Frostbound Vale</h2>${tabs}<div class="mapwrap vale">${renderValeMap()}</div></section>`;
   const vis=l=>locOpen(l)&&!LOCS[l].rg&&(!LOCS[l].hid||P.explored.includes(l)||P.flags['found_'+l]);
   const lines=ROUTES.filter(([a,b])=>vis(a)&&vis(b)).map(([a,b,h])=>`<line x1="${LOCS[a].x}" y1="${LOCS[a].y}" x2="${LOCS[b].x}" y2="${LOCS[b].y}" class="route ${a===P.loc||b===P.loc?'near':''}"/>`).join('');
-  const regions=[['ALDMERE',230,470],['SYLVANETH',180,60],['KHAZ DURRIM',640,95],['GOR\'THAK WASTES',830,560],['FERAL COAST',650,690],['THE FREE LANDS',470,420],['THE TORN SKY',920,120]];
-  const nodes=Object.keys(LOCS).filter(vis).map(l=>{const L=LOCS[l],ex=P.explored.includes(l);const t=isTown(l);const r=L.ty==='city'?9:t?7:6;
-    return `<g class="node ${l===P.loc?'cur':''} ${ex?'ex':'unex'} ty-${L.ty} ${UI.mapSel===l?'sel':''}" data-a="mapsel" data-v="${l}" tabindex="0" role="button" aria-label="${E(L.n)}">${l===P.loc?`<circle cx="${L.x}" cy="${L.y}" r="${r+7}" class="here"/>`:''}${Object.values(NET.peerMap).some(p=>p.loc===l)?`<circle cx="${L.x+r+3}" cy="${L.y-r-3}" r="4" class="friend"/>`:''}<circle cx="${L.x}" cy="${L.y}" r="${r}"/>${S.boss&&S.boss.loc===l?`<circle cx="${L.x}" cy="${L.y}" r="${r+6}" class="bossring"/>`:''}
-    ${S.wars.some(w=>w.front===l)?`<text x="${L.x+10}" y="${L.y-8}" class="war">⚔</text>`:''}<text x="${L.x}" y="${L.y+r+12}" class="lbl">${E(L.n)}</text></g>`;}).join('');
+  const regions=ART.ok?[['ALDMERE',150,530],['SYLVANETH',210,52],['KHAZ DURRIM',640,58],['GOR\'THAK WASTES',890,600],['FERAL COAST',630,705],['THE FREE LANDS',505,480],['THE TORN SKY',975,62]]:[['ALDMERE',230,470],['SYLVANETH',180,60],['KHAZ DURRIM',640,95],['GOR\'THAK WASTES',830,560],['FERAL COAST',650,690],['THE FREE LANDS',470,420],['THE TORN SKY',920,120]];
+  const nodes=Object.keys(LOCS).filter(vis).map(l=>{const L=LOCS[l],ex=P.explored.includes(l);const t=isTown(l);const r=ART.ok?(L.ty==='city'?13:t?11:10):(L.ty==='city'?9:t?7:6);
+    return `<g class="node ${l===P.loc?'cur':''} ${ex?'ex':'unex'} ty-${L.ty} ${UI.mapSel===l?'sel':''}" data-a="mapsel" data-v="${l}" tabindex="0" role="button" aria-label="${E(L.n)}">${l===P.loc?`<circle cx="${L.x}" cy="${L.y}" r="${r+7}" class="here"/>`:''}${Object.values(NET.peerMap).some(p=>p.loc===l)?`<circle cx="${L.x+r+3}" cy="${L.y-r-3}" r="4" class="friend"/>`:''}<circle cx="${L.x}" cy="${L.y}" r="${r}" class="pin"/>${ART.ok?mapGlyph(L,r):''}${S.boss&&S.boss.loc===l?`<circle cx="${L.x}" cy="${L.y}" r="${r+6}" class="bossring"/>`:''}
+    ${S.wars.some(w=>w.front===l)?`<text x="${L.x+10}" y="${L.y-8}" class="war">⚔</text>`:''}<text x="${L.x}" y="${L.y+r+(ART.ok?17:12)}" class="lbl">${E(L.n)}</text></g>`;}).join('');
   const sel=UI.mapSel&&!LOCS[UI.mapSel].rg?UI.mapSel:LOCS[P.loc].rg?'valeria':P.loc;const L=LOCS[sel];const p=sel!==P.loc?path(P.loc,sel):null;
   const pathLine=p?`<polyline class="jpath" points="${p.path.map(x=>LOCS[x].x+','+LOCS[x].y).join(' ')}"/>`:'';
-  return `<section class="panel"><h2>The Eternal Realms</h2>${tabs}<p class="hint maphint">Swipe the map sideways to see the whole realm · tap a place for details.</p><div class="mapwrap"><svg viewBox="0 0 1000 720" class="map" role="img" aria-label="World map"><defs><filter id="rough"><feTurbulence baseFrequency="0.018" numOctaves="3" seed="7"/><feDisplacementMap in="SourceGraphic" scale="38"/></filter></defs><rect x="0" y="0" width="1000" height="720" class="sea"/>
-    <g filter="url(#rough)">${[[260,330,250,190,'land'],[230,130,170,100,'forest'],[620,170,170,120,'mount'],[820,420,190,200,'waste'],[620,600,170,90,'land'],[480,400,110,170,'land'],[340,520,90,70,'land'],[560,670,80,30,'land'],[950,190,60,60,'waste']].map(([x,y,rx,ry,c])=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" class="terr ${c}"/>`).join('')}</g>
+  return `<section class="panel"><h2>The Eternal Realms</h2>${tabs}<p class="hint maphint">Swipe the map sideways to see the whole realm · tap a place for details.</p><div class="mapwrap ${ART.ok?'painted':''}"><svg viewBox="${ART.ok?'-140 0 1280 720':'0 0 1000 720'}" class="map ${ART.ok?'painted':''}" role="img" aria-label="World map">${ART.ok?`<image href="${ART.base}worldmap.webp" x="-140" y="0" width="1280" height="720" preserveAspectRatio="none"/>`:`<defs><filter id="rough"><feTurbulence baseFrequency="0.018" numOctaves="3" seed="7"/><feDisplacementMap in="SourceGraphic" scale="38"/></filter></defs><rect x="0" y="0" width="1000" height="720" class="sea"/>
+    <g filter="url(#rough)">${[[260,330,250,190,'land'],[230,130,170,100,'forest'],[620,170,170,120,'mount'],[820,420,190,200,'waste'],[620,600,170,90,'land'],[480,400,110,170,'land'],[340,520,90,70,'land'],[560,670,80,30,'land'],[950,190,60,60,'waste']].map(([x,y,rx,ry,c])=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" class="terr ${c}"/>`).join('')}</g>`}
     ${regions.map(([n,x,y])=>`<text x="${x}" y="${y}" class="region">${n}</text>`).join('')}${lines}${pathLine}${nodes}</svg></div><p class="legend"><span class="lg city"></span>City <span class="lg dng"></span>Dungeon / lair <span class="lg ruin"></span>Ruin <span class="lg fr"></span>Real player</p>
     <div class="mapinfo"><div class="vista sm" style="background-image:url(${drawVista(sel,S.time)})"></div><h3>${E(L.n)}</h3><p>${E(L.d)}</p>${P.explored.includes(sel)?'':'<p class="hint">You have not been here yet.</p>'}
     <p><small>${U.cap(L.ty)}${!isTown(sel)?` · Lv ${L.lv[0]}–${L.lv[1]}`:''}${S.control[sel]?` · ${E(FACTIONS[S.control[sel]].n)}`:''}${L.pvp?' · PvP zone':''}</small></p>
@@ -5803,7 +5823,7 @@ function render(){if(!S||!S.P||!UI.started)return;renderHeader();renderNav();con
   else UI.viewChanged=setHTML(v,(views[tab]||renderWorld)());
   if(tab==='world'&&UI.viewChanged!==false)requestAnimationFrame(startWeather);
   // phones: the map is wider than the screen, so open it centred on where you are (once per visit / per move)
-  if(tab==='map'){if(UI.lastTab!=='map'||UI.mapCtr!==S.P.loc){UI.mapCtr=S.P.loc;const w=v.querySelector('.mapwrap'),L=LOCS[S.P.loc];if(w&&L&&w.scrollWidth>w.clientWidth+4){const svg=w.querySelector('svg');const k=svg.getBoundingClientRect().width/1000;w.scrollLeft=Math.max(0,L.x*k-w.clientWidth/2);}}}
+  if(tab==='map'){if(UI.lastTab!=='map'||UI.mapCtr!==S.P.loc){UI.mapCtr=S.P.loc;const w=v.querySelector('.mapwrap'),L=LOCS[S.P.loc];if(w&&L&&w.scrollWidth>w.clientWidth+4){const svg=w.querySelector('svg');const vb=(svg.getAttribute('viewBox')||'0 0 1000 720').split(' ').map(Number);const k=svg.getBoundingClientRect().width/vb[2];w.scrollLeft=Math.max(0,(L.x-vb[0])*k-w.clientWidth/2);}}}
   UI.lastTab=tab;
   // the chat side panel is hidden on phones (max-width 999px): don't build it there at all
   const side=$('#side');const sideShown=!(UI.sideMQ=UI.sideMQ||matchMedia('(max-width:999px)')).matches;if(tab!=='chat'&&sideShown){const keep=side.querySelector('#chatmsg');const kv=keep?keep.value:'';const sel=side.querySelector('#chatsel');const sv=sel?sel.value:null;const sideChanged=setHTML(side,renderChat(false));const n=side.querySelector('#chatmsg');if(n&&sideChanged){n.value=kv;}if(sv&&UI.lastChatCh===UI.chatCh&&side.querySelector('#chatsel'))side.querySelector('#chatsel').value=sv;UI.lastChatCh=UI.chatCh;}else setHTML(side,'');

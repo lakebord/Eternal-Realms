@@ -711,3 +711,20 @@ body.ingame .tsnd{display:none}
 .wq{display:flex;flex-direction:column;gap:.15em;padding:.55em .7em;border-radius:10px;background:#0a1220cc;border:1px solid #3a5a88;border-left:3px solid #8fd0ff}
 .wq small{font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:#9fd0ff}.wq b{color:#fff;font-family:var(--display);font-weight:400;font-size:1.05rem}.wq span{color:#cfdcea;font-size:.88rem}.wq em{color:#ffd36a;font-style:normal}
 .wq.done{border-left-color:#ffd36a}.wq .b{align-self:flex-start;margin-top:.3em}
+/* painted world map */
+.mapwrap.painted{background:#0d2238;border-color:#3a4a60}
+.map.painted{min-width:760px}
+.map.painted .region{fill:#f3ead2;font-size:26px;opacity:.85;letter-spacing:.28em;paint-order:stroke;stroke:#00000099;stroke-width:4px;stroke-linejoin:round}
+.map.painted .route{stroke:#f3ead2;stroke-opacity:.45;stroke-width:2.5;stroke-dasharray:3 6;stroke-linecap:round}.map.painted .route.near{stroke:#ffd36a;stroke-opacity:.95;stroke-dasharray:none;stroke-width:3}
+.map.painted .node .pin{fill:#1a1712;stroke:#d8c8a0;stroke-width:2.5;filter:drop-shadow(0 2px 3px #000c)}
+.map.painted .node.ty-city .pin,.map.painted .node.ty-town .pin,.map.painted .node.ty-village .pin{fill:#3a2c12;stroke:#ffd36a}
+.map.painted .node.ty-dungeon .pin,.map.painted .node.ty-lair .pin{fill:#3a1010;stroke:#ff8a6a}.map.painted .node.ty-ruin .pin{fill:#16261a;stroke:#9fd08a}
+.map.painted .node .glyph{fill:none;stroke:#f3ead2;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.map.painted .node.ty-city .glyph,.map.painted .node.ty-town .glyph,.map.painted .node.ty-village .glyph{stroke:#ffe9a8}.map.painted .node.ty-dungeon .glyph,.map.painted .node.ty-lair .glyph{stroke:#ffc0a8}
+.map.painted .node.unex .pin{opacity:.65}.map.painted .node.unex .glyph{opacity:.6}
+.map.painted .node.cur .pin{fill:#ffd36a;stroke:#fff}.map.painted .node.cur .glyph{stroke:#2a1e08}
+.map.painted .node.sel .pin{stroke-width:4.5}
+.map.painted .lbl{fill:#fbf4e0;font-size:15px;font-family:var(--display);paint-order:stroke;stroke:#000000cc;stroke-width:4px;stroke-linejoin:round;text-anchor:middle}
+.map.painted .node.unex .lbl{fill:#c8c0a8}
+.map.painted .jpath{stroke:#ffd36a;stroke-width:5;opacity:.9}
+.map.painted .region{text-anchor:middle}

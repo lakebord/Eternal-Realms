@@ -368,7 +368,7 @@ function render(){if(!S||!S.P||!UI.started)return;renderHeader();renderNav();con
   else UI.viewChanged=setHTML(v,(views[tab]||renderWorld)());
   if(tab==='world'&&UI.viewChanged!==false)requestAnimationFrame(startWeather);
   // phones: the map is wider than the screen, so open it centred on where you are (once per visit / per move)
-  if(tab==='map'){if(UI.lastTab!=='map'||UI.mapCtr!==S.P.loc){UI.mapCtr=S.P.loc;const w=v.querySelector('.mapwrap'),L=LOCS[S.P.loc];if(w&&L&&w.scrollWidth>w.clientWidth+4){const svg=w.querySelector('svg');const k=svg.getBoundingClientRect().width/1000;w.scrollLeft=Math.max(0,L.x*k-w.clientWidth/2);}}}
+  if(tab==='map'){if(UI.lastTab!=='map'||UI.mapCtr!==S.P.loc){UI.mapCtr=S.P.loc;const w=v.querySelector('.mapwrap'),L=LOCS[S.P.loc];if(w&&L&&w.scrollWidth>w.clientWidth+4){const svg=w.querySelector('svg');const vb=(svg.getAttribute('viewBox')||'0 0 1000 720').split(' ').map(Number);const k=svg.getBoundingClientRect().width/vb[2];w.scrollLeft=Math.max(0,(L.x-vb[0])*k-w.clientWidth/2);}}}
   UI.lastTab=tab;
   // the chat side panel is hidden on phones (max-width 999px): don't build it there at all
   const side=$('#side');const sideShown=!(UI.sideMQ=UI.sideMQ||matchMedia('(max-width:999px)')).matches;if(tab!=='chat'&&sideShown){const keep=side.querySelector('#chatmsg');const kv=keep?keep.value:'';const sel=side.querySelector('#chatsel');const sv=sel?sel.value:null;const sideChanged=setHTML(side,renderChat(false));const n=side.querySelector('#chatmsg');if(n&&sideChanged){n.value=kv;}if(sv&&UI.lastChatCh===UI.chatCh&&side.querySelector('#chatsel'))side.querySelector('#chatsel').value=sv;UI.lastChatCh=UI.chatCh;}else setHTML(side,'');
