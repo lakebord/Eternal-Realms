@@ -176,3 +176,20 @@ function apkCheck(){const el=document.getElementById('apkbtn');if(!el)return;try
 function vistaStyle(loc,t){const L=LOCS[loc];if(L&&L.rg&&ART.ok&&typeof valeVista==='function')return valeVista(loc);
   if(ART.ok&&L&&!L.rg)return `background-image:url(${ART.base}v/${loc}.webp)`;return `background-image:url(${drawVista(loc,t)})`;}
 function vistaCls(t){return ART.ok&&T.isNight(t)?'night':T.hour(t)>=17&&T.hour(t)<20&&ART.ok?'dusk':'';}
+/* town services, skills and townsfolk */
+const SVC_ART={inn:0,shop:1,smith:2,market:3,guild:4,temple:5,library:6,arena:7,trainer:8,board:9,forge:10,alchemy:11,stable:12,port:13,special:14,festival:15};
+function ptSvc(s,cls){return ART.ok&&SVC_ART[s]!=null?artCell('svc',SVC_ART[s],cls||'svic'):'';}
+const SKILL_EL={fire:4,frost:5,lightning:6,holy:7,shadow:8,nature:9,poison:10,arcane:11};
+function skillArtIdx(id){const s=SKILLS[id];if(!s)return 0;if(s.k==='heal')return 12;if(s.k==='buff')return s.st&&STATUS[s.st[0]]&&STATUS[s.st[0]].bad?14:13;if(s.k==='debuff')return 14;if(s.k==='summon'||s.undead||s.turret)return 15;
+  if(s.k==='mag')return SKILL_EL[s.e]!=null?SKILL_EL[s.e]:11;if(s.e&&SKILL_EL[s.e]!=null&&s.k!=='phys')return SKILL_EL[s.e];if((s.hits||1)>1)return 2;if(['bow','crossbow'].includes(s.m)||/shot|arrow|volley/i.test(s.n))return 3;if((s.p||1)>=2)return 1;return 0;}
+function ptSkill(id,cls){return ART.ok?artCell('skills',skillArtIdx(id),cls||'skic'):'';}
+const FOLK_ART={'Old Marta':['folk1',0],'Pip Tallowbranch':['folk1',1],'Elder Wynn':['folk1',2],'Brother Aldous':['folk1',3],'Captain Roderic':['folk1',4],'Madame Ysolde':['folk1',5],'Sister Celine':['folk1',6],'Arena-master Kael':['folk1',7],
+  'Forgemaster Hilde':['folk1',8],'Rusk the Draconian':['folk1',9],'Veyra Moonsteel':['folk1',10],'One-Eyed Jory':['folk1',11],'Courier Tamsin':['folk1',12],'Warden Faelan':['folk1',13],'Thornmother Ilsa':['folk1',14],'Archivist Seraphine':['folk1',15],
+  'Conclave Magister Orrin':['folk2',0],'Master Bren Ironhand':['folk2',1],'Loremaster Durgi':['folk2',2],'Brewer Olga':['folk2',3],'Runesmith Kazra':['folk2',4],'Oracle-Speaker Nyx':['folk2',5],'Silkmonger Vael':['folk2',6],'Factor Bellamy':['folk2',7],
+  'Harbormaster Quill':['folk2',8],'Auctioneer Prisca':['folk2',9],'Shaman Grenna':['folk2',10],'Pitmaster Ug':['folk2',11],'Elder Grey-Muzzle':['folk2',12],'Tidecaller Saba':['folk2',13],'Captain Silk-Eye':['folk2',14],'Grandmaster Ten-Winds':['folk2',15],
+  'Caravan-master Zeb':['mon06',10],'The Frostmother':['xmon',10],'Bram Tallow':['xmon',11]};
+function ptFolk(n,cls){const a=FOLK_ART[n];return ART.ok&&a?artCell(a[0],a[1],cls||'folkic'):'';}
+const STATUS_ART={poison:0,burn:1,bleed:2,stun:3,freeze:4,slow:5,root:5,weaken:6,sunder:6,marked:7,blind:8,might:9,frenzy:9,bear:9,runeblade:9,focus:9,fortify:10,taunt:10,shield:11,ward:11,defend:11,blessed:12,resolve:12,regen:13,lifesteal:2,haste:14,dodge:14,stealth:15};
+function ptStatus(k){return ART.ok&&STATUS_ART[k]!=null?artCell('status',STATUS_ART[k],'stic'):'';}
+function achArtIdx(id,A){const n=(A&&A.n)||'';const t=[[/First Blood/,0],[/Hunter|Exterminator/,1],[/Champion|Renowned|Legend/,2],[/Seasoned|Veteran|Eternal/,3],[/Delver|Dungeon/,4],[/Slayer|Raid/,5],[/Explorer|Cartographer|Off the Map/,6],[/Well-Off|Tycoon/,7],[/Artisan/,8],[/Duelist|Gladiator/,9],[/Beast|Evolution/,10],[/Guild|Friendly|Neighbor|Sworn/,11],[/Scholar|Higher Path/,12],[/Sun-Engine/,13],[/Defender|Marks|Outfit/,14],[/Long Night|Coal|Collector/,15]];for(const [r,i] of t)if(r.test(n))return i;return 2;}
+function ptAch(id,A){return ART.ok?artCell('ach',achArtIdx(id,A),'achic'):'';}

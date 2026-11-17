@@ -323,7 +323,7 @@ function finishCombatInner(result){
     // loot distribution
     let rr=Math.floor(U.r()*size);
     for(const it of items){const idx=(rr++)%size;const who=idx===0?'P':party[idx-1].id;
-      if(who==='P'){if(P.inv.length<60){invAdd(P,isGear(it)?it:it.k,it.q||1);C.summary.push({html:`🎁 ${rarityName(it)}${it.q>1?' ×'+it.q:''}`,r:isGear(it)?it.r:0});if(isGear(it)&&it.r>=3)BUS.emit('player_loot',{it});}}
+      if(who==='P'){if(P.inv.length<60){invAdd(P,isGear(it)?it:it.k,it.q||1);C.summary.push({html:`${typeof ptItem==='function'&&ptItem(isGear(it)?it:{k:it.k},'lic')||'🎁'} ${rarityName(it)}${it.q>1?' ×'+it.q:''}`,r:isGear(it)?it.r:0});if(isGear(it)&&it.r>=3)BUS.emit('player_loot',{it});}}
       else{const n=npc(who);if(isGear(it)){if(!npcConsiderEquip(n,it))n.inv.push(it);C.summary.push({html:`${E(n.user)} received ${rarityName(it)}`,r:it.r});}else{const e=n.inv.find(x=>x.k===it.k);if(e)e.q+=it.q;else n.inv.push({k:it.k,q:it.q});}}}
     // companions xp
     for(const al of C.allies)if(al.isComp){const c=P.comps.find(c=>c.id===al.ref);if(c)compGainXp(c,Math.round(xp*0.5));}

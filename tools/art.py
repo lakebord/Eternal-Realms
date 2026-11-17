@@ -62,3 +62,17 @@ def vistas():
         im = Image.open(f).convert('RGB'); W, H = im.size; h = int(W * 220 / 800)
         im.crop((0, int(H * 0.3), W, int(H * 0.3) + h)).resize((800, 220), Image.LANCZOS).save(os.path.join(vd, 'crags.webp'), 'WEBP', quality=80, method=6)
 vistas()
+
+# icons whose generator added a caption under the emblem: keep a square around the emblem only
+def atlas_crop_top(name, cell, top=0.04, side=0.74):
+    f = os.path.join(src, name + '.png')
+    if not os.path.exists(f): return
+    im = Image.open(f).convert('RGB'); xs, ys = bounds(im); o = Image.new('RGB', (cell * 4, cell * 4))
+    for r in range(4):
+        for c in range(4):
+            x0, x1, y0, y1 = xs[c], xs[c + 1], ys[r], ys[r + 1]; h = y1 - y0; s = int(h * side); cx = (x0 + x1) // 2; yy = y0 + int(h * top)
+            o.paste(im.crop((cx - s // 2, yy, cx + s // 2, yy + s)).resize((cell, cell), Image.LANCZOS), (c * cell, r * cell))
+    o.save(os.path.join(out, name + '.webp'), 'WEBP', quality=82, method=6)
+atlas_crop_top('svc', 128)
+for n, c in (('skills', 128), ('folk1', 192), ('folk2', 192), ('status', 96), ('ach', 128)):
+    if os.path.exists(os.path.join(src, n + '.png')): atlas(n, c)

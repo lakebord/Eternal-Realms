@@ -732,3 +732,30 @@ body.ingame .tsnd{display:none}
 .vista.night{filter:brightness(.78) saturate(.8) hue-rotate(10deg)}
 .vista.night::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 70% 0%,#9fc8ff30,transparent 55%),linear-gradient(180deg,#0a1430aa,#0a143055 60%,#0a143099);pointer-events:none;z-index:1}
 .vista.dusk::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#ff8a3a33,#40206022);mix-blend-mode:soft-light;pointer-events:none;z-index:1}
+/* item and gear icons everywhere */
+.li.bagrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;align-items:center}
+.li.bagrow>span:first-of-type{min-width:0}
+.pt.bic{width:42px;height:42px;border-radius:8px}
+.pt.lic{width:30px;height:30px;border-radius:6px;vertical-align:middle;margin-right:.2em}
+.iihead{display:flex;gap:.9em;align-items:center;margin-bottom:.4em}.iihead h2{margin:0}.iihead p{margin:.2em 0 0}.pt.iic{width:84px;height:84px;border-radius:12px}
+.slots .slot{display:flex;align-items:center;gap:.6em}.slot .sinfo{display:flex;flex-direction:column;min-width:0}
+.pt.sic,.sic.empty{width:46px;height:46px;border-radius:9px;flex:none}.sic.empty{display:inline-block;border:1px dashed var(--line2);background:#0003}
+.pt.r0{border-color:#8a8474}
+@media (max-width:520px){.li.bagrow{grid-template-columns:auto minmax(0,1fr) auto auto}.li.bagrow .b.ghost:last-child{grid-column:4}}
+/* battles take place in front of the scenery of where you are */
+#combat::before{content:"";position:fixed;inset:-20px;background:var(--cbg,none) center 40%/cover no-repeat;filter:blur(2px) brightness(.55) saturate(.9);z-index:0;pointer-events:none}
+.ab.svcart .pt.svic{width:44px;height:44px;border-radius:9px;flex:none}
+.pt.folkic{width:44px;height:44px;border-radius:50%;flex:none;border-color:var(--gilt2)}
+.cact.sub .b.skb{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:.6em;padding-left:.55em}
+.cact.sub .b.skb .skt{display:flex;flex-direction:column;min-width:0}.pt.skic{width:40px;height:40px;border-radius:8px}
+.cact.sub .b.skb.dim .pt{filter:grayscale(1) brightness(.6)}
+/* bag/shop rows: icon + name on one line, buttons wrap underneath on narrow screens */
+.li.bagrow{display:flex!important;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:.45em .5em}
+.li.bagrow>.pt{flex:none}.li.bagrow>span:first-of-type{flex:1 1 0;min-width:52%}
+.li.bagrow>.gold{flex:none}
+.li.bagrow>span.pt{flex:0 0 auto!important;min-width:0!important}
+.li.bagrow>span.pt.bic{width:42px!important;height:42px}
+.li.bagrow>span:not(.pt):not(.gold):first-of-type,.li.bagrow>span.pt+span{flex:1 1 0;min-width:52%}
+.fx.hasic{display:inline-flex;align-items:center;gap:.25em;padding-left:.15em}.pt.stic{width:18px;height:18px;border-radius:4px;border:0;box-shadow:none}
+.ach.hasic{display:flex;align-items:center;gap:.6em}.ach.hasic span{display:flex;flex-direction:column;min-width:0}.pt.achic{width:44px;height:44px;border-radius:50%;flex:none;border:0}
+.ach:not(.got) .pt.achic{filter:grayscale(1) brightness(.45)}

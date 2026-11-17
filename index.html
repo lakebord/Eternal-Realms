@@ -748,6 +748,33 @@ body.ingame .tsnd{display:none}
 .vista.night{filter:brightness(.78) saturate(.8) hue-rotate(10deg)}
 .vista.night::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 70% 0%,#9fc8ff30,transparent 55%),linear-gradient(180deg,#0a1430aa,#0a143055 60%,#0a143099);pointer-events:none;z-index:1}
 .vista.dusk::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#ff8a3a33,#40206022);mix-blend-mode:soft-light;pointer-events:none;z-index:1}
+/* item and gear icons everywhere */
+.li.bagrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;align-items:center}
+.li.bagrow>span:first-of-type{min-width:0}
+.pt.bic{width:42px;height:42px;border-radius:8px}
+.pt.lic{width:30px;height:30px;border-radius:6px;vertical-align:middle;margin-right:.2em}
+.iihead{display:flex;gap:.9em;align-items:center;margin-bottom:.4em}.iihead h2{margin:0}.iihead p{margin:.2em 0 0}.pt.iic{width:84px;height:84px;border-radius:12px}
+.slots .slot{display:flex;align-items:center;gap:.6em}.slot .sinfo{display:flex;flex-direction:column;min-width:0}
+.pt.sic,.sic.empty{width:46px;height:46px;border-radius:9px;flex:none}.sic.empty{display:inline-block;border:1px dashed var(--line2);background:#0003}
+.pt.r0{border-color:#8a8474}
+@media (max-width:520px){.li.bagrow{grid-template-columns:auto minmax(0,1fr) auto auto}.li.bagrow .b.ghost:last-child{grid-column:4}}
+/* battles take place in front of the scenery of where you are */
+#combat::before{content:"";position:fixed;inset:-20px;background:var(--cbg,none) center 40%/cover no-repeat;filter:blur(2px) brightness(.55) saturate(.9);z-index:0;pointer-events:none}
+.ab.svcart .pt.svic{width:44px;height:44px;border-radius:9px;flex:none}
+.pt.folkic{width:44px;height:44px;border-radius:50%;flex:none;border-color:var(--gilt2)}
+.cact.sub .b.skb{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:.6em;padding-left:.55em}
+.cact.sub .b.skb .skt{display:flex;flex-direction:column;min-width:0}.pt.skic{width:40px;height:40px;border-radius:8px}
+.cact.sub .b.skb.dim .pt{filter:grayscale(1) brightness(.6)}
+/* bag/shop rows: icon + name on one line, buttons wrap underneath on narrow screens */
+.li.bagrow{display:flex!important;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:.45em .5em}
+.li.bagrow>.pt{flex:none}.li.bagrow>span:first-of-type{flex:1 1 0;min-width:52%}
+.li.bagrow>.gold{flex:none}
+.li.bagrow>span.pt{flex:0 0 auto!important;min-width:0!important}
+.li.bagrow>span.pt.bic{width:42px!important;height:42px}
+.li.bagrow>span:not(.pt):not(.gold):first-of-type,.li.bagrow>span.pt+span{flex:1 1 0;min-width:52%}
+.fx.hasic{display:inline-flex;align-items:center;gap:.25em;padding-left:.15em}.pt.stic{width:18px;height:18px;border-radius:4px;border:0;box-shadow:none}
+.ach.hasic{display:flex;align-items:center;gap:.6em}.ach.hasic span{display:flex;flex-direction:column;min-width:0}.pt.achic{width:44px;height:44px;border-radius:50%;flex:none;border:0}
+.ach:not(.got) .pt.achic{filter:grayscale(1) brightness(.45)}
 
 </style>
 <div id="app" aria-live="polite"><div class="title"><h1>Eternal Realms</h1><p class="tag">The Realms are waking…</p></div></div>
@@ -3583,7 +3610,7 @@ function finishCombatInner(result){
     // loot distribution
     let rr=Math.floor(U.r()*size);
     for(const it of items){const idx=(rr++)%size;const who=idx===0?'P':party[idx-1].id;
-      if(who==='P'){if(P.inv.length<60){invAdd(P,isGear(it)?it:it.k,it.q||1);C.summary.push({html:`🎁 ${rarityName(it)}${it.q>1?' ×'+it.q:''}`,r:isGear(it)?it.r:0});if(isGear(it)&&it.r>=3)BUS.emit('player_loot',{it});}}
+      if(who==='P'){if(P.inv.length<60){invAdd(P,isGear(it)?it:it.k,it.q||1);C.summary.push({html:`${typeof ptItem==='function'&&ptItem(isGear(it)?it:{k:it.k},'lic')||'🎁'} ${rarityName(it)}${it.q>1?' ×'+it.q:''}`,r:isGear(it)?it.r:0});if(isGear(it)&&it.r>=3)BUS.emit('player_loot',{it});}}
       else{const n=npc(who);if(isGear(it)){if(!npcConsiderEquip(n,it))n.inv.push(it);C.summary.push({html:`${E(n.user)} received ${rarityName(it)}`,r:it.r});}else{const e=n.inv.find(x=>x.k===it.k);if(e)e.q+=it.q;else n.inv.push({k:it.k,q:it.q});}}}
     // companions xp
     for(const al of C.allies)if(al.isComp){const c=P.comps.find(c=>c.id===al.ref);if(c)compGainXp(c,Math.round(xp*0.5));}
@@ -4534,6 +4561,23 @@ function apkCheck(){const el=document.getElementById('apkbtn');if(!el)return;try
 function vistaStyle(loc,t){const L=LOCS[loc];if(L&&L.rg&&ART.ok&&typeof valeVista==='function')return valeVista(loc);
   if(ART.ok&&L&&!L.rg)return `background-image:url(${ART.base}v/${loc}.webp)`;return `background-image:url(${drawVista(loc,t)})`;}
 function vistaCls(t){return ART.ok&&T.isNight(t)?'night':T.hour(t)>=17&&T.hour(t)<20&&ART.ok?'dusk':'';}
+/* town services, skills and townsfolk */
+const SVC_ART={inn:0,shop:1,smith:2,market:3,guild:4,temple:5,library:6,arena:7,trainer:8,board:9,forge:10,alchemy:11,stable:12,port:13,special:14,festival:15};
+function ptSvc(s,cls){return ART.ok&&SVC_ART[s]!=null?artCell('svc',SVC_ART[s],cls||'svic'):'';}
+const SKILL_EL={fire:4,frost:5,lightning:6,holy:7,shadow:8,nature:9,poison:10,arcane:11};
+function skillArtIdx(id){const s=SKILLS[id];if(!s)return 0;if(s.k==='heal')return 12;if(s.k==='buff')return s.st&&STATUS[s.st[0]]&&STATUS[s.st[0]].bad?14:13;if(s.k==='debuff')return 14;if(s.k==='summon'||s.undead||s.turret)return 15;
+  if(s.k==='mag')return SKILL_EL[s.e]!=null?SKILL_EL[s.e]:11;if(s.e&&SKILL_EL[s.e]!=null&&s.k!=='phys')return SKILL_EL[s.e];if((s.hits||1)>1)return 2;if(['bow','crossbow'].includes(s.m)||/shot|arrow|volley/i.test(s.n))return 3;if((s.p||1)>=2)return 1;return 0;}
+function ptSkill(id,cls){return ART.ok?artCell('skills',skillArtIdx(id),cls||'skic'):'';}
+const FOLK_ART={'Old Marta':['folk1',0],'Pip Tallowbranch':['folk1',1],'Elder Wynn':['folk1',2],'Brother Aldous':['folk1',3],'Captain Roderic':['folk1',4],'Madame Ysolde':['folk1',5],'Sister Celine':['folk1',6],'Arena-master Kael':['folk1',7],
+  'Forgemaster Hilde':['folk1',8],'Rusk the Draconian':['folk1',9],'Veyra Moonsteel':['folk1',10],'One-Eyed Jory':['folk1',11],'Courier Tamsin':['folk1',12],'Warden Faelan':['folk1',13],'Thornmother Ilsa':['folk1',14],'Archivist Seraphine':['folk1',15],
+  'Conclave Magister Orrin':['folk2',0],'Master Bren Ironhand':['folk2',1],'Loremaster Durgi':['folk2',2],'Brewer Olga':['folk2',3],'Runesmith Kazra':['folk2',4],'Oracle-Speaker Nyx':['folk2',5],'Silkmonger Vael':['folk2',6],'Factor Bellamy':['folk2',7],
+  'Harbormaster Quill':['folk2',8],'Auctioneer Prisca':['folk2',9],'Shaman Grenna':['folk2',10],'Pitmaster Ug':['folk2',11],'Elder Grey-Muzzle':['folk2',12],'Tidecaller Saba':['folk2',13],'Captain Silk-Eye':['folk2',14],'Grandmaster Ten-Winds':['folk2',15],
+  'Caravan-master Zeb':['mon06',10],'The Frostmother':['xmon',10],'Bram Tallow':['xmon',11]};
+function ptFolk(n,cls){const a=FOLK_ART[n];return ART.ok&&a?artCell(a[0],a[1],cls||'folkic'):'';}
+const STATUS_ART={poison:0,burn:1,bleed:2,stun:3,freeze:4,slow:5,root:5,weaken:6,sunder:6,marked:7,blind:8,might:9,frenzy:9,bear:9,runeblade:9,focus:9,fortify:10,taunt:10,shield:11,ward:11,defend:11,blessed:12,resolve:12,regen:13,lifesteal:2,haste:14,dodge:14,stealth:15};
+function ptStatus(k){return ART.ok&&STATUS_ART[k]!=null?artCell('status',STATUS_ART[k],'stic'):'';}
+function achArtIdx(id,A){const n=(A&&A.n)||'';const t=[[/First Blood/,0],[/Hunter|Exterminator/,1],[/Champion|Renowned|Legend/,2],[/Seasoned|Veteran|Eternal/,3],[/Delver|Dungeon/,4],[/Slayer|Raid/,5],[/Explorer|Cartographer|Off the Map/,6],[/Well-Off|Tycoon/,7],[/Artisan/,8],[/Duelist|Gladiator/,9],[/Beast|Evolution/,10],[/Guild|Friendly|Neighbor|Sworn/,11],[/Scholar|Higher Path/,12],[/Sun-Engine/,13],[/Defender|Marks|Outfit/,14],[/Long Night|Coal|Collector/,15]];for(const [r,i] of t)if(r.test(n))return i;return 2;}
+function ptAch(id,A){return ART.ok?artCell('ach',achArtIdx(id,A),'achic'):'';}
 
 /* ---- audio.js ---- */
 /* ETERNAL REALMS — generative music & sound effects (Web Audio, no files).
@@ -5232,8 +5276,8 @@ function renderWorld(){
   }
   h+=`<section class="panel"><h3>Actions</h3><div class="grid-act">${acts.join('')}</div>
     <form class="freeform" data-form="freeform"><label for="ff">What do you do?</label><div class="row"><input id="ff" name="ff" maxlength="140" placeholder="e.g. climb the old tower, pray at the shrine, sing to the crowd" autocomplete="off"><button class="b">Act</button></div></form></section>`;
-  if((L.sv||[]).length&&!P.dungeon)h+=`<section class="panel"><h3>Places in town</h3><div class="grid-act svc">${L.sv.map(s=>abtn(s,SVC_NAMES[s],SVC_SUB[s]||'','svc',s)).join('')}</div></section>`;
-  const tf=TOWNSFOLK[P.loc]||[];if(tf.length)h+=`<section class="panel"><h3>Locals</h3><div class="people">${tf.map(([n,r])=>`<button class="person" data-a="talk" data-v="${E(n)}|${r}">${avatar(n,{frostmother:'cleric',candlemaker:'merchant',singer:'bard',innkeeper:'merchant',librarian:'mage',guard:'knight',merchant:'merchant',priest:'cleric',arena:'berserker',smith:'warrior',mentor:'swordsman',barkeep:'rogue',courier:'archer',smuggler:'rogue',elder:'druid',farmer:'druid',mystic:'summoner'}[r])}<span><b>${E(n)}</b><small>${U.cap(r)}</small></span></button>`).join('')}</div></section>`;
+  if((L.sv||[]).length&&!P.dungeon)h+=`<section class="panel"><h3>Places in town</h3><div class="grid-act svc">${L.sv.map(s=>ptSvc(s)?`<button class="ab svcart" data-a="svc" data-v="${s}">${ptSvc(s)}<span><b>${SVC_NAMES[s]}</b><small>${SVC_SUB[s]||''}</small></span></button>`:abtn(s,SVC_NAMES[s],SVC_SUB[s]||'','svc',s)).join('')}</div></section>`;
+  const tf=TOWNSFOLK[P.loc]||[];if(tf.length)h+=`<section class="panel"><h3>Locals</h3><div class="people">${tf.map(([n,r])=>`<button class="person" data-a="talk" data-v="${E(n)}|${r}">${ptFolk(n)||avatar(n,{frostmother:'cleric',candlemaker:'merchant',singer:'bard',innkeeper:'merchant',librarian:'mage',guard:'knight',merchant:'merchant',priest:'cleric',arena:'berserker',smith:'warrior',mentor:'swordsman',barkeep:'rogue',courier:'archer',smuggler:'rogue',elder:'druid',farmer:'druid',mystic:'summoner'}[r])}<span><b>${E(n)}</b><small>${U.cap(r)}</small></span></button>`).join('')}</div></section>`;
   if((L.feat||[]).length)h+=`<section class="panel"><h3>Points of interest</h3><div class="grid-btn">${L.feat.map((f,i)=>btn(`Examine: ${E(f)}${P.examined[P.loc+':'+i]?' ✓':''}`,'examine',i,'ghost')).join('')}</div></section>`;
   if(!P.dungeon){const nb=neighbors(P.loc).filter(l=>!LOCS[l].hid||P.explored.includes(l)||P.flags['found_'+l]);
     h+=`<section class="panel"><h3>Travel</h3><div class="travel">${nb.map(l=>{const X=LOCS[l];return `<button class="tr" data-a="travel" data-v="${l}"><i class="compass d-${dirWord(P.loc,l).replace('-','')}">${icon('travel')}</i><b>${E(X.n)}</b><small>${GRAPH[P.loc][l]}h · ${dirWord(P.loc,l)} · ${isTown(l)?U.cap(X.ty):`<span class="${lvlColor(X.lv[0])}">Lv ${X.lv[0]}–${X.lv[1]}</span>`}${P.explored.includes(l)?'':' · unexplored'}${S.boss&&S.boss.loc===l?' · ⚠ boss':''}</small></button>`;}).join('')}</div>
@@ -5251,8 +5295,8 @@ function svcPanel(s){const P=S.P,loc=P.loc;let h=`<h2>${SVC_NAMES[s]} — ${E(LO
   case 'special':h=specialView(loc);break;
   case 'festival':h=`<h2>Gift Exchange — Hollyhearth</h2>`+winterShopView();break;
   case 'inn':h+=`<p>A warm hearth, a noisy common room, and rooms upstairs.</p><div class="grid-btn">${btn(`Rent a room & rest (${10+P.level*2}g, 8h)`,'inn_rest')}${btn('Buy a round & hear rumors (5g)','rumors')}${btn('Use the kitchen','craftlist','cooking')}</div>`;break;
-  case 'shop':h+=`<p class="hint">Prices change with local supply and demand${S.wars.some(w=>w.a===f||w.b===f)?' — and the war is driving them up':''}.</p><div class="list">${shopStock(loc).map(k=>{const it={k};const p=priceFor(it,loc);return `<div class="li"><span>${E(ITEMS[k].n)} <small>${itemDesc(it)}</small></span><span class="gold">${p}g</span>${btn('Buy','buy',k,'tiny')}</div>`;}).join('')}</div>${sellSection()}`;break;
-  case 'smith':h+=`<p class="hint">Stock changes daily. Items up to 5 levels above you can be equipped.</p><div class="list">${smithStock(loc).map((it,i)=>{const p=priceFor(it,loc);return `<div class="li"><span>${rarityName(it)} <small>Lv.${it.l} · ${itemDesc(it)}</small></span><span class="gold">${U.fmt(p)}g</span>${btn('Buy','smithbuy',i,'tiny')}${btn('Inspect','iteminfo','s:'+i,'tiny ghost')}</div>`;}).join('')}</div>${sellSection()}${hasSvc(loc,'forge')||true?`<div class="row">${btn('Use the anvil (Smithing)','craftlist','smithing')}</div>`:''}`;break;
+  case 'shop':h+=`<p class="hint">Prices change with local supply and demand${S.wars.some(w=>w.a===f||w.b===f)?' — and the war is driving them up':''}.</p><div class="list">${shopStock(loc).map(k=>{const it={k};const p=priceFor(it,loc);return `<div class="li bagrow">${ptItem({k},'bic')}<span>${E(ITEMS[k].n)} <small>${itemDesc(it)}</small></span><span class="gold">${p}g</span>${btn('Buy','buy',k,'tiny')}</div>`;}).join('')}</div>${sellSection()}`;break;
+  case 'smith':h+=`<p class="hint">Stock changes daily. Items up to 5 levels above you can be equipped.</p><div class="list">${smithStock(loc).map((it,i)=>{const p=priceFor(it,loc);return `<div class="li bagrow">${ptItem(it,'bic')}<span>${rarityName(it)} <small>Lv.${it.l} · ${itemDesc(it)}</small></span><span class="gold">${U.fmt(p)}g</span>${btn('Buy','smithbuy',i,'tiny')}${btn('Inspect','iteminfo','s:'+i,'tiny ghost')}</div>`;}).join('')}</div>${sellSection()}${hasSvc(loc,'forge')||true?`<div class="row">${btn('Use the anvil (Smithing)','craftlist','smithing')}</div>`:''}`;break;
   case 'forge':h+=craftList('smithing');break;case 'alchemy':h+=craftList('alchemy')+craftList('enchanting');break;
   case 'market':return h+marketView(true);
   case 'guild':h+=guildHallView();break;
@@ -5483,23 +5527,23 @@ function renderChar(){const P=S.P,st=stats(P),a=st.attr;const R=RACES[P.race];
   h+=`<section class="panel"><h3>Prestige classes</h3><p class="hint">Hybrid paths that cross class lines.</p><div class="list">${Object.entries(ADV_CLASSES).map(([id,A])=>{const el=advEligible(P,A);return `<div class="li ${el.ok?'':'dim'}"><span><b>${A.name}</b>${P.adv===id?' ✓':''} <small>${E(A.desc)} Mentor in ${LOCS[A.mentor].n}. ${el.ok?'<span class="good">Eligible: visit the mentor\'s trainers.</span>':E(el.why.join(' · '))}</small></span></div>`;}).join('')}</div></section>`;
   if(P.comps.length||canTame())h+=`<section class="panel"><h3>Companions <small>${P.comps.length}/8</small></h3>${canTame()?'<p class="hint">In combat, use Bond on a beast, spirit or elemental below 30% HP.</p>':''}<div class="list">${P.comps.map(c=>{const sp=SPECIES[c.sp];return `<div class="li"><span><b>${E(c.name)}</b> <small>Lv.${c.level} ${E(sp.n)}${sp.evo?` · evolves at ${sp.evo[0]} → ${SPECIES[sp.evo[1]].n}`:' · final form'}</small></span>${P.activeComp===c.id?'<small>Active</small>':btn('Set active','compact',c.id,'tiny')}${btn('Release','comprel',c.id,'tiny ghost')}</div>`;}).join('')}</div></section>`;
   h+=`<section class="panel"><h3>Reputation</h3><div class="list">${KINGDOMS.map(f=>{const v=P.rep[f]||0;return `<div class="li"><span>${E(FACTIONS[f].n)}</span><span class="${v>=12?'good':v<=-12?'bad':''}">${repTitle(v)} (${v})</span></div>`;}).join('')}</div></section>`;
-  h+=`<section class="panel"><h3>Achievements <small>${P.ach.length}/${Object.keys(ACHIEVEMENTS).length}</small></h3><div class="achs">${Object.entries(ACHIEVEMENTS).map(([id,A])=>`<div class="ach ${P.ach.includes(id)?'got':''}" title="${E(A.d)}"><b>${E(A.n)}</b><small>${E(A.d)}</small></div>`).join('')}</div></section>`;
+  h+=`<section class="panel"><h3>Achievements <small>${P.ach.length}/${Object.keys(ACHIEVEMENTS).length}</small></h3><div class="achs">${Object.entries(ACHIEVEMENTS).map(([id,A])=>`<div class="ach ${P.ach.includes(id)?'got':''} ${ART.ok?'hasic':''}" title="${E(A.d)}">${ptAch(id,A)}<span><b>${E(A.n)}</b><small>${E(A.d)}</small></span></div>`).join('')}</div></section>`;
   h+=`<section class="panel"><h3>Record</h3><div class="derived">${[['Monsters slain',P.stats.kills],['Dungeons cleared',P.stats.dungeons],['Bosses',P.stats.bosses],['World bosses',P.stats.worldBoss],['PvP',`${P.pvp.w}W/${P.pvp.l}L (${P.pvp.r})`],['Quests',P.stats.quests||0],['Crafted',P.stats.crafted],['Explored',`${P.explored.length}/${Object.keys(LOCS).length}`],['Deaths',P.stats.deaths]].map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join('')}</div></section>`;
   return h;}
 Object.assign(ACT,{alloc(k){allocate(k);},
   // spends every unspent point the way the class is meant to be built: main stat, second stat, and some vitality
   autoalloc(){const P=S.P;const pr=CLASS_PRIO[P.cls]||['str','vit'];const n=P.pts;let i=0;while(P.pts>0){const k=i%5===4?'vit':i%5===1||i%5===3?pr[1]:pr[0];allocate(k);i++;}if(n)UI.toast(`Assigned ${n} points to ${[pr[0],pr[1],'vit'].filter((x,j,a)=>a.indexOf(x)===j).map(x=>x.toUpperCase()).join(', ')}`,'epic');},compact(id){S.P.activeComp=id;},comprel(id){S.P.comps=S.P.comps.filter(c=>c.id!==id);if(S.P.activeComp===id)S.P.activeComp=S.P.comps[0]?S.P.comps[0].id:null;}});
 
-function renderBag(){const P=S.P;let h=`<section class="panel"><h3>Equipped</h3><div class="slots">${EQUIP_SLOTS.map(sl=>{const it=P.equip[sl];return `<div class="slot"><span>${U.cap(sl)}</span>${it?`<button class="itm" data-a="iteminfo" data-v="e:${sl}">${rarityName(it)}<small>Lv.${it.l}</small></button>`:'<em>empty</em>'}</div>`;}).join('')}</div></section>`;
+function renderBag(){const P=S.P;let h=`<section class="panel"><h3>Equipped</h3><div class="slots">${EQUIP_SLOTS.map(sl=>{const it=P.equip[sl];return `<div class="slot ${it?'full':''}">${it?ptItem(it,'sic'):'<span class="sic empty"></span>'}<div class="sinfo"><span>${U.cap(sl)}</span>${it?`<button class="itm" data-a="iteminfo" data-v="e:${sl}">${rarityName(it)}<small>Lv.${it.l}</small></button>`:'<em>empty</em>'}</div></div>`;}).join('')}</div></section>`;
   const sort=UI.bagSort||'type';const items=P.inv.map((it,i)=>[it,i]);
   h+=`<section class="panel"><h3>Bag <small>${P.inv.length}/60 · ${U.fmt(P.gold)} gold</small></h3><div class="list">${items.map(([it,i])=>{const g=isGear(it);const d=itemDef(it);const usable=!g&&d&&(d.t==='con'||d.t==='food'||d.t==='tome');
-    return `<div class="li"><span>${g?`<button class="itm" data-a="iteminfo" data-v="i:${i}">${rarityName(it)}<small> Lv.${it.l} · ${E(itemDesc(it))}</small></button>`:`${E(d?d.n:it.k)}${it.q>1?' ×'+it.q:''} <small>${E(itemDesc(it))}</small>`}</span>
+    return `<div class="li bagrow">${ptItem(it,'bic')}<span>${g?`<button class="itm" data-a="iteminfo" data-v="i:${i}">${rarityName(it)}<small> Lv.${it.l} · ${E(itemDesc(it))}</small></button>`:`${E(d?d.n:it.k)}${it.q>1?' ×'+it.q:''} <small>${E(itemDesc(it))}</small>`}</span>
       ${g?btn('Equip','equip',i,'tiny'):''}${usable?btn('Use','use',i,'tiny'):''}${hasSvc(P.loc,'market')?btn('Auction','listask',i,'tiny ghost'):''}${btn('Drop','drop',i,'tiny ghost')}</div>`;}).join('')||'<p class="hint">Your bag is empty.</p>'}</div></section>`;
   return h;}
 function itemInfo(v){const P=S.P;const [k,x]=v.split(':');const it=k==='e'?P.equip[x]:k==='s'?smithStock(P.loc)[+x]:P.inv[+x];if(!it)return '';return itemInfoFor(it,k,x);}
 function itemInfoFor(it,k,x){const P=S.P;const b=ITEM_BASES[it.b];const cur=P.equip[b.sl];
   const s=itemStats(it),c=cur&&cur!==it?itemStats(cur):null;const cmp=(n,a,bv)=>c?`<span class="${a>bv?'good':a<bv?'bad':''}">${n} ${Math.round(a)} (${a>=bv?'+':''}${Math.round(a-bv)})</span>`:`${n} ${Math.round(a)}`;
-  return `<h2>${rarityName(it)}</h2><p>${RARITY[it.r].n} · item level ${it.l} · ${U.cap(b.sl)}${b.two?' · two-handed':''}${it.crafter?` · crafted by ${E(it.crafter)}`:''}</p>
+  return `<div class="iihead">${ptItem(it,'iic')}<div><h2>${rarityName(it)}</h2><p>${RARITY[it.r].n} · item level ${it.l} · ${U.cap(b.sl)}${b.two?' · two-handed':''}${it.crafter?` · crafted by ${E(it.crafter)}`:''}</p></div></div>
   <p>${[s.atk>0.5&&cmp('Attack',s.atk,c?c.atk:0),s.matk>0.5&&cmp('Magic',s.matk,c?c.matk:0),s.def>0.5&&cmp('Defense',s.def,c?c.def:0),s.mdef>0.5&&cmp('M.Def',s.mdef,c?c.mdef:0)].filter(Boolean).join(' · ')}</p>
   <p>${E(itemDesc(it))}</p>${it.u?`<p class="lore">${E(UNIQUES[it.u].lore)}</p>`:''}${it.set?setInfo(it.set):''}${it.ench?`<p class="good">Enchanted: ${AFFIXES[it.ench].n}</p>`:''}
   <p class="hint">Value ≈ ${U.fmt(itemValue(it))}g · Proficiency ${Math.round(proficiency(P,it)*100)}%</p>
@@ -5655,7 +5699,7 @@ function marketView(inModal){const P=S.P;const at=hasSvc(P.loc,'market');const q
   const mine=S.market.filter(x=>x.seller==='P');
   return `${at?'':'<p class="notice">You can browse from anywhere, but buying and selling needs an Auction House (Valeria, Saltmere, Crossroads and other markets).</p>'}
   <form data-form="mfilter" class="row wrap"><label class="sr" for="mq">Search</label><input id="mq" name="q" value="${E(UI.mq||'')}" placeholder="Search items"><select name="f" aria-label="Filter">${['all','weapon','armor','other'].map(f=>`<option ${ft===f?'selected':''}>${f}</option>`).join('')}</select><select name="s" aria-label="Sort"><option value="level">Level</option><option value="price" ${UI.msort==='price'?'selected':''}>Price</option></select><button class="b tiny">Filter</button></form>
-  <div class="list">${L.slice(0,60).map(x=>`<div class="li"><span>${rarityName(x.item)}${x.item.q>1?' ×'+x.item.q:''} <small>${isGear(x.item)?'Lv.'+x.item.l+' · ':''}${E(itemDesc(x.item))} · seller ${x.seller.startsWith('n')?userLink(x.seller):'traveling merchant'}</small></span><span class="gold">${U.fmt(x.price)}g</span>${at?btn('Buy','mbuy',x.id,'tiny'):''}</div>`).join('')||'<p class="hint">No listings match.</p>'}</div>
+  <div class="list">${L.slice(0,60).map(x=>`<div class="li bagrow">${ptItem(x.item,'bic')}<span>${rarityName(x.item)}${x.item.q>1?' ×'+x.item.q:''} <small>${isGear(x.item)?'Lv.'+x.item.l+' · ':''}${E(itemDesc(x.item))} · seller ${x.seller.startsWith('n')?userLink(x.seller):'traveling merchant'}</small></span><span class="gold">${U.fmt(x.price)}g</span>${at?btn('Buy','mbuy',x.id,'tiny'):''}</div>`).join('')||'<p class="hint">No listings match.</p>'}</div>
   <h3>Your listings</h3><div class="list">${mine.map(x=>`<div class="li"><span>${rarityName(x.item)}</span><span class="gold">${U.fmt(x.price)}g</span>${btn('Cancel','mcancel',x.id,'tiny ghost')}</div>`).join('')||'<p class="hint">List items from your Bag while at an Auction House.</p>'}</div>`;}
 function renderMarket(){return `<section class="panel"><h2>Auction House</h2>${marketView()}</section>`;}
 Object.assign(ACT,{form_mfilter(fd){UI.mq=fd.q;UI.mf=fd.f;UI.msort=fd.s;if(UI.modalKey==='svc:market')refreshModal();},
@@ -5763,7 +5807,7 @@ Object.assign(ACT,{cc(v){ccSync();const [f,k]=v.split('|');CC[f]=k;const y=windo
 /* ---------------- combat UI ---------------- */
 UI.banner=(title,sub)=>{const b=$('#banner');b.innerHTML=`<div><small>${E(sub||'')}</small><b>${E(title)}</b></div>`;b.hidden=false;b.classList.remove('go');void b.offsetWidth;b.classList.add('go');clearTimeout(UI.bt);UI.bt=setTimeout(()=>{b.hidden=true;},2600);};
 BUS.on((t,d)=>{if(S&&S.catchup)return;if(t==='player_tier'||t==='player_level'||t==='player_adv'){levelBurst();sfx('levelup');}if(t==='player_ach'){sfx('buff');burst(innerWidth/2,innerHeight*0.45,ELEM_COL.gold,24,4);}if(t==='player_tier')UI.banner(d.nm,'Class upgrade');if(t==='player_level')UI.banner(`Level ${d.level}`,'You feel stronger');if(t==='player_adv')UI.banner(d.A.name,'A higher path');if(t==='player_ach')UI.banner(ACHIEVEMENTS[d.id].n,'Achievement');});
-UI.openCombat=()=>{C.closed=false;$('#combat').hidden=false;UI.combatMenu='main';$('#combat').classList.remove('res-win','res-lose','res-fled','justended');cfxIntro();renderCombat();};
+UI.openCombat=()=>{C.closed=false;$('#combat').hidden=false;{const loc=(C.opts&&C.opts.loc)||(S.P&&S.P.loc);const L=LOCS[loc];const bg=!ART.ok||!L?'none':L.rg?`url(${ART.base}${loc==='hollyhearth'?'winter.webp':'xmap.webp'})`:`url(${ART.base}v/${loc}.webp)`;$('#combat').style.setProperty('--cbg',bg);}UI.combatMenu='main';$('#combat').classList.remove('res-win','res-lose','res-fled','justended');cfxIntro();renderCombat();};
 // strictly one actor at a time: each action gets its own beat so its animation finishes before the next one starts
 UI.turnGap=()=>UI.fast?260:fxReduced()?600:950;
 UI.runCombat=(afterPlayer)=>{if(!C||C.ended){renderCombat();return;}clearTimeout(UI.ct);
@@ -5771,7 +5815,7 @@ UI.runCombat=(afterPlayer)=>{if(!C||C.ended){renderCombat();return;}clearTimeout
     if(r==='cont')UI.ct=setTimeout(step,C.acted?UI.turnGap():40);};
   if(afterPlayer){renderCombat();UI.ct=setTimeout(step,UI.turnGap());}else step();};
 UI.combatEnded=()=>{renderCombat();UI.dirty=true;cfxEnded();if(C.result==='win'){sfx('victory');if(C.enemies.some(e=>e.boss)||C.summary.some(x=>typeof x==='object'&&x.r>=3))confetti();}else if(C.result==='lose')sfx('defeat');};
-function actorCard(a,i,side){const fx=Object.keys(a.fx).filter(k=>STATUS[k]&&a.fx[k].d>0).map(k=>`<i class="fx ${STATUS[k].bad?'bad':'good'}">${STATUS[k].n}</i>`).join('');const dead=a.hp<=0||a.fled;
+function actorCard(a,i,side){const fx=Object.keys(a.fx).filter(k=>STATUS[k]&&a.fx[k].d>0).map(k=>`<i class="fx ${STATUS[k].bad?'bad':'good'} ${ptStatus(k)?'hasic':''}" title="${STATUS[k].n}">${ptStatus(k)}${STATUS[k].n}</i>`).join('');const dead=a.hp<=0||a.fled;
   const sx=dead?'':(['freeze','stun','burn','poison','bleed','shield','defend','stealth','frenzy','regen','haste','might'].find(k=>a.fx[k]&&a.fx[k].d>0)||'');const sel=side==='e'&&C.target===i;const cur=C.order[C.oi]===a&&!C.ended;a._k=a._k||U.uid();return `<button class="actor ${side} ${dead?'dead':''} ${sel?'sel':''} ${a.isPlayer?'me':''} ${cur?'turn':''} ${a.boss?'boss':''} ${a.coop?'coopa':''} ${ptActor(a)?'hasp':''} ${sx?'sx sx-'+sx:''} ${a.side==='a'&&a.hp>0&&a.hp<a.mhp*0.25?'low':''}" style="--i:${Math.max(0,i)}" data-k="${a._k}" ${side==='e'&&!dead?`data-a="ctarget" data-v="${i}"`:'disabled'} aria-label="${E(a.name)}">
   ${ptActor(a,'ap')||''}<span class="ainfo"><span class="ahead">${ptActor(a)?'':sigil(a)}<b>${E(a.name)}</b></span><small>Lv.${a.level} · ${a.row}${a.boss?' · BOSS':''}${a.fled?(a.tamed?' · bonded':a.surrendered?' · yielded':' · fled'):''}</small>${abar(Math.max(0,a.hp),a.mhp,'hp','HP',a._k)}${a.side==='a'&&!a.mon?abar(a.mp,a.mmp,'mp','MP',a._k)+abar(a.sp,a.msp,'sp','SP',a._k):''}<span class="fxs">${fx}</span></span></button>`;}
 function renderCombat(){if(!C)return;const el=$('#combat');const pa=C.allies.find(x=>x.isPlayer);const foes=alive(C.enemies);if(C.target>=foes.length)C.target=0;
@@ -5783,7 +5827,7 @@ function renderCombat(){if(!C)return;const el=$('#combat');const pa=C.allies.fin
       <div class="crow six">${cb('heavy','Heavy','ca','heavy')}${cb('quick','Quick','ca','quick')}${cb('defend','Defend','ca','defend')}${cb('dodge','Dodge','ca','dodge')}${cb('parry','Parry','ca','parry')}${cb('counter','Counter','ca','counter')}</div>
       <div class="crow util">${S.P.comps.length?cb('summon','Summon','cmenu','summon'):''}${canTame()?cb('bond','Bond','ca','tame'):''}${C.allies.length>1?cb('party','Party','cmenu','party'):''}${cb('row',pa.row==='front'?'To back':'To front','ca','row')}${cb('eye','Inspect','cinspect','')}${C.opts.type==='duel'||C.opts.type==='arena'?cb('escape','Yield','ca','surrender','ghost'):cb('escape','Escape','ca','escape','ghost')}</div></div>`;}
     else{const list=m==='skills'?sk.filter(id=>!(SKILLS[id].c[0]>0&&!SKILLS[id].c[1]&&['mag','heal'].includes(SKILLS[id].k))):m==='magic'?sk.filter(id=>SKILLS[id].c[0]>0):[];
-      let inner='';if(m==='skills'||m==='magic')inner=list.map(id=>{const s=SKILLS[id];const ok=costOk(pa,Object.assign({id},s));return `<button class="b ${ok?'':'dim'}" data-a="cskill" data-v="${id}" ${ok?'':'disabled'} title="${E(s.d||'')}">${E(s.n)}<small>${s.c[0]?s.c[0]+'MP ':''}${s.c[1]?s.c[1]+'SP':''}${pa.cd[id]>0?' · '+pa.cd[id]+'t':''}</small></button>`;}).join('')||'<p class="hint">None available.</p>';
+      let inner='';if(m==='skills'||m==='magic')inner=list.map(id=>{const s=SKILLS[id];const ok=costOk(pa,Object.assign({id},s));return `<button class="b skb ${ok?'':'dim'}" data-a="cskill" data-v="${id}" ${ok?'':'disabled'} title="${E(s.d||'')}">${ptSkill(id)}<span class="skt">${E(s.n)}<small>${s.c[0]?s.c[0]+'MP ':''}${s.c[1]?s.c[1]+'SP':''}${pa.cd[id]>0?' · '+pa.cd[id]+'t':''}</small></span></button>`;}).join('')||'<p class="hint">None available.</p>';
       if(m==='items')inner=S.P.inv.map((it,i)=>[it,i]).filter(([it])=>!isGear(it)&&ITEMS[it.k]&&ITEMS[it.k].t==='con').map(([it,i])=>`<button class="b" data-a="citem" data-v="${i}">${E(ITEMS[it.k].n)} ×${it.q}<small>${E(itemDesc(it))}</small></button>`).join('')||'<p class="hint">No usable items.</p>';
       if(m==='summon')inner=S.P.comps.map(c=>`<button class="b" data-a="csummon" data-v="${c.id}">${E(c.name)}<small>Lv.${c.level} · ${15+Math.round(c.level*0.5)} MP</small></button>`).join('');
       if(m==='party')inner=['free','focus','defensive'].map(t=>btn(({free:'Fight freely',focus:'Focus my target',defensive:'Play defensively'})[t],'ctactic',t,C.tactic===t?'gilt':'')).join('');
