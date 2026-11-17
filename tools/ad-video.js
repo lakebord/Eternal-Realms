@@ -5,10 +5,11 @@ const {chromium}=require('playwright');const path=require('path');const fs=requi
 const out=path.resolve(process.argv[2]||'ad.mp4');const tmp=fs.mkdtempSync(path.join(require('os').tmpdir(),'erad-'));const root=path.join(__dirname,'..');
 const SITE=process.env.SITE||'eternal-realms-26r.pages.dev';
 (async()=>{const b=await chromium.launch({args:['--autoplay-policy=no-user-gesture-required']});
-const ctx=await b.newContext({viewport:{width:412,height:732},deviceScaleFactor:2.6214,isMobile:true,hasTouch:true,colorScheme:'dark',recordVideo:{dir:tmp,size:{width:1080,height:1920}},
+const adPage=path.join(root,'index.ad.html');fs.writeFileSync(adPage,fs.readFileSync(path.join(root,'index.html'),'utf8').replace('width=device-width,initial-scale=1,viewport-fit=cover','width=412,viewport-fit=cover'));
+const ctx=await b.newContext({viewport:{width:1080,height:1920},deviceScaleFactor:1,isMobile:true,hasTouch:true,colorScheme:'dark',recordVideo:{dir:tmp,size:{width:1080,height:1920}},
   userAgent:'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36'});
 const p=await ctx.newPage();const T0=Date.now();const at=()=>(Date.now()-T0)/1000;
-await p.goto('file://'+path.join(root,'index.html'));
+await p.goto('file://'+adPage);
 // ad dressing: captions, scene fades, and nothing that shows simulated players
 await p.addStyleTag({content:`
  #ticker,#toasts,.tbody,.tfoot,.title .tag,#view .panel:has(.people),#side,.maphint{display:none!important}
@@ -43,17 +44,17 @@ await p.evaluate(()=>{audStart();AUD.music=0;window.__d=AUD.ctx.createMediaStrea
 marks.start=at();await fade(false);await p.waitForTimeout(700);await cap('A dark-fantasy RPG',['Free to play','Browser + Android']);await p.waitForTimeout(2500);await cap();
 // ---- 2. choose a class
 await fade(true);await p.evaluate(()=>{CC.step=2;CC.cls='warrior';renderCreate();scrollTo(0,0);});await p.waitForTimeout(150);
-await fade(false);await cap('Build your hero',['20 classes','10 races','234 skills']);
+await fade(false);await cap('Build your hero',['20 classes','10 races']);
 for(const c of ['knight','rogue','necromancer','paladin','mage']){await p.waitForTimeout(470);await p.evaluate(c=>{ACT.cc('cls|'+c);const el=document.querySelector('.pk.on');if(el)el.scrollIntoView({block:'center',behavior:'smooth'});},c);}
 await p.waitForTimeout(650);await cap();
 // ---- 3. the world
 await fade(true);await p.evaluate(()=>{CC.cls='warrior';startGame();});await p.waitForFunction(()=>UI.started,null,{timeout:20000});await p.evaluate(()=>{UI.tab='world';UI.dirty=true;render();scrollTo(0,0);});await p.waitForTimeout(300);
-await fade(false);await cap('Explore the Realms',['38 locations','11 dungeons','Towns, shops & quests']);await p.waitForTimeout(1500);
+await fade(false);await cap('Explore the Realms',['Dungeons','Towns & quests','World bosses']);await p.waitForTimeout(1500);
 await p.evaluate(()=>scrollTo({top:150,behavior:'smooth'}));await p.waitForTimeout(1200);
 await p.evaluate(()=>{UI.tab='map';UI.dirty=true;render();scrollTo(0,0);});await p.waitForTimeout(1900);await cap();
 // ---- 4. battle
 await fade(true);await p.evaluate(()=>{const P=S.P;const en=[makeMonster('death_knight_m',P.level),makeMonster('wraith',P.level-1)];for(const e of en){e.mhp=Math.round(e.mhp*1.6);e.hp=e.mhp;}startCombat(en,{title:'Necropolis of Vel'});const me=C.allies[0];me.mhp*=4;me.hp=me.mhp;render();});
-await fade(false);await p.waitForTimeout(1000);await cap('Turn-based battles',['18 weapon types','8 magic elements','89 monsters']);
+await fade(false);await p.waitForTimeout(1000);await cap('Turn-based battles',['Weapons & magic','Skills & tactics']);
 const ready=async()=>{for(let i=0;i<120;i++){if(await p.$('#combat [data-a=ca][data-v=attack]')||await p.$('#combat [data-a=cclose]'))return;await p.waitForTimeout(80);}};
 const spell=async(e,n)=>p.evaluate(([e,n])=>{const me=C.allies[0],t=alive(C.enemies)[C.target]||alive(C.enemies)[0];if(!t)return;clog(`${me.name} uses ${n}!`,'skill');vfx('cast',me,{n,k:'mag',e});const r=damage(me,t,{kind:'mag',power:1.5,ranged:true});r.e=e;me._mode='spell';applyHit(me,t,r,'hits');C.waiting=false;endTurn(me);C.oi++;UI.runCombat(true);},[e,n]);
 await ready();await p.waitForTimeout(250);await (await p.$('#combat [data-a=ca][data-v=attack]')).click();await p.waitForTimeout(500);
@@ -61,10 +62,10 @@ await ready();await p.waitForTimeout(250);await spell('fire','Flame Strike');awa
 await ready();await p.waitForTimeout(250);await cap();await spell('lightning','Thunder Cleave');await p.waitForTimeout(900);
 // ---- 4b. loot & gear
 await fade(true);await p.evaluate(()=>{clearTimeout(UI.ct);C=null;document.getElementById('combat').hidden=true;const P=S.P;P.inv=P.inv.filter(x=>!x.b).slice(0,2);for(const [b,r] of [['greataxe',4],['chest_plate',3],['amulet',4],['bow',2],['head_plate',3],['ring',2],['staff',3],['shield',1]])P.inv.push(makeGear(b,P.level,r));UI.tab='bag';UI.dirty=true;render();const el=[...document.querySelectorAll('#view h3')].find(h=>/^Bag/.test(h.textContent));if(el)scrollTo(0,el.getBoundingClientRect().top+scrollY-110);});await p.waitForTimeout(200);
-await fade(false);await cap('Loot and gear up',['5 rarities','7 armor sets','47 crafting recipes']);await p.waitForTimeout(1400);await p.evaluate(()=>scrollBy({top:170,behavior:'smooth'}));await p.waitForTimeout(1300);await cap();
+await fade(false);await cap('Loot and gear up',['Rare loot','Craft & upgrade']);await p.waitForTimeout(1400);await p.evaluate(()=>scrollBy({top:170,behavior:'smooth'}));await p.waitForTimeout(1300);await cap();
 // ---- 5. boss
 await fade(true);await p.evaluate(()=>{const P=S.P;P.hp=stats(P).mhp;const m=makeMonster('b_dragon',P.level+2);startCombat([m],{title:'Lair of Pyrrhax',noEscape:1});const me=C.allies[0];me.mhp*=5;me.hp=me.mhp;render();});
-marks.boss=at();await fade(false);await p.waitForTimeout(1900);await cap('Hunt legendary bosses',['25 bosses','Solo or co-op','Rare loot']);
+marks.boss=at();await fade(false);await p.waitForTimeout(1900);await cap('Hunt legendary bosses',['Solo or co-op','Epic rewards']);
 await ready();await p.waitForTimeout(300);await spell('frost','Glacial Edge');await p.waitForTimeout(600);
 await ready();await cap();await p.waitForTimeout(250);await p.evaluate(()=>{for(const e of C.enemies)if(e.hp>0)e.hp=1;});await (await p.$('#combat [data-a=ca][data-v=heavy]')).click();
 await p.waitForTimeout(3000);
@@ -73,7 +74,7 @@ await fade(true);await p.evaluate(()=>{clearTimeout(UI.ct);ACT.title();});await 
 await p.evaluate(site=>{const e=document.getElementById('adend');e.innerHTML=`<h2>Play free now</h2><div class="url">${site}</div><p>In your browser · Android app</p>`;},SITE);
 await fade(false);await p.waitForTimeout(500);await p.evaluate(()=>document.getElementById('adend').classList.add('on'));await p.waitForTimeout(3300);marks.end=at();
 const b64=await p.evaluate(()=>new Promise(res=>{__r.onstop=()=>{const fr=new FileReader();fr.onload=()=>res(fr.result.split(',')[1]);fr.readAsDataURL(new Blob(__ch,{type:'audio/webm'}));};__r.stop();}));
-fs.writeFileSync(path.join(tmp,'sfx.webm'),Buffer.from(b64,'base64'));await ctx.close();await b.close();
+fs.writeFileSync(path.join(tmp,'sfx.webm'),Buffer.from(b64,'base64'));await ctx.close();await b.close();fs.rmSync(adPage,{force:true});
 const vid=path.join(tmp,fs.readdirSync(tmp).find(f=>f.startsWith('page')));const start=marks.start,dur=marks.end-start;
 const f=[`[1:a]adelay=${Math.round(Math.max(0,marks.rec-start)*1000)}:all=1,volume=2.0[sfx]`,
   `[2:a]atrim=0:${dur.toFixed(2)},afade=t=in:d=0.6,afade=t=out:st=${(dur-1.6).toFixed(2)}:d=1.6,volume=0.6[m]`,

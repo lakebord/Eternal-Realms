@@ -78,7 +78,10 @@ async function netInit(){
   if(!onClaude&&!(typeof supaWanted==='function'&&supaWanted())){NET.ready=true;return;}
   try{let db,user,room,sample=null,dl;
     if(onClaude)[db,user,room,sample,dl]=await Promise.all(['db','user','room','sample','downloads'].map(n=>window.claude.use(n).catch(()=>null)));
-    else{NET.backend='supabase';const sv=await supaServices();if(!sv){NET.needAuth=true;NET.status='Sign in to play online';NET.ready=true;if(typeof UI!=='undefined')UI.refresh();return;}
+    else{NET.backend='supabase';
+      // never hang on the title screen: if the online service does not answer in time, offer offline play instead
+      let sv;try{sv=await Promise.race([supaServices(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),9000))]);}
+      catch(e){console.warn('online service',e);NET.unreachable=true;NET.status='The online service is not answering right now. Playing offline; your progress stays on this device.';NET.ready=true;if(typeof UI!=='undefined')UI.refresh();return;}if(!sv){NET.needAuth=true;NET.status='Sign in to play online';NET.ready=true;if(typeof UI!=='undefined')UI.refresh();return;}
       NET.needAuth=false;({db,user,room,downloads:dl}=sv);NET.guest=user.guest;NET.email=user.email;}
     NET.db=db;NET.user=user;NET.room=room;NET.sample=sample;NET.downloads=dl;
     if(user){NET.uid=await user.id();try{NET.isHost=!!(await user.canEdit());}catch(e){NET.isHost=false;}try{const c=await user.can('data.write');NET.canWrite=c!==false&&!!NET.uid;}catch(e){NET.canWrite=!!NET.uid;}}

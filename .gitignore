@@ -4,3 +4,4 @@ node_modules/
 !tools/android/**/*.png
 public/
 undefined/
+index.ad.html

@@ -394,9 +394,10 @@ function isTyping(){const a=document.activeElement;return a&&(a.tagName==='INPUT
 function applyTheme(){const t=UI.theme||'system';if(t==='system')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);}
 
 /* ---------------- title & boot ---------------- */
-function needSignIn(){return typeof supaWanted==='function'&&supaWanted()&&!NET.uid;}
+Object.assign(ACT,{playoffline(){NET.unreachable=true;NET.ready=true;NET.status='Offline: your progress stays on this device.';showTitle();}});
+function needSignIn(){return typeof supaWanted==='function'&&supaWanted()&&!NET.uid&&!NET.unreachable;}
 function authHtml(){if(!LAUNCH.open||!needSignIn())return '';
-  if(!NET.ready)return `<div class="tmenu"><div class="soon"><b>Connecting…</b></div></div>`;
+  if(!NET.ready)return `<div class="tmenu"><div class="soon"><b>Connecting…</b><p>Reaching the Realms' servers.</p></div><button class="b ghost" data-a="playoffline">Play offline instead <small>progress stays on this device</small></button></div>`;
   const up=UI.authMode==='signup';
   return `<div class="tmenu auth"><div class="soon"><small>${up?'Create your account':'Welcome back'}</small>
     <form data-form="auth" class="col"><label for="ae">Email</label><input id="ae" name="email" type="email" autocomplete="email" required>
