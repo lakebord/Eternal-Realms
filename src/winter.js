@@ -10,7 +10,9 @@ const WINTER={id:'longnight',n:'The Long Night',tag:'The Long Night 2026',start:
 function winterNow(){return (typeof window!=='undefined'&&window.__WINTER_NOW)||Date.now();}
 // test switch for previews: ?winter in the address, or localStorage er_winter=1
 function winterForced(){try{return typeof location!=='undefined'&&(/[?&]winter\b/.test(location.search)||localStorage.getItem('er_winter')==='1');}catch(e){return false;}}
-function winterOn(){if(winterForced())return true;const n=new Date(winterNow());const s=new Date(...WINTER.start,0,0,0),e=new Date(...WINTER.end,23,59,59);return n>=s&&n<=e;}
+/* WINTER_LIVE=false ships the build with the event fully switched off (no date or ?winter override). */
+const WINTER_LIVE=true;
+function winterOn(){if(!WINTER_LIVE)return false;if(winterForced())return true;const n=new Date(winterNow());const s=new Date(...WINTER.start,0,0,0),e=new Date(...WINTER.end,23,59,59);return n>=s&&n<=e;}
 function winterDaysLeft(){const e=new Date(...WINTER.end,23,59,59);return Math.max(0,Math.ceil((e-new Date(winterNow()))/86400000));}
 function winterDayKey(){const n=new Date(winterNow());return `${n.getFullYear()}-${n.getMonth()+1}-${n.getDate()}`;}
 function locOpen(l){const L=LOCS[l];return !L||!L.ev||winterOn();}
