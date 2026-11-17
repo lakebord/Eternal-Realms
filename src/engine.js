@@ -64,6 +64,7 @@ function itemName(it){
   if(!it)return '';
   if(!isGear(it)){const d=ITEMS[it.k];return d?d.n:it.k;}
   if(it.u)return UNIQUES[it.u].n;
+  if(it.set==='yulewarden'&&typeof WINTER_SET_NAMES!=='undefined'){const sl=ITEM_BASES[it.b].sl;if(WINTER_SET_NAMES[sl])return WINTER_SET_NAMES[sl];}
   if(it.set){const b=ITEM_BASES[it.b];let suf='';for(const a of it.a||[]){if(!AFFIXES[a].pre){suf=' '+AFFIXES[a].n;break;}}return `${SETS[it.set].n} ${b.n}${suf}`;}
   const base=ITEM_BASES[it.b],t=tierFor(it.l);let mat;
   if(base.t==='armor')mat=base.ac==='cloth'?t[2]:base.ac==='leather'?t[3]:t[4];else if(base.t==='acc')mat=t[5];else mat=t[1];
@@ -208,8 +209,9 @@ function rollLoot(id,l,luck=0,mult=1){
   for(const [k,c,q] of M.loot||[])if(U.chance(Math.min(1,c*(1+luck*0.004))))out.items.push({k,q:U.ri(1,q)});
   if(M.gear&&U.chance(Math.min(1,M.gear*(1+luck*0.005)))){const r=M.boss?(U.chance(0.25)?3:U.chance(0.6)?2:1):undefined;out.items.push(randomGear(l+U.ri(-2,2),null,r));}
   if(M.boss&&M.gear>=1)for(let i=1;i<M.gear;i++)out.items.push(randomGear(l,null,U.chance(0.3)?3:2));
-  if(M.uniq&&U.chance(M.world?0.35:0.5))out.items.push(makeUnique(M.uniq,l));
+  if(M.uniq&&U.chance(M.uq!=null?M.uq:M.world?0.35:0.5))out.items.push(makeUnique(M.uniq,l));
   if(M.set&&U.chance(M.world?0.6:0.35))out.items.push(makeSetItem(M.set,l));
+  if(typeof winterLoot==='function')winterLoot(id,l,out);
   if(typeof evMod==='function'){out.gold=Math.round(out.gold*evMod('gold'));if(evMod('loot')>1&&U.chance(evMod('loot')-1)&&out.items.length)out.items.push(Object.assign({},out.items[0],out.items[0].b?{uid:U.uid()}:{}));}
   if(U.chance(0.12))out.items.push({k:l<15?'hpot1':l<35?'hpot2':l<60?'hpot3':'hpot4',q:1});
   if(U.chance(0.06))out.items.push({k:l<20?'mpot1':l<50?'mpot2':'mpot3',q:1});
@@ -221,11 +223,11 @@ function locMonsterLevel(loc){const L=LOCS[loc];return U.ri(L.lv[0],L.lv[1]);}
 const GRAPH = {};
 for(const k in LOCS)GRAPH[k]={};
 for(const [a,b,h] of ROUTES){GRAPH[a][b]=h;GRAPH[b][a]=h;}
-function neighbors(loc){return Object.keys(GRAPH[loc]||{});}
+function neighbors(loc){return Object.keys(GRAPH[loc]||{}).filter(locOpen);}
 function path(a,b,allowHidden){ // dijkstra
   const dist={},prev={},Q=new Set(Object.keys(LOCS));for(const k of Q)dist[k]=Infinity;dist[a]=0;
   while(Q.size){let u=null;for(const k of Q)if(u===null||dist[k]<dist[u])u=k;if(dist[u]===Infinity)break;Q.delete(u);if(u===b)break;
-    for(const v in GRAPH[u]){if(!allowHidden&&LOCS[v].hid&&v!==b&&!allowHidden)continue;const alt=dist[u]+GRAPH[u][v];if(alt<dist[v]){dist[v]=alt;prev[v]=u;}}}
+    for(const v in GRAPH[u]){if(!allowHidden&&LOCS[v].hid&&v!==b&&!allowHidden)continue;if(!locOpen(v))continue;const alt=dist[u]+GRAPH[u][v];if(alt<dist[v]){dist[v]=alt;prev[v]=u;}}}
   if(dist[b]===Infinity)return null;const p=[b];let c=b;while(prev[c]){c=prev[c];p.unshift(c);}return {path:p,hours:dist[b]};
 }
 function isTown(loc){const t=LOCS[loc].ty;return t==='city'||t==='town'||t==='village';}

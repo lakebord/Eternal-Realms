@@ -15,6 +15,7 @@ const ICONS={
   menu:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M12 2v3 M12 19v3 M2 12h3 M19 12h3 M4.9 4.9l2.1 2.1 M17 17l2.1 2.1 M4.9 19.1L7 17 M17 7l2.1-2.1',
   more:'M5 12h.01 M12 12h.01 M19 12h.01',
   download:'M12 3v12 M7 10l5 5 5-5 M4 20h16',
+  festival:'M12 3l1.8 3.7 4 .6-2.9 2.8.7 4L12 12.2 8.4 14.1l.7-4-2.9-2.8 4-.6z M5 21h14 M7 21v-4h10v4 M12 14v3',
   explore:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M15.5 8.5l-2 5-5 2 2-5z',
   hunt:'M5 19L17 7 M14 4l6 0 0 6 M4 15l5 5 M7 13l4 4',
   search:'M11 17a6 6 0 1 0 0-12 6 6 0 0 0 0 12z M20 20l-4.5-4.5',
@@ -81,7 +82,7 @@ function sigil(a){if(!a.mon&&!a.isComp){const role=a.role||'dps';const g={tank:'
   const col=ELEM_HUE[a.e]||'var(--ink2)';return `<span class="sigil ${a.boss?'boss':''}" style="--sc:${col}">${icon(CAT_GLYPH[a.cat]||'claw')}</span>`;}
 
 /* ---------- location vistas (canvas, cached per location + time of day) ---------- */
-const BIOME={brookhollow:'village',greenmarch:'fields',whisperwood:'forest',mine:'cave',ember:'lava',valeria:'city',watchtower:'ruin',ironford:'town',mirren:'lake',grimward:'fort',crossroads:'town',
+const BIOME={hollyhearth:'snow',glimmerfrost:'snow',coalvault:'cave',brookhollow:'village',greenmarch:'fields',whisperwood:'forest',mine:'cave',ember:'lava',valeria:'city',watchtower:'ruin',ironford:'town',mirren:'lake',grimward:'fort',crossroads:'town',
   thornvale:'forest',moonfall:'glade',lothirien:'elfcity',crystallake:'lake',hollow:'glade',frostpeak:'snow',summit:'snow',khazgard:'mountaincity',deepforge:'lava',undervault:'cave',skyreach:'snow',
   duskhaven:'undercity',aethermoor:'ruin',saltmere:'port',cove:'coast',mire:'swamp',pawhaven:'coast',isles:'coast',citadel:'coast',bloodrock:'mesa',dunes:'desert',oasis:'desert',tomb:'desert',ashen:'lava',necropolis:'necro',spire:'spire'};
 const VISTA_CACHE={};
@@ -92,6 +93,7 @@ function skyFor(t,biome){const h=T.hour(t);const under=['cave','undercity'].incl
   if(h<17)return {top:'#4a7ab0',bot:'#bcd3df',sun:[0.5+(h-12)*0.04,0.25]};
   return {top:'#2b2747',bot:'#e0805a',sun:[0.8,0.72]};}
 function drawVista(loc,t){
+  if(LOCS[loc]&&LOCS[loc].ev&&ART.ok)return ART.base+'winter.webp';   // the festival region uses its painted scene
   const biome=BIOME[loc]||'fields';const sky=skyFor(t,biome);const key=loc+'|'+(sky.night?'n':T.hour(t)<8?'d':T.hour(t)<17?'m':'e');if(VISTA_CACHE[key])return VISTA_CACHE[key];
   const W=1200,H=320;const cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');
   let seed=[...loc].reduce((s,c)=>s*31+c.charCodeAt(0)|0,7);const rnd=()=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;};
@@ -157,11 +159,14 @@ const ART={ok:false,base:'assets/',gear:['sword','greatsword','axe','greataxe','
 function artCell(sheet,i,cls,extra){const c=i%4,r=Math.floor(i/4)%4;return `<span class="pt ${cls||''}" ${extra||''} style="background-image:url(${ART.base}${sheet}.webp);background-position:${(c*100/3).toFixed(2)}% ${(r*100/3).toFixed(2)}%" aria-hidden="true"></span>`;}
 function artIdx(prefix,i,cls,extra){return artCell(prefix+String(Math.floor(i/16)+1).padStart(2,'0'),i%16,cls,extra);}
 function nameHash(s){let h=0;s=String(s||'');for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h);}
-function ptMon(id,cls){if(!ART.ok)return '';ART.mk=ART.mk||Object.keys(MONSTERS);const i=ART.mk.indexOf(id);return i<0?'':artIdx('mon',i,cls);}
+function ptMon(id,cls){if(!ART.ok)return '';if(MONSTERS[id]&&MONSTERS[id].art!=null)return artCell('xmon',MONSTERS[id].art,cls);ART.mk=ART.mk||Object.keys(MONSTERS);const i=ART.mk.indexOf(id);return i<0?'':artIdx('mon',i,cls);}
 function ptNpc(kind,cls){if(!ART.ok||ART.npc[kind]==null)return '';return artIdx('mon',ART.npc[kind],cls);}
 function ptClass(cl,gender,name,cls){if(!ART.ok)return '';ART.ck=ART.ck||Object.keys(CLASSES);let i=ART.ck.indexOf(cl);if(i<0)return '';
   const f=gender==='female'?1:gender==='male'?0:nameHash(name)%2;if(i<16)return artCell(f?'class02':'class01',i,cls);if(i<20)return artCell('class03',(i-16)+(f?4:0),cls);return '';}
-function ptItem(it,cls){if(!ART.ok||!it)return '';if(it.b){const i=ART.gear.indexOf(it.b);return i<0?'':artIdx('gear',i,(cls||'')+' r'+(it.r||0));}ART.ik=ART.ik||Object.keys(ITEMS);const i=ART.ik.indexOf(it.k||it);return i<0?'':artIdx('items',i,cls);}
+function ptItem(it,cls){if(!ART.ok||!it)return '';if(it.b&&it.u&&UNIQUES[it.u]&&UNIQUES[it.u].art!=null)return artCell('xgear',UNIQUES[it.u].art,(cls||'')+' r'+(it.r||0));
+  if(it.b&&it.set==='yulewarden'&&typeof WINTER_SET_ART!=='undefined'){const sl=ITEM_BASES[it.b].sl;if(WINTER_SET_ART[sl]!=null)return artCell('xgear',WINTER_SET_ART[sl],(cls||'')+' r'+(it.r||0));}
+  if(!it.b&&ITEMS[it.k||it]&&ITEMS[it.k||it].art!=null)return artCell('xitems',ITEMS[it.k||it].art,cls);
+  if(it.b){const i=ART.gear.indexOf(it.b);return i<0?'':artIdx('gear',i,(cls||'')+' r'+(it.r||0));}ART.ik=ART.ik||Object.keys(ITEMS);const i=ART.ik.indexOf(it.k||it);return i<0?'':artIdx('items',i,cls);}
 function ptActor(a,cls){if(!a)return '';if(a.id&&MONSTERS[a.id])return ptMon(a.id,cls);if(a.cls)return ptClass(a.cls,a.char&&a.char.gender,a.name,cls);return '';}
 
 /* the Android app download is offered on the website only: not inside the app itself, not on iPhones, and only if the file is really there */

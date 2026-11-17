@@ -1,6 +1,6 @@
 // Balance probe: how gear tier, level gap, crits, weakness, buffs, skills and DoTs each move the numbers.
 const fs=require('fs'),vm=require('vm'),path=require('path');
-const files=['data','expansion','classes2','engine','sim','player','combat','chat','chat2','events','net'];
+const files=['data','expansion','classes2','winter','engine','sim','player','combat','chat','chat2','events','net'];
 const src=files.map(f=>fs.readFileSync(path.join(__dirname,'../src',f+'.js'),'utf8')).join('\n;\n');
 const ctx={performance,console,Math,Date,JSON,Object,Array,String,Number,Set,Map,Promise,setTimeout};vm.createContext(ctx);
 vm.runInContext(src+`\n;if(typeof rarityName==='undefined')var rarityName=()=>'';if(typeof E==='undefined')var E=s=>String(s);\n;this.G={newWorld,createPlayer,setP:p=>S.P=p,stats,makeMonster,makeGear,CLASSES,CLASS_PRIO,ITEM_BASES,LOCS,MONSTERS,SKILLS,STATUS,AFFIXES,dirty:p=>p._st=null,actorFromChar,actorFromMon,damage,kConst,skillList,setC:c=>{C=c}};`,ctx);

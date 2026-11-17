@@ -1,6 +1,6 @@
 // Headless test: loads game modules, builds a world, runs the simulation, plays combats.
 const fs=require('fs'),vm=require('vm'),path=require('path');
-const src=['data','expansion','classes2','engine','sim','player','combat','chat','chat2','events','net'].map(f=>fs.readFileSync(path.join(__dirname,'../src',f+'.js'),'utf8')).join('\n;\n');
+const src=['data','expansion','classes2','winter','engine','sim','player','combat','chat','chat2','events','net'].map(f=>fs.readFileSync(path.join(__dirname,'../src',f+'.js'),'utf8')).join('\n;\n');
 const ctx={performance,console,Math,Date,JSON,Object,Array,String,Number,Set,Map,Promise,setTimeout,Blob:undefined,btoa:s=>Buffer.from(s,'binary').toString('base64'),atob:s=>Buffer.from(s,'base64').toString('binary')};
 vm.createContext(ctx);vm.runInContext(src+`\n;this.G={fastForward,startEvent,specialStock,factionAccept,FACTION_CHAINS,makeSetItem,getS2:()=>S,CLASSES,CLASS_PRIO,baseAttrs,startCombat,newWorld,createPlayer,processHour,advance,startEncounter,combatStep,playerAction,stats,makeMonster,serialize,ambient,flushChat,CQ,getS:()=>S,getC:()=>C,setP:p=>S.P=p,playerChat,LOCS,winChance,npcGainXp,xpNext,makeGear,itemName,calcStats,enterDungeon,BUS};`,ctx);
 const G=ctx.G;let t0=Date.now();const S=G.newWorld(12345,{sim:1});console.log('world gen ms',Date.now()-t0,'npcs',S.npcs.length,'guilds',S.guilds.length);

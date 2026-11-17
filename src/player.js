@@ -71,10 +71,12 @@ function equip(idx){const P=S.P,it=P.inv[idx];if(!isGear(it))return;const [ok,wh
 function unequip(sl){const P=S.P;if(!P.equip[sl])return;P.inv.push(P.equip[sl]);P.equip[sl]=null;dirty(P);clampVitals();}
 function useItem(idx,inCombat){const P=S.P,it=P.inv[idx];if(!it||isGear(it))return false;const d=ITEMS[it.k];const st=stats(P);
   if(d.t==='tome'){const m=pMastery(d.school);if(m.lv>0){log(`You already know the basics of ${MASTERY[d.school].n}.`);return false;}m.lv=1;m.xp=0;dirty(P);invRemove(P,it.k);log(`You study the ${d.n}. You can now cast ${MASTERY[d.school].n} spells!`,'epic');return true;}
+  if(d.gift){if(inCombat){log('Not now: open gifts after the fight.','bad');return false;}invRemove(P,it.k);return openGift();}
   if(d.t!=='con'&&d.t!=='food')return false;
   if(d.t==='food'&&inCombat){log('No time to eat now!','bad');return false;}
   if(d.ret){if(inCombat){log('You cannot read it mid-fight.','bad');return false;}invRemove(P,it.k);P.loc=P.home;P.dungeon=null;log(`The scroll flares, and you are back in ${LOCS[P.home].n}.`,'good');spend(10);return true;}
-  if(d.heal)P.hp=Math.min(st.mhp,P.hp+Math.max(d.heal,Math.round(st.mhp*(d.hpc||0))));   // potions heal at least a share of max HP, so they stay useful as you growif(d.mana)P.mp=Math.min(st.mmp,P.mp+d.mana);if(d.stam)P.sp=Math.min(st.msp,P.sp+d.stam);
+  // potions heal at least a share of max HP, so they stay useful as you grow
+  if(d.heal)P.hp=Math.min(st.mhp,P.hp+Math.max(d.heal,Math.round(st.mhp*(d.hpc||0))));if(d.mana)P.mp=Math.min(st.mmp,P.mp+d.mana);if(d.stam)P.sp=Math.min(st.msp,P.sp+d.stam);
   if(d.wellfed){P.fx.wellfed=S.time+180;}if(d.cure&&P.cfx){for(const k of ['poison','burn','bleed'])delete P.cfx[k];}
   invRemove(P,it.k);if(!inCombat)log(`You use ${d.n}.`);return true;}
 function sellItem(idx){const P=S.P,it=P.inv[idx];if(!it)return;const q=isGear(it)?1:it.q;const v=priceFor(isGear(it)?it:{k:it.k},P.loc,false)*(isGear(it)?1:1);
@@ -159,6 +161,7 @@ function talkTownsfolk(name,role){const P=S.P;spend(10);const R=rumors(P.loc);
     elder:['When I was young the Abandoned Mine still gave silver. Then the miners dug too deep.'],librarian:['Knowledge is the only treasure that grows when shared. Feel free to read.'],guard:['Keep your weapons sheathed inside the walls.','Bandits on the roads lately. Be careful.'],
     merchant:['Buy low, sell high. Everything else is details.','Prices go up and down with the wars. Pay attention.'],priest:['May the light guide your steps.','The temple heals all who ask.'],arena:['The Grand Tournament comes every seven days. Register at the arena when it opens.'],
     smith:['Bring me ore and I\'ll teach you something about steel.','Off-class gear works, but you\'ll fight clumsily in it until you train.'],mystic:['The dragons remember the pacts. So do their children.'],mentor:['The higher paths are earned, not given. Show me your mastery.'],
+    frostmother:['Every ornament is a little piece of starlight. Bring them to me.','Old Coalheart steals the gifts every year. Every year someone brave takes them back.','Come and see me each day of the Long Night. I always keep a gift for you.'],candlemaker:['Best tallow in the Realms. Burns all night, and the Long Night is very long.','The Gloomhorn deer are drawn to light. Keep your lantern shuttered in the woods.'],singer:['Ring the bells, the dark is long, sing until the dawn comes on!','Grimwinter only takes the naughty ones. That\'s what my mum says, anyway.'],
     barkeep:['Ale\'s two coppers. Gossip\'s free if you buy the ale.'],courier:['I carry letters for every city. Real adventurers can send each other parcels through me.'],smuggler:['You didn\'t see this place. Understood?'],elder2:[]};
   log(`${name}: “${U.pick(lines[role]||['Good day, traveler.'])}”`,'social');if(U.chance(0.6))log(`${name}: “Also: ${R[0]}”`,'lore');
   if(role==='librarian'&&P.loc==='valeria')storyCheck('visit');}

@@ -683,3 +683,18 @@ body.ingame .tsnd{display:none}
   .tp,.title.t2 .ticker,.title.t2 .tsub .b{background-color:#12141bf2}
   /* glows that pulsed by repainting a box-shadow every frame now hold still on phones */
   .actor.turn,.actor.low,.actor.enrage,#combat.final1 .actor.boss,#combat.final2 .actor.me{animation:none!important}}
+
+/* ================= The Long Night (winter festival) ================= */
+.panel.winter{position:relative;overflow:hidden;border-color:#5a7aa8;padding:0;background:#0a0f1a}
+.panel.winter .wbg{position:absolute;inset:0;background:url(assets/winter.webp) 50% 40%/cover no-repeat;opacity:.55}
+.panel.winter .wbg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#0a0f1a33,#0a0f1ad9 55%,#0a0f1af5)}
+.panel.winter .wcontent{position:relative;padding:1em 1.05em}
+.panel.winter h3{color:#e8f4ff;font-size:1.45rem;margin:.05em 0 .3em;text-shadow:0 0 14px #8fd0ff99,0 2px 4px #000}
+.panel.winter p{color:#dfe8f2;text-shadow:0 1px 3px #000}.wpre{margin:0;font-size:.7rem;letter-spacing:.3em;text-transform:uppercase;color:#9fd0ff!important}
+.orn{color:#ffd36a;font-family:var(--mono);font-weight:600;text-shadow:0 0 8px #e0b45e88}
+.wstat{font-size:.95rem}.panel.winter .b{min-height:42px}
+.vista.wv-hollyhearth{background-position:30% 55%!important;background-size:cover!important}.vista.wv-glimmerfrost{background-position:90% 25%!important;background-size:cover!important}.vista.wv-coalvault{background-position:72% 30%!important;background-size:cover!important;filter:saturate(1.1) brightness(.85)}
+.wribbon{display:inline-block;margin:0 0 .5em;padding:.25em 1em;border-radius:20px;background:linear-gradient(90deg,#1a2a44,#24375a);border:1px solid #6a8ac0;color:#dff0ff;font-size:.78rem;letter-spacing:.08em;box-shadow:0 0 18px -4px #8fd0ff}
+.wshophead{display:flex;gap:.9em;align-items:flex-start;margin-bottom:.4em}.wshophead h3{margin:0 0 .2em;color:var(--gilt)}.wshophead .wkeeper{width:84px;height:84px;border-radius:12px;flex:none}
+.li.wshop{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:.6em}.li.wshop .shopic{width:44px;height:44px;border-radius:8px}
+.li.wshop .orn{white-space:nowrap}

@@ -1,7 +1,7 @@
 // Balance harness: every class, smart AI (uses skills/heals like a player would), level-appropriate gear,
 // vs. standard zone encounters at several levels. Prints win rate, turns, HP left.
 const fs=require('fs'),vm=require('vm'),path=require('path');
-const files=['data','expansion','classes2','engine','sim','player','combat','chat','chat2','events','net'];
+const files=['data','expansion','classes2','winter','engine','sim','player','combat','chat','chat2','events','net'];
 const src=files.map(f=>fs.readFileSync(path.join(__dirname,'../src',f+'.js'),'utf8')).join('\n;\n');
 const ctx={performance,console,Math,Date,JSON,Object,Array,String,Number,Set,Map,Promise,setTimeout};vm.createContext(ctx);
 vm.runInContext(src+`\n;if(typeof rarityName==='undefined')var rarityName=()=>'';if(typeof E==='undefined')var E=s=>String(s);\n;this.G={compActor,newWorld,createPlayer,setP:p=>S.P=p,getS:()=>S,stats,makeMonster,makeGear,baseAttrs,CLASSES,CLASS_PRIO,classGrowth,startCombat,combatStep,allyAI,endTurn,getC:()=>C,dirty,LOCS,ITEM_BASES,isTown,checkEnd,monXp,xpNext};`,ctx);

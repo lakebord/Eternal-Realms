@@ -1,7 +1,7 @@
 // Final boss balance: smart-AI hero (same AI party members use), level 95, every class. Reports phase-1 length,
 // boss HP carried into phase 2, and phase-2 win rate / rounds / HP left.
 const fs=require('fs'),vm=require('vm'),path=require('path');
-const files=['data','expansion','classes2','engine','sim','player','combat','chat','chat2','events','net'];
+const files=['data','expansion','classes2','winter','engine','sim','player','combat','chat','chat2','events','net'];
 const src=files.map(f=>fs.readFileSync(path.join(__dirname,'../src',f+'.js'),'utf8')).join('\n;\n');
 const ctx={performance,console,Math,Date,JSON,Object,Array,String,Number,Set,Map,Promise,setTimeout};vm.createContext(ctx);
 vm.runInContext(src+`\n;if(typeof rarityName==='undefined')var rarityName=()=>'';if(typeof E==='undefined')var E=s=>String(s);this.G={newWorld,createPlayer,setP:p=>S.P=p,stats,makeGear,CLASSES,CLASS_PRIO,combatStep,allyAI,endTurn,getC:()=>C,dirty,ITEM_BASES,checkEnd,startFinalBattle,finalRebirth,invAdd,compActor,SPECIES};`,ctx);

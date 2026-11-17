@@ -2,7 +2,7 @@
    Each mood maps to a track; tracks cross-fade and remember their place. While a recorded track is playing the
    built-in synth sequencer stays quiet (AUD.rec). If a file can't load, the synth music carries on as before. */
 'use strict';
-const TRK={map:{title:'title',town:'town',wild:'wild',night:'wild',dungeon:'dungeon',combat:'combat',boss:'boss',final1:'boss',final2:'boss'},gain:{title:.9,town:.8,wild:.9,dungeon:.95,combat:.8,boss:.8},el:{},bad:{},cur:null,vol:{}};
+const TRK={map:{title:'title',town:'town',wild:'wild',night:'wild',dungeon:'dungeon',combat:'combat',boss:'boss',final1:'boss',final2:'boss',winter:'winter'},gain:{winter:.85,title:.9,town:.8,wild:.9,dungeon:.95,combat:.8,boss:.8},el:{},bad:{},cur:null,vol:{}};
 function trkEl(k){if(TRK.el[k]||TRK.bad[k])return TRK.el[k];try{const a=new Audio();a.loop=true;a.preload='auto';a.volume=0;a.addEventListener('error',()=>{TRK.bad[k]=1;delete TRK.el[k];if(TRK.cur===k)TRK.cur=null;});a.src=ART.base+'mus_'+k+'.mp3';TRK.el[k]=a;TRK.vol[k]=0;return a;}catch(e){TRK.bad[k]=1;return null;}}
 function trkTick(){const want=AUD.on?(TRK.map[AUD.want]||null):null;const k=want&&!TRK.bad[want]?want:null;
   if(k&&k!==TRK.cur){const a=trkEl(k);if(a){TRK.cur=k;const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{});}}else if(!k)TRK.cur=null;
@@ -17,3 +17,4 @@ function trkKick(){if(!AUD.on)return;const k=TRK.map[AUD.want]||TRK.map[audPickM
 function trkTryAutoplay(){let pref=null;try{pref=localStorage.getItem('er_sound');}catch(e){}if(pref==='0'||AUD.on)return;
   const a=trkEl('title');if(!a)return;try{const pr=a.play();if(pr&&pr.then)pr.then(()=>{if(!AUD.on){audStart();audMood('title');TRK.cur='title';titleSoundBtn();}}).catch(()=>{});}catch(e){}}
 function titleSoundBtn(){const b=document.getElementById('tsnd');if(b){b.classList.toggle('on',!!AUD.on);b.setAttribute('aria-label',AUD.on?'Music on':'Music off');}const t=document.getElementById('tsound');if(t)t.textContent=AUD.on?'♪ Music on':'♪ Play music';}
+if(typeof MOODS!=='undefined'&&!MOODS.winter)MOODS.winter=MOODS.night;   // synth fallback if the winter track can't load

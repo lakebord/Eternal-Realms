@@ -372,7 +372,7 @@ function goalText(g){return ({level:`reach level ${g.target}`,gear:'upgrade equi
 
 /* ---------------- WORLD BOSSES ---------------- */
 const WORLD_BOSSES=[['b_grubnak','whisperwood',20,3],['b_hydra','mire',45,2],['b_frostwyrm','summit',58,2],['b_dragon','ashen',80,1.2],['b_lich','necropolis',90,1]];
-function spawnBoss(){const [id,loc,lvl]=U.wpick(WORLD_BOSSES.concat(WORLD_BOSSES_EXT),b=>b[3]);const m=makeMonster(id,lvl);S.boss={id,loc,lvl,hp:m.mhp,mhp:m.mhp,contrib:{},start:S.time,end:S.time+U.ri(20,36)*60,deaths:0};
+function spawnBoss(){const pool=WORLD_BOSSES.concat(WORLD_BOSSES_EXT).filter(b=>locOpen(b[1]));if(typeof winterOn==='function'&&winterOn())pool.push(['b_grimwinter','glimmerfrost',45,4]);const [id,loc,lvl]=U.wpick(pool,b=>b[3]);const m=makeMonster(id,lvl);S.boss={id,loc,lvl,hp:m.mhp,mhp:m.mhp,contrib:{},start:S.time,end:S.time+U.ri(20,36)*60,deaths:0};
   news(`World Boss ${MONSTERS[id].n} has appeared in ${LOCS[loc].n}!`,'boss');BUS.emit('boss_spawn',{boss:S.boss});}
 function raidBoss(group){const B=S.boss;if(!B)return;const m=makeMonster(B.id,B.lvl);
   for(const n of group){if(n.busy>S.time&&n.act==='raiding')continue;const st=stats(n);const d=estDmg(st,n.level,m)*U.ri(6,12);B.hp-=d;B.contrib[n.id]=(B.contrib[n.id]||0)+d;n.act='raiding';n.busy=S.time+60;
@@ -482,7 +482,7 @@ function tourneyPlayerResult(won){const T_=S.tourney;if(!T_.pending)return;const
 /* ---------------- QUESTS ---------------- */
 function pl(n){return /[^aeiou]y$/i.test(n)?n.slice(0,-1)+'ies':/f$/.test(n)?n.slice(0,-1)+'ves':/(s|x|ch|sh)$/.test(n)?n+'es':n+'s';}
 function genQuests(town){
-  const nearby=Object.keys(LOCS).filter(l=>{const p=path(town,l);return p&&p.hours<=9&&!isTown(l)&&LOCS[l].mon.length&&!LOCS[l].hid;});
+  const nearby=Object.keys(LOCS).filter(l=>{if(LOCS[l].ev)return false;const p=path(town,l);return p&&p.hours<=9&&!isTown(l)&&LOCS[l].mon.length&&!LOCS[l].hid;});
   const q=[];const n=U.ri(4,6);
   for(let i=0;i<n;i++){const loc=U.pick(nearby.length?nearby:['greenmarch']);const L=LOCS[loc];const lvl=Math.round((L.lv[0]+L.lv[1])/2);
     if(U.chance(0.22)&&typeof npcRequest==='function'){const rq=npcRequest(town);if(rq){q.push(rq);continue;}}
@@ -494,7 +494,7 @@ function genQuests(town){
     if(type==='explore'){Object.assign(base,{qty:1,n:`Survey ${L.n}`,d:`Explore ${L.n} and report anything unusual.`});}
     if(type==='deliver'){const dests=Object.keys(LOCS).filter(l=>isTown(l)&&l!==town&&!LOCS[l].hid);const d=U.pick(dests);Object.assign(base,{loc:d,qty:1,n:`Courier to ${LOCS[d].n}`,d:`Deliver a sealed parcel to ${LOCS[d].n}.`});base.lvl=Math.max(1,lvl-3);}
     if(type==='dungeon'){Object.assign(base,{qty:1,n:`Clear ${L.n}`,d:`Defeat ${MONSTERS[L.boss].n} in ${L.n}.`});base.lvl=L.lv[1];}
-    if(type==='escort'){const dests=Object.keys(LOCS).filter(l=>isTown(l)&&l!==town&&!LOCS[l].hid&&path(town,l).hours<=8);const d=U.pick(dests);Object.assign(base,{loc:d,qty:1,escort:1,n:`Escort a caravan to ${LOCS[d].n}`,d:`A merchant caravan needs a guard to ${LOCS[d].n}. Bandits will try their luck on the way.`});base.lvl=Math.max(1,lvl);}
+    if(type==='escort'){const dests=Object.keys(LOCS).filter(l=>{if(!isTown(l)||l===town||LOCS[l].hid||LOCS[l].ev)return false;const p=path(town,l);return p&&p.hours<=8;});const d=U.pick(dests);Object.assign(base,{loc:d,qty:1,escort:1,n:`Escort a caravan to ${LOCS[d].n}`,d:`A merchant caravan needs a guard to ${LOCS[d].n}. Bandits will try their luck on the way.`});base.lvl=Math.max(1,lvl);}
     base.d=base.d.replace('{qty}',base.qty);
     const mult={kill:1,gather:0.8,bounty:2,explore:0.6,deliver:0.7,dungeon:4,escort:1.4}[type];
     base.xp=Math.round(monXp(base.lvl)*base.qty*0.6*mult+monXp(base.lvl)*2);base.gold=Math.round((10+base.lvl*base.lvl*0.6)*mult*U.rf(0.8,1.2));

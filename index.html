@@ -700,6 +700,21 @@ body.ingame .tsnd{display:none}
   /* glows that pulsed by repainting a box-shadow every frame now hold still on phones */
   .actor.turn,.actor.low,.actor.enrage,#combat.final1 .actor.boss,#combat.final2 .actor.me{animation:none!important}}
 
+/* ================= The Long Night (winter festival) ================= */
+.panel.winter{position:relative;overflow:hidden;border-color:#5a7aa8;padding:0;background:#0a0f1a}
+.panel.winter .wbg{position:absolute;inset:0;background:url(assets/winter.webp) 50% 40%/cover no-repeat;opacity:.55}
+.panel.winter .wbg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#0a0f1a33,#0a0f1ad9 55%,#0a0f1af5)}
+.panel.winter .wcontent{position:relative;padding:1em 1.05em}
+.panel.winter h3{color:#e8f4ff;font-size:1.45rem;margin:.05em 0 .3em;text-shadow:0 0 14px #8fd0ff99,0 2px 4px #000}
+.panel.winter p{color:#dfe8f2;text-shadow:0 1px 3px #000}.wpre{margin:0;font-size:.7rem;letter-spacing:.3em;text-transform:uppercase;color:#9fd0ff!important}
+.orn{color:#ffd36a;font-family:var(--mono);font-weight:600;text-shadow:0 0 8px #e0b45e88}
+.wstat{font-size:.95rem}.panel.winter .b{min-height:42px}
+.vista.wv-hollyhearth{background-position:30% 55%!important;background-size:cover!important}.vista.wv-glimmerfrost{background-position:90% 25%!important;background-size:cover!important}.vista.wv-coalvault{background-position:72% 30%!important;background-size:cover!important;filter:saturate(1.1) brightness(.85)}
+.wribbon{display:inline-block;margin:0 0 .5em;padding:.25em 1em;border-radius:20px;background:linear-gradient(90deg,#1a2a44,#24375a);border:1px solid #6a8ac0;color:#dff0ff;font-size:.78rem;letter-spacing:.08em;box-shadow:0 0 18px -4px #8fd0ff}
+.wshophead{display:flex;gap:.9em;align-items:flex-start;margin-bottom:.4em}.wshophead h3{margin:0 0 .2em;color:var(--gilt)}.wshophead .wkeeper{width:84px;height:84px;border-radius:12px;flex:none}
+.li.wshop{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:.6em}.li.wshop .shopic{width:44px;height:44px;border-radius:8px}
+.li.wshop .orn{white-space:nowrap}
+
 </style>
 <div id="app" aria-live="polite"><div class="title"><h1>Eternal Realms</h1><p class="tag">The Realms are waking…</p></div></div>
 <div id="game" hidden>
@@ -1815,6 +1830,189 @@ function tierEligible(P,t){const R=TIER_REQ[t];const why=[];if(classTier(P)!==t-
   const keys=Object.keys(CLASSES[P.cls].mastery).map(mKey);const best=Math.max(...keys.map(k=>mLv(P,k)));if(best<R.mast)why.push(`${keys.map(k=>MASTERY[k].n).join(' or ')} mastery ${R.mast}`);
   return {ok:!why.filter(Boolean).length,why:why.filter(Boolean)};}
 
+/* ---- winter.js ---- */
+/* ETERNAL REALMS — "The Long Night", the winter festival (1 December – 6 January).
+   Switches itself on by the real calendar date. Adds the Hollyhearth region (village, Glimmerfrost Woods,
+   Coalheart's Vault), festive monsters everywhere, Starlight Ornaments, gift boxes, a daily gift, a festival
+   shop and limited "Long Night 2026" equipment. When the festival ends the region closes again; everything
+   players earned stays theirs.
+   This file is loaded before engine.js (so the new places join the travel graph); runtime functions use U lazily. */
+'use strict';
+const WINTER={id:'longnight',n:'The Long Night',tag:'The Long Night 2026',start:[2026,11,1],end:[2027,0,6],home:'hollyhearth',
+  locs:['hollyhearth','glimmerfrost','coalvault']};
+function winterNow(){return (typeof window!=='undefined'&&window.__WINTER_NOW)||Date.now();}
+// test switch for previews: ?winter in the address, or localStorage er_winter=1
+function winterForced(){try{return typeof location!=='undefined'&&(/[?&]winter\b/.test(location.search)||localStorage.getItem('er_winter')==='1');}catch(e){return false;}}
+function winterOn(){if(winterForced())return true;const n=new Date(winterNow());const s=new Date(...WINTER.start,0,0,0),e=new Date(...WINTER.end,23,59,59);return n>=s&&n<=e;}
+function winterDaysLeft(){const e=new Date(...WINTER.end,23,59,59);return Math.max(0,Math.ceil((e-new Date(winterNow()))/86400000));}
+function winterDayKey(){const n=new Date(winterNow());return `${n.getFullYear()}-${n.getMonth()+1}-${n.getDate()}`;}
+function locOpen(l){const L=LOCS[l];return !L||!L.ev||winterOn();}
+
+/* ---------- places ---------- */
+Object.assign(LOCS,{
+  hollyhearth:{n:'Hollyhearth',ty:'village',ev:'winter',x:785,y:170,f:null,lv:[1,100],sv:['inn','shop','temple','festival','market'],mon:[],res:[['w_holly','herbalism']],
+    d:'A snowbound village that only appears on the maps during the Long Night. Lanterns hang from every eave, and the Frostmother hands out gifts beneath the great tree.',
+    feat:['The great lantern tree','The Frostmother\'s sleigh','A frozen wishing well']},
+  glimmerfrost:{n:'Glimmerfrost Woods',ty:'wild',ev:'winter',x:872,y:112,f:null,lv:[3,95],mon:['w_ginger','w_imp','w_wolf','w_wraith','w_nut','w_deer','w_snowman','w_gremlin'],
+    res:[['w_holly','herbalism'],['w_yulelog','woodcutting'],['w_tinsel','herbalism']],
+    d:'Pines heavy with snow and stolen tinsel. Something has woken the old toys and the hungry things of winter. Its creatures match the strength of whoever walks in.',
+    feat:['A ring of melted snowmen','Gingerbread crumbs leading off the path','A sleigh overturned in the drifts']},
+  coalvault:{n:'Coalheart\'s Vault',ty:'dungeon',ev:'winter',x:885,y:228,f:null,lv:[10,95],mon:['w_gremlin','w_nut','w_mimic','w_knight','w_serpent','w_star'],res:[['w_coal','mining']],
+    boss:'b_coalheart',floors:3,scale:1,
+    d:'A black stone vault where Old Coalheart hoards every gift he has ever stolen. Its guardians grow as strong as the thieves who come for them.',
+    feat:['Mountains of unopened gifts','A furnace that burns stolen wishes','Cages of tin soldiers']}
+});
+// closed outside the festival: every system that skips hidden places (quests, invasions, treasure, travel) skips these too
+for(const l of WINTER.locs)Object.defineProperty(LOCS[l],'hid',{get(){return !winterOn();},enumerable:true});
+ROUTES.push(['hollyhearth','khazgard',3],['hollyhearth','deepforge',2],['hollyhearth','glimmerfrost',1],['glimmerfrost','coalvault',1],['hollyhearth','coalvault',2]);
+Object.assign(TOWNSFOLK,{hollyhearth:[['The Frostmother','frostmother'],['Bram Tallow','candlemaker'],['Little Wren','singer']]});
+
+/* ---------- monsters (art: cell in the xmon sheet) ---------- */
+Object.assign(MONSTERS,{
+  w_ginger:{n:'Gingerbread Brute',cat:'construct',hp:1.7,at:1.2,df:1.4,sp:0.8,b:['brute'],w:['fire'],r:['frost'],loot:[['w_ginger',0.7,2],['w_ornament',0.5,1]],g:0.8,art:0},
+  w_imp:{n:'Frostbitten Imp',cat:'spirit',hp:0.75,at:1.0,md:1.25,ev:1.5,e:'frost',b:['caster','pack'],w:['fire'],r:['frost'],st:['slow',0.25,2],loot:[['w_ornament',0.6,1],['w_tinsel',0.3,1]],g:1.0,art:1},
+  w_wolf:{n:'Wreathwolf',cat:'beast',hp:1.1,at:1.25,sp:1.35,b:['pack','aggressive'],w:['fire'],r:['frost'],loot:[['pelt_wolf',0.5,1],['w_holly',0.5,1],['w_ornament',0.4,1]],g:0.5,tame:'wolf',art:2},
+  w_wraith:{n:'Tinsel Wraith',cat:'undead',hp:1.0,at:1.0,md:1.45,ev:1.3,e:'frost',b:['undead','caster'],w:['holy','fire'],r:['frost','shadow','poison'],loot:[['w_tinsel',0.6,1],['ectoplasm',0.3,1],['w_ornament',0.5,1]],g:1.0,art:3},
+  w_nut:{n:'Nutcracker Sentinel',cat:'construct',hp:1.6,at:1.3,df:1.6,sp:0.9,b:['brute'],w:['fire','lightning'],r:['poison'],loot:[['wood_oak',0.5,2],['w_ornament',0.6,1]],g:1.4,gear:0.08,art:4},
+  w_deer:{n:'Gloomhorn Reindeer',cat:'beast',hp:1.3,at:1.3,sp:1.45,e:'frost',b:['aggressive'],r:['frost'],loot:[['w_antler',0.6,1],['meat',0.6,2],['w_ornament',0.4,1]],g:0.4,art:5},
+  w_gremlin:{n:'Coal Gremlin',cat:'humanoid',hp:0.8,at:1.0,ev:1.6,sp:1.4,e:'fire',b:['ambush','pack'],w:['frost'],loot:[['w_coal',0.8,2],['w_ornament',0.5,1]],g:2.6,art:6},
+  w_snowman:{n:'Grinning Snowman',cat:'construct',hp:1.4,at:1.1,df:1.2,e:'frost',w:['fire'],r:['frost','poison'],st:['freeze',0.15,1],loot:[['w_snowball',0.5,2],['w_coal',0.4,1],['w_ornament',0.4,1]],g:0.6,art:7},
+  w_serpent:{n:'Candyscale Serpent',cat:'beast',hp:1.3,at:1.3,ev:1.2,e:'poison',st:['poison',0.3,3],w:['fire'],loot:[['w_candycane',0.6,2],['w_ornament',0.5,1]],g:0.8,art:12},
+  w_mimic:{n:'Gift Mimic',cat:'construct',hp:1.3,at:1.5,df:1.3,b:['ambush'],w:['fire'],loot:[['w_gift',0.6,1],['w_ornament',0.8,2]],g:4.5,gear:0.15,art:13},
+  w_star:{n:'Fallen Starling',cat:'elemental',hp:1.0,at:1.0,md:1.5,ev:1.3,e:'holy',b:['caster'],r:['holy','frost'],w:['shadow'],loot:[['w_spirit',0.25,1],['w_ornament',0.6,1]],g:1.0,art:14},
+  w_knight:{n:'Wreathbound Knight',cat:'undead',hp:1.5,at:1.3,df:1.5,b:['undead'],w:['holy','fire'],r:['frost','poison'],loot:[['bone',0.5,2],['w_ornament',0.6,1]],g:1.4,gear:0.12,art:15},
+  b_coalheart:{n:'Old Coalheart',cat:'humanoid',boss:1,hp:6,at:1.6,df:1.4,md:1.4,e:'fire',b:['boss','caster'],w:['frost','holy'],r:['fire'],st:['burn',0.3,2],
+    loot:[['w_coal',1,6],['w_ornament',1,12],['w_gift',1,2]],g:30,gear:1,uniq:'w_nutmaul',uq:0.12,set:'yulewarden',lim:1,art:8},
+  b_grimwinter:{n:'Grimwinter, the Horned Collector',cat:'spirit',boss:1,world:1,hp:42,at:2.0,df:1.9,md:1.8,e:'frost',w:['fire','holy'],r:['frost'],st:['freeze',0.2,1],b:['boss'],
+    loot:[['w_ornament',1,30],['w_spirit',1,3],['w_gift',1,3]],g:220,gear:2,uniq:'w_birch',uq:0.3,set:'yulewarden',lim:1,art:9}
+});
+const WINTER_FOLK_ART={'The Frostmother':10,'Bram Tallow':11};
+
+/* ---------- items (art: cell in the xitems sheet). lim: part of the limited Long Night collection ---------- */
+Object.assign(ITEMS,{
+  w_ornament:{n:'Starlight Ornament',t:'misc',v:3,lim:1,art:0,d:'Festival currency. Trade them with the Frostmother in Hollyhearth.'},
+  w_candycane:{n:'Candy Cane',t:'food',heal:140,stam:60,v:12,wellfed:1,lim:1,art:1},
+  w_cookie:{n:'Gingerbread Knight',t:'food',heal:220,mana:60,v:20,wellfed:1,lim:1,art:2},
+  w_cider:{n:'Mulled Cider',t:'con',mana:160,stam:120,v:28,lim:1,art:3},
+  w_elixir:{n:'Peppermint Elixir',t:'con',buff:'haste',v:90,lim:1,art:4},
+  w_snowball:{n:'Enchanted Snowball',t:'con',bomb:1,e:'frost',dmg:80,v:30,lim:1,art:5},
+  w_gift:{n:'Festival Gift',t:'con',gift:1,v:60,lim:1,art:6,d:'Open it to see what the Long Night brought you.'},
+  w_holly:{n:'Frozen Holly',t:'mat',v:8,lim:1,art:7},
+  w_coal:{n:'Lump of Coal',t:'mat',v:1,lim:1,art:8},
+  w_yulelog:{n:'Yule Log',t:'mat',v:14,lim:1,art:9},
+  w_tinsel:{n:'Starlight Tinsel',t:'mat',v:12,lim:1,art:10},
+  w_antler:{n:'Frosted Antler',t:'mat',v:16,lim:1,art:11},
+  w_ginger:{n:'Gingerbread Chunk',t:'mat',v:6,lim:1,art:12},
+  w_spirit:{n:'Spirit of Winter',t:'mat',v:220,lim:1,art:13},
+  w_mistletoe:{n:'Mistletoe Charm',t:'con',heal:400,hpc:0.5,mana:120,v:110,lim:1,art:14},
+  w_bell:{n:'Golden Sleigh Bell',t:'misc',v:400,lim:1,art:15,d:'A keepsake of the Long Night. Collectors pay well for it.'}
+});
+
+/* ---------- limited equipment (art: cell in the xgear sheet) ---------- */
+Object.assign(UNIQUES,{
+  w_candystaff:{n:'Candlewick Crook',b:'staff',aff:['arcane','arcane','owl','dawn'],lore:'A staff of striped sugar-glass that never melts. Limited: The Long Night.',lim:1,art:0},
+  w_nutmaul:{n:'Nutcracker\'s Maul',b:'mace',aff:['mighty','mighty','bear','frost'],lore:'Old Coalheart\'s favourite toy. It still clacks. Limited: The Long Night.',lim:1,art:1},
+  w_pepperblade:{n:'Peppermint Edge',b:'sword',aff:['mighty','keen','frost','swift'],lore:'Smells of mint, cuts like winter. Limited: The Long Night.',lim:1,art:2},
+  w_bellbow:{n:'Sleighbell Longbow',b:'bow',aff:['precise','precise','keen','frost'],lore:'Every arrow rings. Limited: The Long Night.',lim:1,art:3},
+  w_icicle:{n:'Icicle Shiv',b:'dagger',aff:['keen','keen','fox','frost'],lore:'Snapped from the eaves of Hollyhearth. Limited: The Long Night.',lim:1,art:4},
+  w_frostorb:{n:'Snowglobe of Hollyhearth',b:'orb',aff:['arcane','owl','frost','blessed'],lore:'A whole village sleeps inside it. Limited: The Long Night.',lim:1,art:5},
+  w_birch:{n:'Birch Reaper',b:'scythe',aff:['night','night','mighty','vampiric'],lore:'Grimwinter\'s switch, bound in chains. Limited: The Long Night.',lim:1,art:6},
+  w_wreathshield:{n:'Wreath Aegis',b:'shield',aff:['sturdy','sturdy','warding','blessed'],lore:'Holly on cold iron. Limited: The Long Night.',lim:1,art:7},
+  w_ring:{n:'Snowflake Signet',b:'ring',aff:['lucky','keen','fortune','swift'],lore:'No two are alike. Limited: The Long Night.',lim:1,art:13},
+  w_amulet:{n:'Frostmother\'s Star',b:'amulet',aff:['blessed','owl','warding','fortune'],lore:'A gift for the faithful. Limited: The Long Night.',lim:1,art:14},
+  w_cloak:{n:'Mantle of the Long Night',b:'cloak',aff:['swift','fox','warding','sturdy'],lore:'Warm as a hearth, dark as the solstice. Limited: The Long Night.',lim:1,art:15}
+});
+SETS.yulewarden={n:'Yulewarden',ac:'leather',two:{spd:3,res_frost:15},four:{mhp:0.1,patk:0.07,matk:0.07},src:'The Long Night (limited)',lim:1};
+const WINTER_SET_ART={head:8,chest:9,legs:10,hands:11,feet:12};
+const WINTER_SET_NAMES={head:'Yulewarden Hood',chest:'Yulewarden Coat',legs:'Yulewarden Leggings',hands:'Yulewarden Mittens',feet:'Yulewarden Boots'};
+
+/* ---------- achievements ---------- */
+Object.assign(ACHIEVEMENTS,{
+  w_spirit:{n:'Spirit of the Long Night',d:'Collect 100 Starlight Ornaments during the festival.',f:p=>((p.winter||{}).earned||0)>=100},
+  w_coalheart:{n:'Coal for Coalheart',d:'Defeat Old Coalheart in his vault.',f:p=>!!(p.kills&&p.kills.b_coalheart)},
+  w_collector:{n:'Out-Collected the Collector',d:'Help defeat Grimwinter, the Horned Collector.',f:p=>!!(p.kills&&p.kills.b_grimwinter)||!!((p.winter||{}).grim)}
+});
+
+/* =====================================================================================================
+   runtime
+   ===================================================================================================== */
+function wState(){const P=S.P;P.winter=P.winter||{earned:0,days:{},streak:0,shop:{}};return P.winter;}
+function winterLimTag(it){if(!it)return null;if(it.lim)return WINTER.tag;if(!isGear(it)){const d=ITEMS[it.k];return d&&d.lim?WINTER.tag:null;}
+  if(it.u&&UNIQUES[it.u]&&UNIQUES[it.u].lim)return WINTER.tag;if(it.set&&SETS[it.set]&&SETS[it.set].lim)return WINTER.tag;return null;}
+function wGear(kind,l,slot){const P=S.P;l=U.clamp(Math.round(l||P.level),1,100);let it;
+  if(kind==='set'){const sl=slot||U.pick(['head','chest','legs','hands','feet']);it=makeGear(`${sl}_leather`,l,U.chance(0.25)?4:3);it.set='yulewarden';}
+  else it=makeUnique(kind,l);
+  it.lim=WINTER.tag;return it;}
+function wGive(k,q){const P=S.P;invAdd(P,k,q);if(k==='w_ornament'){wState().earned+=q;}}
+
+// every monster anywhere has a small chance to carry festival loot while the Long Night lasts
+function winterLoot(id,l,out){if(!winterOn()||!S||!S.P)return;const M=MONSTERS[id];const fest=id.startsWith('w_')||M.lim;
+  if(!fest){if(U.chance(0.07))out.items.push({k:'w_ornament',q:U.ri(1,2)});if(U.chance(0.015))out.items.push({k:'w_gift',q:1});return;}
+  if(U.chance(0.03))out.items.push(wGear('set',l));if(U.chance(0.006))out.items.push(wGear(U.pick(['w_pepperblade','w_bellbow','w_icicle','w_frostorb','w_candystaff']),l));}
+// festive wanderers show up outside Hollyhearth too
+function winterSwap(loc,id){if(!winterOn()||isTown(loc)||LOCS[loc].ev||!U.chance(0.08))return id;return U.pick(['w_imp','w_gremlin','w_snowman','w_mimic','w_wolf']);}
+
+function openGift(){const P=S.P;const got=[];const add=(k,q)=>{wGive(k,q);got.push(`${ITEMS[k].n}${q>1?' ×'+q:''}`);};
+  add('w_ornament',U.ri(3,8));
+  const r=U.r();if(r<0.45)add(U.pick(['w_candycane','w_cookie','w_cider']),U.ri(1,3));else if(r<0.7)add(U.pick(['w_elixir','w_snowball','w_mistletoe']),1);else if(r<0.9)add(U.pick(['w_holly','w_tinsel','w_yulelog','w_antler']),U.ri(2,4));else add('w_bell',1);
+  if(U.chance(0.07)){const g=wGear('set',P.level);P.inv.push(g);got.push(itemName(g));}
+  if(U.chance(0.02)){const g=wGear(U.pick(['w_pepperblade','w_bellbow','w_icicle','w_frostorb','w_candystaff','w_wreathshield']),P.level);P.inv.push(g);got.push(itemName(g));}
+  log(`You unwrap the Festival Gift: ${got.join(', ')}.`,'epic');if(typeof UI!=='undefined'){UI.toast('🎁 '+got[0]+(got.length>1?` +${got.length-1} more`:''),'epic');if(typeof sfx==='function')sfx('loot');if(typeof confetti==='function')confetti();}
+  checkAch();return true;}
+
+/* ---------- daily gift (one per real day) ---------- */
+function winterGiftReady(){if(!winterOn()||!S||!S.P)return false;return !wState().days[winterDayKey()];}
+function claimDailyGift(){if(!winterGiftReady())return;const W=wState();W.days[winterDayKey()]=1;W.streak=(W.streak||0)+1;const n=W.streak;const P=S.P;const got=[];
+  const orn=6+Math.min(14,n);wGive('w_ornament',orn);got.push(`${orn} Starlight Ornaments`);
+  wGive('w_gift',n%5===0?3:1);got.push(n%5===0?'3 Festival Gifts':'a Festival Gift');
+  const d=new Date(winterNow());const xmas=d.getMonth()===11&&(d.getDate()===24||d.getDate()===25);
+  if(xmas&&!W.star){W.star=1;const g=wGear('w_amulet',P.level);P.inv.push(g);got.push(itemName(g));}
+  else if(n%7===0){const g=wGear('set',P.level);P.inv.push(g);got.push(itemName(g));}
+  log(`The Frostmother's gift (day ${n} of your Long Night): ${got.join(', ')}.`,'epic');UI.toast(`🎁 Daily gift: ${got.join(', ')}`,'epic');if(typeof confetti==='function')confetti();checkAch();}
+
+/* ---------- festival shop ---------- */
+const WINTER_SHOP=[
+  ['w_candycane',3,3],['w_cookie',3,4],['w_cider',3,5],['w_elixir',1,6],['w_snowball',3,6],['w_mistletoe',1,9],['w_gift',1,12],
+  ['set:head',1,45],['set:chest',1,60],['set:legs',1,50],['set:hands',1,40],['set:feet',1,40],
+  ['w_ring',1,90],['w_cloak',1,110],['w_wreathshield',1,120],['w_pepperblade',1,140],['w_bellbow',1,140],['w_icicle',1,140],['w_frostorb',1,140],['w_candystaff',1,140]];
+function winterShopView(){const P=S.P;const have=invCount(P,'w_ornament');
+  const row=([k,q,c],i)=>{const set=k.startsWith('set:');const isU=!set&&UNIQUES[k];const name=set?WINTER_SET_NAMES[k.slice(4)]:isU?UNIQUES[k].n:ITEMS[k].n;
+    const pic=set?artCell('xgear',WINTER_SET_ART[k.slice(4)],'shopic'):isU?artCell('xgear',UNIQUES[k].art,'shopic'):artCell('xitems',ITEMS[k].art,'shopic');
+    const sub=set?`Yulewarden set piece · Lv.${P.level} · epic or better`:isU?`Legendary · Lv.${P.level}`:E(itemDesc({k}));
+    return `<div class="li wshop">${ART.ok?pic:''}<span><b class="${set?'r3':isU?'r4':''}">${E(name)}${q>1?' ×'+q:''}</b><small>${sub}</small></span><span class="orn">${c} ✦</span>${btn('Trade','wbuy',i,have>=c?'tiny gilt':'tiny ghost')}</div>`;};
+  return `<div class="wshophead">${ART.ok?artCell('xmon',10,'wkeeper'):''}<div><h3>The Frostmother's Gift Exchange</h3><p class="hint">“Every ornament is a little piece of starlight. Bring them to me and I will find you something warm.”</p>
+    <p>You have <b class="orn">${U.fmt(have)} ✦</b> Starlight Ornaments.</p></div></div>
+    <h4>Treats & supplies</h4><div class="list">${WINTER_SHOP.slice(0,7).map(row).join('')}</div>
+    <h4>Yulewarden set <small>(2 pieces: +speed, frost resistance · 4 pieces: +10% HP, +7% attack & magic)</small></h4><div class="list">${WINTER_SHOP.slice(7,12).map((r,i)=>row(r,i+7)).join('')}</div>
+    <h4>Limited legendaries</h4><div class="list">${WINTER_SHOP.slice(12).map((r,i)=>row(r,i+12)).join('')}</div>
+    <p class="hint">Everything here is part of the limited Long Night 2026 collection and stays yours after the festival.</p>`;}
+function winterBuy(i){const P=S.P;const e=WINTER_SHOP[+i];if(!e)return;const [k,q,c]=e;if(invCount(P,'w_ornament')<c){UI.toast(`You need ${c} Starlight Ornaments.`,'bad');return;}
+  if(P.inv.length>=60&&(k.startsWith('set:')||UNIQUES[k])){UI.toast('Your bag is full.','bad');return;}
+  invRemove(P,'w_ornament',c);let name;
+  if(k.startsWith('set:')){const g=wGear('set',P.level,k.slice(4));P.inv.push(g);name=itemName(g);}else if(UNIQUES[k]){const g=wGear(k,P.level);P.inv.push(g);name=itemName(g);}else{invAdd(P,k,q);name=ITEMS[k].n+(q>1?' ×'+q:'');}
+  log(`The Frostmother wraps up ${name} for you.`,'good');UI.toast(`Traded for ${name}`,'epic');if(typeof sfx==='function')sfx('buy');}
+
+/* ---------- festival panel on the world screen ---------- */
+function winterPanel(){if(!winterOn()||!S||!S.P)return '';const P=S.P;const here=LOCS[P.loc].ev;const left=winterDaysLeft();const orn=invCount(P,'w_ornament');
+  const canSleigh=!P.dungeon&&!here&&isTown(P.loc);
+  return `<section class="panel winter"><div class="wbg" aria-hidden="true"></div><div class="wcontent"><p class="wpre">Festival · ${left} day${left===1?'':'s'} left</p><h3>❄ The Long Night</h3>
+    <p>Snow has fallen on the Realms. In <b>Hollyhearth</b> the Frostmother trades Starlight Ornaments for limited gear, festive creatures roam Glimmerfrost Woods, and Old Coalheart guards his vault of stolen gifts.</p>
+    <p class="wstat"><span class="orn">${U.fmt(orn)} ✦</span> ornaments${invCount(P,'w_gift')?` · <b>${invCount(P,'w_gift')}</b> gift${invCount(P,'w_gift')>1?'s':''} to open`:''}</p>
+    <div class="row wrap">${winterGiftReady()?btn('🎁 Claim today\'s gift','wgift','','gilt'):'<span class="hint">Today\'s gift claimed. Come back tomorrow.</span>'}
+    ${canSleigh?btn('🛷 Festival sleigh to Hollyhearth','wsleigh','',''):''}${P.loc==='hollyhearth'&&P.wPrev&&LOCS[P.wPrev]?btn(`🛷 Sleigh back to ${LOCS[P.wPrev].n}`,'wsleighback',''):''}
+    ${invCount(P,'w_gift')?btn('Open a gift','wopen','',''):''}</div></div></section>`;}
+function winterSleigh(back){const P=S.P;if(UI.inCombat()||P.dungeon)return;const to=back?P.wPrev:'hollyhearth';if(!to||!LOCS[to])return;if(!back)P.wPrev=P.loc;
+  spend(60);P.loc=to;if(!P.explored.includes(to))P.explored.push(to);log(back?`The festival sleigh drops you back in ${LOCS[to].n}.`:'Bells jingle through the snow as the festival sleigh carries you to Hollyhearth.','good');UI.tab='world';window.scrollTo(0,0);}
+// after the festival: nobody is left stranded in a region that has closed
+function winterCleanup(){if(!S||!S.P||winterOn())return;const P=S.P;if(LOCS[P.loc]&&LOCS[P.loc].ev){P.loc=P.wPrev&&LOCS[P.wPrev]&&!LOCS[P.wPrev].ev?P.wPrev:'khazgard';P.dungeon=null;}}
+
+/* ---------- actions ---------- */
+function winterActs(){Object.assign(ACT,{
+  wgift(){claimDailyGift();},
+  wopen(){const P=S.P;const i=P.inv.findIndex(x=>x.k==='w_gift');if(i>=0)useItem(i);},
+  wsleigh(){winterSleigh(false);},wsleighback(){winterSleigh(true);},
+  wbuy(i){winterBuy(i);if(typeof refreshModal==='function')refreshModal();}});}
+
 /* ---- engine.js ---- */
 /* ETERNAL REALMS — core engine: rng, time, items, stats, progression */
 'use strict';
@@ -1882,6 +2080,7 @@ function itemName(it){
   if(!it)return '';
   if(!isGear(it)){const d=ITEMS[it.k];return d?d.n:it.k;}
   if(it.u)return UNIQUES[it.u].n;
+  if(it.set==='yulewarden'&&typeof WINTER_SET_NAMES!=='undefined'){const sl=ITEM_BASES[it.b].sl;if(WINTER_SET_NAMES[sl])return WINTER_SET_NAMES[sl];}
   if(it.set){const b=ITEM_BASES[it.b];let suf='';for(const a of it.a||[]){if(!AFFIXES[a].pre){suf=' '+AFFIXES[a].n;break;}}return `${SETS[it.set].n} ${b.n}${suf}`;}
   const base=ITEM_BASES[it.b],t=tierFor(it.l);let mat;
   if(base.t==='armor')mat=base.ac==='cloth'?t[2]:base.ac==='leather'?t[3]:t[4];else if(base.t==='acc')mat=t[5];else mat=t[1];
@@ -2026,8 +2225,9 @@ function rollLoot(id,l,luck=0,mult=1){
   for(const [k,c,q] of M.loot||[])if(U.chance(Math.min(1,c*(1+luck*0.004))))out.items.push({k,q:U.ri(1,q)});
   if(M.gear&&U.chance(Math.min(1,M.gear*(1+luck*0.005)))){const r=M.boss?(U.chance(0.25)?3:U.chance(0.6)?2:1):undefined;out.items.push(randomGear(l+U.ri(-2,2),null,r));}
   if(M.boss&&M.gear>=1)for(let i=1;i<M.gear;i++)out.items.push(randomGear(l,null,U.chance(0.3)?3:2));
-  if(M.uniq&&U.chance(M.world?0.35:0.5))out.items.push(makeUnique(M.uniq,l));
+  if(M.uniq&&U.chance(M.uq!=null?M.uq:M.world?0.35:0.5))out.items.push(makeUnique(M.uniq,l));
   if(M.set&&U.chance(M.world?0.6:0.35))out.items.push(makeSetItem(M.set,l));
+  if(typeof winterLoot==='function')winterLoot(id,l,out);
   if(typeof evMod==='function'){out.gold=Math.round(out.gold*evMod('gold'));if(evMod('loot')>1&&U.chance(evMod('loot')-1)&&out.items.length)out.items.push(Object.assign({},out.items[0],out.items[0].b?{uid:U.uid()}:{}));}
   if(U.chance(0.12))out.items.push({k:l<15?'hpot1':l<35?'hpot2':l<60?'hpot3':'hpot4',q:1});
   if(U.chance(0.06))out.items.push({k:l<20?'mpot1':l<50?'mpot2':'mpot3',q:1});
@@ -2039,11 +2239,11 @@ function locMonsterLevel(loc){const L=LOCS[loc];return U.ri(L.lv[0],L.lv[1]);}
 const GRAPH = {};
 for(const k in LOCS)GRAPH[k]={};
 for(const [a,b,h] of ROUTES){GRAPH[a][b]=h;GRAPH[b][a]=h;}
-function neighbors(loc){return Object.keys(GRAPH[loc]||{});}
+function neighbors(loc){return Object.keys(GRAPH[loc]||{}).filter(locOpen);}
 function path(a,b,allowHidden){ // dijkstra
   const dist={},prev={},Q=new Set(Object.keys(LOCS));for(const k of Q)dist[k]=Infinity;dist[a]=0;
   while(Q.size){let u=null;for(const k of Q)if(u===null||dist[k]<dist[u])u=k;if(dist[u]===Infinity)break;Q.delete(u);if(u===b)break;
-    for(const v in GRAPH[u]){if(!allowHidden&&LOCS[v].hid&&v!==b&&!allowHidden)continue;const alt=dist[u]+GRAPH[u][v];if(alt<dist[v]){dist[v]=alt;prev[v]=u;}}}
+    for(const v in GRAPH[u]){if(!allowHidden&&LOCS[v].hid&&v!==b&&!allowHidden)continue;if(!locOpen(v))continue;const alt=dist[u]+GRAPH[u][v];if(alt<dist[v]){dist[v]=alt;prev[v]=u;}}}
   if(dist[b]===Infinity)return null;const p=[b];let c=b;while(prev[c]){c=prev[c];p.unshift(c);}return {path:p,hours:dist[b]};
 }
 function isTown(loc){const t=LOCS[loc].ty;return t==='city'||t==='town'||t==='village';}
@@ -2439,7 +2639,7 @@ function goalText(g){return ({level:`reach level ${g.target}`,gear:'upgrade equi
 
 /* ---------------- WORLD BOSSES ---------------- */
 const WORLD_BOSSES=[['b_grubnak','whisperwood',20,3],['b_hydra','mire',45,2],['b_frostwyrm','summit',58,2],['b_dragon','ashen',80,1.2],['b_lich','necropolis',90,1]];
-function spawnBoss(){const [id,loc,lvl]=U.wpick(WORLD_BOSSES.concat(WORLD_BOSSES_EXT),b=>b[3]);const m=makeMonster(id,lvl);S.boss={id,loc,lvl,hp:m.mhp,mhp:m.mhp,contrib:{},start:S.time,end:S.time+U.ri(20,36)*60,deaths:0};
+function spawnBoss(){const pool=WORLD_BOSSES.concat(WORLD_BOSSES_EXT).filter(b=>locOpen(b[1]));if(typeof winterOn==='function'&&winterOn())pool.push(['b_grimwinter','glimmerfrost',45,4]);const [id,loc,lvl]=U.wpick(pool,b=>b[3]);const m=makeMonster(id,lvl);S.boss={id,loc,lvl,hp:m.mhp,mhp:m.mhp,contrib:{},start:S.time,end:S.time+U.ri(20,36)*60,deaths:0};
   news(`World Boss ${MONSTERS[id].n} has appeared in ${LOCS[loc].n}!`,'boss');BUS.emit('boss_spawn',{boss:S.boss});}
 function raidBoss(group){const B=S.boss;if(!B)return;const m=makeMonster(B.id,B.lvl);
   for(const n of group){if(n.busy>S.time&&n.act==='raiding')continue;const st=stats(n);const d=estDmg(st,n.level,m)*U.ri(6,12);B.hp-=d;B.contrib[n.id]=(B.contrib[n.id]||0)+d;n.act='raiding';n.busy=S.time+60;
@@ -2549,7 +2749,7 @@ function tourneyPlayerResult(won){const T_=S.tourney;if(!T_.pending)return;const
 /* ---------------- QUESTS ---------------- */
 function pl(n){return /[^aeiou]y$/i.test(n)?n.slice(0,-1)+'ies':/f$/.test(n)?n.slice(0,-1)+'ves':/(s|x|ch|sh)$/.test(n)?n+'es':n+'s';}
 function genQuests(town){
-  const nearby=Object.keys(LOCS).filter(l=>{const p=path(town,l);return p&&p.hours<=9&&!isTown(l)&&LOCS[l].mon.length&&!LOCS[l].hid;});
+  const nearby=Object.keys(LOCS).filter(l=>{if(LOCS[l].ev)return false;const p=path(town,l);return p&&p.hours<=9&&!isTown(l)&&LOCS[l].mon.length&&!LOCS[l].hid;});
   const q=[];const n=U.ri(4,6);
   for(let i=0;i<n;i++){const loc=U.pick(nearby.length?nearby:['greenmarch']);const L=LOCS[loc];const lvl=Math.round((L.lv[0]+L.lv[1])/2);
     if(U.chance(0.22)&&typeof npcRequest==='function'){const rq=npcRequest(town);if(rq){q.push(rq);continue;}}
@@ -2561,7 +2761,7 @@ function genQuests(town){
     if(type==='explore'){Object.assign(base,{qty:1,n:`Survey ${L.n}`,d:`Explore ${L.n} and report anything unusual.`});}
     if(type==='deliver'){const dests=Object.keys(LOCS).filter(l=>isTown(l)&&l!==town&&!LOCS[l].hid);const d=U.pick(dests);Object.assign(base,{loc:d,qty:1,n:`Courier to ${LOCS[d].n}`,d:`Deliver a sealed parcel to ${LOCS[d].n}.`});base.lvl=Math.max(1,lvl-3);}
     if(type==='dungeon'){Object.assign(base,{qty:1,n:`Clear ${L.n}`,d:`Defeat ${MONSTERS[L.boss].n} in ${L.n}.`});base.lvl=L.lv[1];}
-    if(type==='escort'){const dests=Object.keys(LOCS).filter(l=>isTown(l)&&l!==town&&!LOCS[l].hid&&path(town,l).hours<=8);const d=U.pick(dests);Object.assign(base,{loc:d,qty:1,escort:1,n:`Escort a caravan to ${LOCS[d].n}`,d:`A merchant caravan needs a guard to ${LOCS[d].n}. Bandits will try their luck on the way.`});base.lvl=Math.max(1,lvl);}
+    if(type==='escort'){const dests=Object.keys(LOCS).filter(l=>{if(!isTown(l)||l===town||LOCS[l].hid||LOCS[l].ev)return false;const p=path(town,l);return p&&p.hours<=8;});const d=U.pick(dests);Object.assign(base,{loc:d,qty:1,escort:1,n:`Escort a caravan to ${LOCS[d].n}`,d:`A merchant caravan needs a guard to ${LOCS[d].n}. Bandits will try their luck on the way.`});base.lvl=Math.max(1,lvl);}
     base.d=base.d.replace('{qty}',base.qty);
     const mult={kill:1,gather:0.8,bounty:2,explore:0.6,deliver:0.7,dungeon:4,escort:1.4}[type];
     base.xp=Math.round(monXp(base.lvl)*base.qty*0.6*mult+monXp(base.lvl)*2);base.gold=Math.round((10+base.lvl*base.lvl*0.6)*mult*U.rf(0.8,1.2));
@@ -2707,10 +2907,12 @@ function equip(idx){const P=S.P,it=P.inv[idx];if(!isGear(it))return;const [ok,wh
 function unequip(sl){const P=S.P;if(!P.equip[sl])return;P.inv.push(P.equip[sl]);P.equip[sl]=null;dirty(P);clampVitals();}
 function useItem(idx,inCombat){const P=S.P,it=P.inv[idx];if(!it||isGear(it))return false;const d=ITEMS[it.k];const st=stats(P);
   if(d.t==='tome'){const m=pMastery(d.school);if(m.lv>0){log(`You already know the basics of ${MASTERY[d.school].n}.`);return false;}m.lv=1;m.xp=0;dirty(P);invRemove(P,it.k);log(`You study the ${d.n}. You can now cast ${MASTERY[d.school].n} spells!`,'epic');return true;}
+  if(d.gift){if(inCombat){log('Not now: open gifts after the fight.','bad');return false;}invRemove(P,it.k);return openGift();}
   if(d.t!=='con'&&d.t!=='food')return false;
   if(d.t==='food'&&inCombat){log('No time to eat now!','bad');return false;}
   if(d.ret){if(inCombat){log('You cannot read it mid-fight.','bad');return false;}invRemove(P,it.k);P.loc=P.home;P.dungeon=null;log(`The scroll flares, and you are back in ${LOCS[P.home].n}.`,'good');spend(10);return true;}
-  if(d.heal)P.hp=Math.min(st.mhp,P.hp+Math.max(d.heal,Math.round(st.mhp*(d.hpc||0))));   // potions heal at least a share of max HP, so they stay useful as you growif(d.mana)P.mp=Math.min(st.mmp,P.mp+d.mana);if(d.stam)P.sp=Math.min(st.msp,P.sp+d.stam);
+  // potions heal at least a share of max HP, so they stay useful as you grow
+  if(d.heal)P.hp=Math.min(st.mhp,P.hp+Math.max(d.heal,Math.round(st.mhp*(d.hpc||0))));if(d.mana)P.mp=Math.min(st.mmp,P.mp+d.mana);if(d.stam)P.sp=Math.min(st.msp,P.sp+d.stam);
   if(d.wellfed){P.fx.wellfed=S.time+180;}if(d.cure&&P.cfx){for(const k of ['poison','burn','bleed'])delete P.cfx[k];}
   invRemove(P,it.k);if(!inCombat)log(`You use ${d.n}.`);return true;}
 function sellItem(idx){const P=S.P,it=P.inv[idx];if(!it)return;const q=isGear(it)?1:it.q;const v=priceFor(isGear(it)?it:{k:it.k},P.loc,false)*(isGear(it)?1:1);
@@ -2795,6 +2997,7 @@ function talkTownsfolk(name,role){const P=S.P;spend(10);const R=rumors(P.loc);
     elder:['When I was young the Abandoned Mine still gave silver. Then the miners dug too deep.'],librarian:['Knowledge is the only treasure that grows when shared. Feel free to read.'],guard:['Keep your weapons sheathed inside the walls.','Bandits on the roads lately. Be careful.'],
     merchant:['Buy low, sell high. Everything else is details.','Prices go up and down with the wars. Pay attention.'],priest:['May the light guide your steps.','The temple heals all who ask.'],arena:['The Grand Tournament comes every seven days. Register at the arena when it opens.'],
     smith:['Bring me ore and I\'ll teach you something about steel.','Off-class gear works, but you\'ll fight clumsily in it until you train.'],mystic:['The dragons remember the pacts. So do their children.'],mentor:['The higher paths are earned, not given. Show me your mastery.'],
+    frostmother:['Every ornament is a little piece of starlight. Bring them to me.','Old Coalheart steals the gifts every year. Every year someone brave takes them back.','Come and see me each day of the Long Night. I always keep a gift for you.'],candlemaker:['Best tallow in the Realms. Burns all night, and the Long Night is very long.','The Gloomhorn deer are drawn to light. Keep your lantern shuttered in the woods.'],singer:['Ring the bells, the dark is long, sing until the dawn comes on!','Grimwinter only takes the naughty ones. That\'s what my mum says, anyway.'],
     barkeep:['Ale\'s two coppers. Gossip\'s free if you buy the ale.'],courier:['I carry letters for every city. Real adventurers can send each other parcels through me.'],smuggler:['You didn\'t see this place. Understood?'],elder2:[]};
   log(`${name}: “${U.pick(lines[role]||['Good day, traveler.'])}”`,'social');if(U.chance(0.6))log(`${name}: “Also: ${R[0]}”`,'lore');
   if(role==='librarian'&&P.loc==='valeria')storyCheck('visit');}
@@ -2930,7 +3133,7 @@ function compActor(c){const m=compStats(c);m.side='a';m.row='front';m.fx={};m.cd
 function startEncounter(loc,opts={}){
   const L=LOCS[loc];if(!L.mon.length){log('Nothing to fight here.');return;}
   const P=S.P,dm=DIFFS[P.diff].m;
-  let id=U.pick(L.mon);let n=1;const M=MONSTERS[id];
+  let id=U.pick(L.mon);if(typeof winterSwap==='function')id=winterSwap(loc,id);let n=1;const M=MONSTERS[id];
   const lowLv=P.level<6;if((M.b||[]).includes('pack'))n=lowLv?U.ri(1,2):U.ri(2,3);else if(U.chance(lowLv?0.15:0.3))n=2;if(L.ty==='dungeon'&&U.chance(0.5))n++;
   n=Math.min(n,2+partyMembers().length);
   // monsters scale within the zone's range toward your level (a zone above you stays dangerous)
@@ -3125,7 +3328,7 @@ function playerAction(act,arg,tIdx){
     case 'skill':used=useSkill(a,arg,tIdx!=null?tIdx:C.target);break;
     case 'item':{const P=S.P;const it=P.inv[arg];if(!it){used=false;break;}const d=ITEMS[it.k];
       if(d.escape){invRemove(P,it.k);clog('You vanish in a cloud of smoke!','buff');finishCombat('fled');return;}
-      if(d.bomb){invRemove(P,it.k);vfx('cast',a,{n:d.n,k:'item',e:it.k==='frost_bomb'?'frost':it.k==='thunder_bomb'?'lightning':it.k==='venom_flask'?'poison':'fire',all:1});for(const e of foes){const r=Math.round(d.dmg*(1+P.level*0.25));e.hp-=r;vfx('hit',e,{s:a,e:it.k==='frost_bomb'?'frost':it.k==='thunder_bomb'?'lightning':it.k==='venom_flask'?'poison':'fire',crit:false,melee:false,thrown:1});floatFx(e,''+r,'dmg');clog(`${e.name} is engulfed in flames for ${r}!`,'hit');if(e.hp<=0)die(e,a);}break;}
+      if(d.bomb){invRemove(P,it.k);vfx('cast',a,{n:d.n,k:'item',e:d.e||'fire',all:1});for(const e of foes){const r=Math.round(d.dmg*(1+P.level*0.25));e.hp-=r;vfx('hit',e,{s:a,e:d.e||'fire',crit:false,melee:false,thrown:1});floatFx(e,''+r,'dmg');clog(`${e.name} is engulfed in flames for ${r}!`,'hit');if(e.hp<=0)die(e,a);}break;}
       if(d.buff){invRemove(P,it.k);a.fx[d.buff]={d:4};vfx('drink',a,{c:'#ffd36a'});vfx('buff',a);clog(`${a.name} drinks ${d.n}.`,'buff');break;}
       if(d.revive){const dead=C.allies.find(x=>x.hp<=0&&!x.isPlayer);if(!dead){clog('No fallen ally to revive.','bad');used=false;break;}invRemove(P,it.k);dead.hp=Math.round(dead.mhp*0.4);vfx('revive',dead);clog(`${dead.name} is revived!`,'heal');break;}
       P.hp=a.hp;P.mp=a.mp;P.sp=a.sp;if(!useItem(arg,true)){used=false;break;}const hp0=a.hp;a.hp=Math.min(a.mhp,P.hp);a.mp=Math.min(a.mmp,P.mp);a.sp=Math.min(a.msp,P.sp);if(d.cure)for(const k of ['poison','burn','bleed'])delete a.fx[k];vfx('drink',a,{c:d.mana?'#6aa8ff':'#ff6a6a'});if(a.hp>hp0){vfx('heal',a);floatFx(a,'+'+(a.hp-hp0),'heal');}clog(`${a.name} uses ${d.n}${a.hp>hp0?` (+${a.hp-hp0} HP)`:''}.`,'heal');break;}
@@ -3269,7 +3472,7 @@ function pvpEnd(result){const P=S.P,o=C.opts,n=o.opp;C.summary=[];
 /* dungeons */
 function enterDungeon(){const P=S.P,L=LOCS[P.loc];P.dungeon={loc:P.loc,floor:1,floors:L.floors||3};log(`You descend into ${L.n}. (${P.dungeon.floors} floors and a boss)`,'head');dungeonFloor();}
 function dungeonFloor(){const P=S.P,D=P.dungeon;if(!D)return;const L=LOCS[D.loc];const dm=DIFFS[P.diff].m;
-  if(D.floor>D.floors){if(L.boss==='b_shattered'){startFinalBattle(true);return;}const b=makeMonster(L.boss,L.lv[1]+2,{diff:dm});startCombat([b],{type:'pve',dungeon:true,boss:true,loc:D.loc,title:`BOSS: ${b.name}`});return;}
+  if(D.floor>D.floors){if(L.boss==='b_shattered'){startFinalBattle(true);return;}const b=makeMonster(L.boss,L.scale?U.clamp(S.P.level+2,L.lv[0],L.lv[1]+2):L.lv[1]+2,{diff:dm});startCombat([b],{type:'pve',dungeon:true,boss:true,loc:D.loc,title:`BOSS: ${b.name}`});return;}
   const n=U.ri(2,3);const en=[];for(let i=0;i<n;i++)en.push(makeMonster(U.pick(L.mon),U.ri(L.lv[0],L.lv[1])+D.floor-1,{diff:dm}));
   startCombat(en,{type:'pve',dungeon:true,loc:D.loc,title:`${L.n} — Floor ${D.floor}/${D.floors}`});}
 function dungeonProgress(){const P=S.P,D=P.dungeon;if(!D)return;
@@ -3832,7 +4035,7 @@ async function compress(str){try{if(typeof CompressionStream==='undefined')throw
   let bin='';const b=new Uint8Array(buf);for(let i=0;i<b.length;i+=0x8000)bin+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));return 'gz:'+btoa(bin);}catch(e){return 'js:'+str;}}
 async function decompress(s){if(s.startsWith('js:'))return s.slice(3);if(s.startsWith('{'))return s;const bin=atob(s.slice(3));const b=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)b[i]=bin.charCodeAt(i);
   const ds=new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'));return await new Response(ds).text();}
-function hydrate(obj){S=obj;if(!S.npcs)S.npcs=[];if(S.P&&S.P.diff!=='normal')S.P.diff='normal';if(S.P&&!S.P.tiers)S.P.tiers={};for(const n of S.npcs){n.inParty=S.P&&S.P.party.includes(n.id);}reindex();purgeSim();if(!S.pmUnread)S.pmUnread={};if(!S.chat.pm)S.chat.pm={};if(!S.hall)S.hall=[];return S;}
+function hydrate(obj){S=obj;if(!S.npcs)S.npcs=[];if(S.P&&S.P.diff!=='normal')S.P.diff='normal';if(S.P&&!S.P.tiers)S.P.tiers={};for(const n of S.npcs){n.inParty=S.P&&S.P.party.includes(n.id);}reindex();purgeSim();if(typeof winterCleanup==='function')winterCleanup();if(!S.pmUnread)S.pmUnread={};if(!S.chat.pm)S.chat.pm={};if(!S.hall)S.hall=[];return S;}
 async function saveLocal(pre){if(!S||!S.P)return false;try{const str=pre||await compress(serialize());localStorage.setItem(LS_KEY,str);localStorage.setItem(LS_KEY+'_t',String(Date.now()));return true;}catch(e){console.warn('local save failed',e);return false;}}
 async function loadLocal(){try{const s=localStorage.getItem(LS_KEY);if(!s)return null;const t=+localStorage.getItem(LS_KEY+'_t')||0;return {t,obj:JSON.parse(await decompress(s))};}catch(e){console.warn('local load failed',e);return null;}}
 function hasLocal(){try{return !!localStorage.getItem(LS_KEY);}catch(e){return false;}}
@@ -4023,6 +4226,7 @@ const ICONS={
   menu:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M12 2v3 M12 19v3 M2 12h3 M19 12h3 M4.9 4.9l2.1 2.1 M17 17l2.1 2.1 M4.9 19.1L7 17 M17 7l2.1-2.1',
   more:'M5 12h.01 M12 12h.01 M19 12h.01',
   download:'M12 3v12 M7 10l5 5 5-5 M4 20h16',
+  festival:'M12 3l1.8 3.7 4 .6-2.9 2.8.7 4L12 12.2 8.4 14.1l.7-4-2.9-2.8 4-.6z M5 21h14 M7 21v-4h10v4 M12 14v3',
   explore:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M15.5 8.5l-2 5-5 2 2-5z',
   hunt:'M5 19L17 7 M14 4l6 0 0 6 M4 15l5 5 M7 13l4 4',
   search:'M11 17a6 6 0 1 0 0-12 6 6 0 0 0 0 12z M20 20l-4.5-4.5',
@@ -4089,7 +4293,7 @@ function sigil(a){if(!a.mon&&!a.isComp){const role=a.role||'dps';const g={tank:'
   const col=ELEM_HUE[a.e]||'var(--ink2)';return `<span class="sigil ${a.boss?'boss':''}" style="--sc:${col}">${icon(CAT_GLYPH[a.cat]||'claw')}</span>`;}
 
 /* ---------- location vistas (canvas, cached per location + time of day) ---------- */
-const BIOME={brookhollow:'village',greenmarch:'fields',whisperwood:'forest',mine:'cave',ember:'lava',valeria:'city',watchtower:'ruin',ironford:'town',mirren:'lake',grimward:'fort',crossroads:'town',
+const BIOME={hollyhearth:'snow',glimmerfrost:'snow',coalvault:'cave',brookhollow:'village',greenmarch:'fields',whisperwood:'forest',mine:'cave',ember:'lava',valeria:'city',watchtower:'ruin',ironford:'town',mirren:'lake',grimward:'fort',crossroads:'town',
   thornvale:'forest',moonfall:'glade',lothirien:'elfcity',crystallake:'lake',hollow:'glade',frostpeak:'snow',summit:'snow',khazgard:'mountaincity',deepforge:'lava',undervault:'cave',skyreach:'snow',
   duskhaven:'undercity',aethermoor:'ruin',saltmere:'port',cove:'coast',mire:'swamp',pawhaven:'coast',isles:'coast',citadel:'coast',bloodrock:'mesa',dunes:'desert',oasis:'desert',tomb:'desert',ashen:'lava',necropolis:'necro',spire:'spire'};
 const VISTA_CACHE={};
@@ -4100,6 +4304,7 @@ function skyFor(t,biome){const h=T.hour(t);const under=['cave','undercity'].incl
   if(h<17)return {top:'#4a7ab0',bot:'#bcd3df',sun:[0.5+(h-12)*0.04,0.25]};
   return {top:'#2b2747',bot:'#e0805a',sun:[0.8,0.72]};}
 function drawVista(loc,t){
+  if(LOCS[loc]&&LOCS[loc].ev&&ART.ok)return ART.base+'winter.webp';   // the festival region uses its painted scene
   const biome=BIOME[loc]||'fields';const sky=skyFor(t,biome);const key=loc+'|'+(sky.night?'n':T.hour(t)<8?'d':T.hour(t)<17?'m':'e');if(VISTA_CACHE[key])return VISTA_CACHE[key];
   const W=1200,H=320;const cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');
   let seed=[...loc].reduce((s,c)=>s*31+c.charCodeAt(0)|0,7);const rnd=()=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;};
@@ -4165,11 +4370,14 @@ const ART={ok:false,base:'assets/',gear:['sword','greatsword','axe','greataxe','
 function artCell(sheet,i,cls,extra){const c=i%4,r=Math.floor(i/4)%4;return `<span class="pt ${cls||''}" ${extra||''} style="background-image:url(${ART.base}${sheet}.webp);background-position:${(c*100/3).toFixed(2)}% ${(r*100/3).toFixed(2)}%" aria-hidden="true"></span>`;}
 function artIdx(prefix,i,cls,extra){return artCell(prefix+String(Math.floor(i/16)+1).padStart(2,'0'),i%16,cls,extra);}
 function nameHash(s){let h=0;s=String(s||'');for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h);}
-function ptMon(id,cls){if(!ART.ok)return '';ART.mk=ART.mk||Object.keys(MONSTERS);const i=ART.mk.indexOf(id);return i<0?'':artIdx('mon',i,cls);}
+function ptMon(id,cls){if(!ART.ok)return '';if(MONSTERS[id]&&MONSTERS[id].art!=null)return artCell('xmon',MONSTERS[id].art,cls);ART.mk=ART.mk||Object.keys(MONSTERS);const i=ART.mk.indexOf(id);return i<0?'':artIdx('mon',i,cls);}
 function ptNpc(kind,cls){if(!ART.ok||ART.npc[kind]==null)return '';return artIdx('mon',ART.npc[kind],cls);}
 function ptClass(cl,gender,name,cls){if(!ART.ok)return '';ART.ck=ART.ck||Object.keys(CLASSES);let i=ART.ck.indexOf(cl);if(i<0)return '';
   const f=gender==='female'?1:gender==='male'?0:nameHash(name)%2;if(i<16)return artCell(f?'class02':'class01',i,cls);if(i<20)return artCell('class03',(i-16)+(f?4:0),cls);return '';}
-function ptItem(it,cls){if(!ART.ok||!it)return '';if(it.b){const i=ART.gear.indexOf(it.b);return i<0?'':artIdx('gear',i,(cls||'')+' r'+(it.r||0));}ART.ik=ART.ik||Object.keys(ITEMS);const i=ART.ik.indexOf(it.k||it);return i<0?'':artIdx('items',i,cls);}
+function ptItem(it,cls){if(!ART.ok||!it)return '';if(it.b&&it.u&&UNIQUES[it.u]&&UNIQUES[it.u].art!=null)return artCell('xgear',UNIQUES[it.u].art,(cls||'')+' r'+(it.r||0));
+  if(it.b&&it.set==='yulewarden'&&typeof WINTER_SET_ART!=='undefined'){const sl=ITEM_BASES[it.b].sl;if(WINTER_SET_ART[sl]!=null)return artCell('xgear',WINTER_SET_ART[sl],(cls||'')+' r'+(it.r||0));}
+  if(!it.b&&ITEMS[it.k||it]&&ITEMS[it.k||it].art!=null)return artCell('xitems',ITEMS[it.k||it].art,cls);
+  if(it.b){const i=ART.gear.indexOf(it.b);return i<0?'':artIdx('gear',i,(cls||'')+' r'+(it.r||0));}ART.ik=ART.ik||Object.keys(ITEMS);const i=ART.ik.indexOf(it.k||it);return i<0?'':artIdx('items',i,cls);}
 function ptActor(a,cls){if(!a)return '';if(a.id&&MONSTERS[a.id])return ptMon(a.id,cls);if(a.cls)return ptClass(a.cls,a.char&&a.char.gender,a.name,cls);return '';}
 
 /* the Android app download is offered on the website only: not inside the app itself, not on iPhones, and only if the file is really there */
@@ -4291,7 +4499,7 @@ function sfx(name,opt={}){if(!AUD.on||!AUD.ctx)return;const C_=AUD.ctx,t=C_.curr
   }}
 /* moods follow what you're doing */
 function audPickMood(){if(typeof FIN!=='undefined'&&FIN.ending)return 'title';if(!S||!S.P||!UI.started)return 'title';if(C&&C.opts&&C.opts.final&&!C.closed){return C.cinema?(C.cineMusic?'final2':'silence'):C.finalPhase===2?'final2':'final1';}if(UI.inCombat()&&C&&!C.ended){return C.enemies.some(e=>e.boss)||['tourney','trial'].includes(C.opts.type)?'boss':'combat';}
-  const L=LOCS[S.P.loc];if(S.P.dungeon||L.ty==='dungeon'||L.ty==='lair')return 'dungeon';if(isTown(S.P.loc))return T.isNight(S.time)?'night':'town';return T.isNight(S.time)?'night':'wild';}
+  const L=LOCS[S.P.loc];if(S.P.dungeon||L.ty==='dungeon'||L.ty==='lair')return 'dungeon';if(L.ev)return 'winter';if(isTown(S.P.loc))return T.isNight(S.time)?'night':'town';return T.isNight(S.time)?'night':'wild';}
 setInterval(()=>{if(AUD.on)audMood(audPickMood());},800);
 
 function playSeq(M,st,t,s16){const o=audBus(),i=st%16,bar=Math.floor(st/16);const v=0.5;const root=M.roots[bar%4];
@@ -4391,7 +4599,7 @@ function playSong(M,st,t,s16){const o=audBus(),v=0.78,nb=M.mel.length,b=Math.flo
    Each mood maps to a track; tracks cross-fade and remember their place. While a recorded track is playing the
    built-in synth sequencer stays quiet (AUD.rec). If a file can't load, the synth music carries on as before. */
 'use strict';
-const TRK={map:{title:'title',town:'town',wild:'wild',night:'wild',dungeon:'dungeon',combat:'combat',boss:'boss',final1:'boss',final2:'boss'},gain:{title:.9,town:.8,wild:.9,dungeon:.95,combat:.8,boss:.8},el:{},bad:{},cur:null,vol:{}};
+const TRK={map:{title:'title',town:'town',wild:'wild',night:'wild',dungeon:'dungeon',combat:'combat',boss:'boss',final1:'boss',final2:'boss',winter:'winter'},gain:{winter:.85,title:.9,town:.8,wild:.9,dungeon:.95,combat:.8,boss:.8},el:{},bad:{},cur:null,vol:{}};
 function trkEl(k){if(TRK.el[k]||TRK.bad[k])return TRK.el[k];try{const a=new Audio();a.loop=true;a.preload='auto';a.volume=0;a.addEventListener('error',()=>{TRK.bad[k]=1;delete TRK.el[k];if(TRK.cur===k)TRK.cur=null;});a.src=ART.base+'mus_'+k+'.mp3';TRK.el[k]=a;TRK.vol[k]=0;return a;}catch(e){TRK.bad[k]=1;return null;}}
 function trkTick(){const want=AUD.on?(TRK.map[AUD.want]||null):null;const k=want&&!TRK.bad[want]?want:null;
   if(k&&k!==TRK.cur){const a=trkEl(k);if(a){TRK.cur=k;const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{});}}else if(!k)TRK.cur=null;
@@ -4406,6 +4614,7 @@ function trkKick(){if(!AUD.on)return;const k=TRK.map[AUD.want]||TRK.map[audPickM
 function trkTryAutoplay(){let pref=null;try{pref=localStorage.getItem('er_sound');}catch(e){}if(pref==='0'||AUD.on)return;
   const a=trkEl('title');if(!a)return;try{const pr=a.play();if(pr&&pr.then)pr.then(()=>{if(!AUD.on){audStart();audMood('title');TRK.cur='title';titleSoundBtn();}}).catch(()=>{});}catch(e){}}
 function titleSoundBtn(){const b=document.getElementById('tsnd');if(b){b.classList.toggle('on',!!AUD.on);b.setAttribute('aria-label',AUD.on?'Music on':'Music off');}const t=document.getElementById('tsound');if(t)t.textContent=AUD.on?'♪ Music on':'♪ Play music';}
+if(typeof MOODS!=='undefined'&&!MOODS.winter)MOODS.winter=MOODS.night;   // synth fallback if the winter track can't load
 
 /* ---- fx.js ---- */
 /* ETERNAL REALMS — visual effects: particle layer, combat VFX, animated HP bars, ambient weather, animated title scene */
@@ -4824,19 +5033,20 @@ function m_cls(m){return m.from==='P'?S.P.cls:m.real?(m.cls||'warrior'):(npc(m.f
 
 /* ---------------- world view ---------------- */
 function abtn(ic,label,sub,act,v='',cls=''){return `<button class="ab ${cls}" data-a="${act}" data-v="${E(v)}">${icon(ic)}<span><b>${label}</b>${sub?`<small>${sub}</small>`:''}</span></button>`;}
-const SVC_SUB={special:'Rare & unique wares',inn:'Rest · rumors · cook',shop:'Potions & supplies',smith:'Arms & armor',market:'Buy & sell',guild:'Found or join',temple:'Healing & blessing',library:'Lore & tomes',arena:'Duels & gladiators',trainer:'Masters & training',board:'Quests',forge:'Smithing',alchemy:'Potions & enchanting',stable:'Fast travel',port:'Ships'};
+const SVC_SUB={festival:'Trade Starlight Ornaments',special:'Rare & unique wares',inn:'Rest · rumors · cook',shop:'Potions & supplies',smith:'Arms & armor',market:'Buy & sell',guild:'Found or join',temple:'Healing & blessing',library:'Lore & tomes',arena:'Duels & gladiators',trainer:'Masters & training',board:'Quests',forge:'Smithing',alchemy:'Potions & enchanting',stable:'Fast travel',port:'Ships'};
 function weatherLine(loc){const L=LOCS[loc];const n=T.isNight(S.time);const b=BIOME[loc];const seed=(T.day(S.time)*7+[...loc].length)%5;
   const W={snow:['Snow drifts across the trail.','The wind bites through your cloak.','Clear and freezing.','Ice crystals glitter in the air.','A blizzard gathers on the peaks.'],desert:['Heat shimmers over the sand.','A dry wind hisses.','Dust devils spin in the distance.','The sun is merciless.','Cool stillness.'],
     swamp:['Mist clings to the water.','Insects drone endlessly.','Something splashes nearby.','Warm rain patters on the leaves.','The air smells of rot.'],lava:['Ash falls like grey snow.','The ground is warm under your boots.','Embers drift past.','A distant rumble shakes the rocks.','Smoke stings your eyes.']}[b]||
     ['A light breeze stirs.','Soft rain falls.','The air is crisp and clear.','Clouds roll overhead.','Birdsong drifts on the wind.'];
   return (n?'Night. ':'')+W[seed];}
-const SVC_NAMES={special:'Specialty Shop',inn:'Inn',shop:'General Store',smith:'Blacksmith',market:'Auction House',guild:'Guild Hall',temple:'Temple',library:'Library',arena:'Arena',trainer:'Trainers',board:'Quest Board',forge:'Forge',alchemy:'Alchemy Lab',stable:'Stables',port:'Harbor'};
+const SVC_NAMES={festival:'Gift Exchange',special:'Specialty Shop',inn:'Inn',shop:'General Store',smith:'Blacksmith',market:'Auction House',guild:'Guild Hall',temple:'Temple',library:'Library',arena:'Arena',trainer:'Trainers',board:'Quest Board',forge:'Forge',alchemy:'Alchemy Lab',stable:'Stables',port:'Harbor'};
 function renderWorld(){
   const P=S.P,L=LOCS[P.loc];const f=S.control[P.loc];const war=S.wars.find(w=>w.front===P.loc);
   const here=(S.byLoc[P.loc]||[]).filter(n=>online(n)&&!n.inParty);const realHere=Object.values(NET.peerMap).filter(p=>p.loc===P.loc).map(p=>[p.key,{user:p.user,level:p.lvl,cls:p.cls}]);
-  let h=`<section class="locard"><div class="vista" style="background-image:url(${drawVista(P.loc,S.time)})"></div><div class="lochead"><h2>${E(L.n)}</h2><div class="chips"><span class="chip">${U.cap(L.ty)}</span>${L.lv&&!isTown(P.loc)?`<span class="chip ${lvlColor(L.lv[0])}">Lv ${L.lv[0]}–${L.lv[1]}</span>`:''}
+  let h=`<section class="locard"><div class="vista ${L.ev?'wv-'+P.loc:''}" style="background-image:url(${drawVista(P.loc,S.time)})"></div><div class="lochead"><h2>${E(L.n)}</h2><div class="chips"><span class="chip">${U.cap(L.ty)}</span>${L.lv&&!isTown(P.loc)?`<span class="chip ${lvlColor(L.lv[0])}">Lv ${L.lv[0]}–${L.lv[1]}</span>`:''}
     ${f?`<span class="chip">${E(FACTIONS[f].n)}</span>`:''}${L.pvp?'<span class="chip danger">PvP zone</span>':''}${war?'<span class="chip danger">War front</span>':''}<span class="chip">${T.part(S.time)}</span></div></div>
     <p class="desc">${E(L.d)}</p>${S.P.dungeon?'':`<p class="weather">${E(weatherLine(P.loc))}</p>`}</section>`;
+  if(typeof winterPanel==='function')h+=winterPanel();
   if(P.dungeon){const D=P.dungeon;h+=`<section class="panel dungeon"><h3>Inside ${E(LOCS[D.loc].n)}</h3><p>Floor ${Math.min(D.floor,D.floors)}/${D.floors}${D.floor>D.floors?' — the boss chamber lies ahead.':''}</p>
     <div class="row">${btn(D.floor>D.floors?`Face ${E(MONSTERS[L.boss].n)}`:`Explore floor ${D.floor}`,'dfloor','','gilt')}${btn('Leave dungeon','dleave')}</div></section>`;}
   if(S.boss&&S.boss.loc===P.loc){const B=S.boss;h+=`<section class="panel boss"><h3>⚠ World Boss: ${E(MONSTERS[B.id].n)} (Lv.${B.lvl})</h3>${bar(B.hp,B.mhp,'hp','HP')}<p>${Object.keys(B.contrib).length} raiders have fought it. ${B.deaths} have fallen.</p>${btn('Join the raid','wboss','','danger')}</section>`;}
@@ -4872,7 +5082,7 @@ function renderWorld(){
   h+=`<section class="panel"><h3>Actions</h3><div class="grid-act">${acts.join('')}</div>
     <form class="freeform" data-form="freeform"><label for="ff">What do you do?</label><div class="row"><input id="ff" name="ff" maxlength="140" placeholder="e.g. climb the old tower, pray at the shrine, sing to the crowd" autocomplete="off"><button class="b">Act</button></div></form></section>`;
   if((L.sv||[]).length&&!P.dungeon)h+=`<section class="panel"><h3>Places in town</h3><div class="grid-act svc">${L.sv.map(s=>abtn(s,SVC_NAMES[s],SVC_SUB[s]||'','svc',s)).join('')}</div></section>`;
-  const tf=TOWNSFOLK[P.loc]||[];if(tf.length)h+=`<section class="panel"><h3>Locals</h3><div class="people">${tf.map(([n,r])=>`<button class="person" data-a="talk" data-v="${E(n)}|${r}">${avatar(n,{innkeeper:'merchant',librarian:'mage',guard:'knight',merchant:'merchant',priest:'cleric',arena:'berserker',smith:'warrior',mentor:'swordsman',barkeep:'rogue',courier:'archer',smuggler:'rogue',elder:'druid',farmer:'druid',mystic:'summoner'}[r])}<span><b>${E(n)}</b><small>${U.cap(r)}</small></span></button>`).join('')}</div></section>`;
+  const tf=TOWNSFOLK[P.loc]||[];if(tf.length)h+=`<section class="panel"><h3>Locals</h3><div class="people">${tf.map(([n,r])=>`<button class="person" data-a="talk" data-v="${E(n)}|${r}">${avatar(n,{frostmother:'cleric',candlemaker:'merchant',singer:'bard',innkeeper:'merchant',librarian:'mage',guard:'knight',merchant:'merchant',priest:'cleric',arena:'berserker',smith:'warrior',mentor:'swordsman',barkeep:'rogue',courier:'archer',smuggler:'rogue',elder:'druid',farmer:'druid',mystic:'summoner'}[r])}<span><b>${E(n)}</b><small>${U.cap(r)}</small></span></button>`).join('')}</div></section>`;
   if((L.feat||[]).length)h+=`<section class="panel"><h3>Points of interest</h3><div class="grid-btn">${L.feat.map((f,i)=>btn(`Examine: ${E(f)}${P.examined[P.loc+':'+i]?' ✓':''}`,'examine',i,'ghost')).join('')}</div></section>`;
   if(!P.dungeon){const nb=neighbors(P.loc).filter(l=>!LOCS[l].hid||P.explored.includes(l)||P.flags['found_'+l]);
     h+=`<section class="panel"><h3>Travel</h3><div class="travel">${nb.map(l=>{const X=LOCS[l];return `<button class="tr" data-a="travel" data-v="${l}"><i class="compass d-${dirWord(P.loc,l).replace('-','')}">${icon('travel')}</i><b>${E(X.n)}</b><small>${GRAPH[P.loc][l]}h · ${dirWord(P.loc,l)} · ${isTown(l)?U.cap(X.ty):`<span class="${lvlColor(X.lv[0])}">Lv ${X.lv[0]}–${X.lv[1]}</span>`}${P.explored.includes(l)?'':' · unexplored'}${S.boss&&S.boss.loc===l?' · ⚠ boss':''}</small></button>`;}).join('')}</div>
@@ -4888,6 +5098,7 @@ function svcPanel(s){const P=S.P,loc=P.loc;let h=`<h2>${SVC_NAMES[s]} — ${E(LO
   const f=S.control[loc];if(f&&(P.rep[f]||0)<=-35&&s!=='inn')return h+`<p class="bad">The keeper refuses to serve someone ${repTitle(P.rep[f])} to ${E(FACTIONS[f].n)}.</p>`;
   switch(s){
   case 'special':h=specialView(loc);break;
+  case 'festival':h=`<h2>Gift Exchange — Hollyhearth</h2>`+winterShopView();break;
   case 'inn':h+=`<p>A warm hearth, a noisy common room, and rooms upstairs.</p><div class="grid-btn">${btn(`Rent a room & rest (${10+P.level*2}g, 8h)`,'inn_rest')}${btn('Buy a round & hear rumors (5g)','rumors')}${btn('Use the kitchen','craftlist','cooking')}</div>`;break;
   case 'shop':h+=`<p class="hint">Prices change with local supply and demand${S.wars.some(w=>w.a===f||w.b===f)?' — and the war is driving them up':''}.</p><div class="list">${shopStock(loc).map(k=>{const it={k};const p=priceFor(it,loc);return `<div class="li"><span>${E(ITEMS[k].n)} <small>${itemDesc(it)}</small></span><span class="gold">${p}g</span>${btn('Buy','buy',k,'tiny')}</div>`;}).join('')}</div>${sellSection()}`;break;
   case 'smith':h+=`<p class="hint">Stock changes daily. Items up to 5 levels above you can be equipped.</p><div class="list">${smithStock(loc).map((it,i)=>{const p=priceFor(it,loc);return `<div class="li"><span>${rarityName(it)} <small>Lv.${it.l} · ${itemDesc(it)}</small></span><span class="gold">${U.fmt(p)}g</span>${btn('Buy','smithbuy',i,'tiny')}${btn('Inspect','iteminfo','s:'+i,'tiny ghost')}</div>`;}).join('')}</div>${sellSection()}${hasSvc(loc,'forge')||true?`<div class="row">${btn('Use the anvil (Smithing)','craftlist','smithing')}</div>`:''}`;break;
@@ -4908,7 +5119,8 @@ function svcPanel(s){const P=S.P,loc=P.loc;let h=`<h2>${SVC_NAMES[s]} — ${E(LO
   return h;}
 function sellSection(){const P=S.P;const items=P.inv.map((it,i)=>[it,i]).filter(([it])=>isGear(it)||ITEMS[it.k].t==='mat'||ITEMS[it.k].t==='food'||ITEMS[it.k].t==='con');
   return `<details class="sell"><summary>Sell items</summary><div class="list">${items.map(([it,i])=>`<div class="li"><span>${rarityName(it)}${it.q>1?' ×'+it.q:''}</span><span class="gold">${priceFor(isGear(it)?it:{k:it.k},P.loc,false)}g</span>${btn('Sell','sell',i,'tiny')}</div>`).join('')||'<p class="hint">Nothing to sell.</p>'}</div></details>`;}
-function itemDesc(it){if(!isGear(it)){const d=ITEMS[it.k];if(!d)return '';const p=[];if(d.heal)p.push(d.hpc?`+${d.heal} HP or ${Math.round(d.hpc*100)}%`:`+${d.heal} HP`);if(d.mana)p.push(`+${d.mana} MP`);if(d.stam)p.push(`+${d.stam} SP`);if(d.cure)p.push('cures poison');if(d.buff)p.push(STATUS[d.buff].n);if(d.escape)p.push('escape');if(d.bomb)p.push('fire damage');if(d.ret)p.push('teleport home');if(d.revive)p.push('revive ally');if(d.school)p.push('learn '+MASTERY[d.school].n);if(d.t==='mat')p.push('material');if(d.wellfed)p.push('well-fed');return p.join(', ');}
+function itemDesc(it){const t=itemDescBase(it);const lim=typeof winterLimTag==='function'&&winterLimTag(it);return lim?`${t}${t?' · ':''}❄ Limited: ${lim}`:t;}
+function itemDescBase(it){if(!isGear(it)){const d=ITEMS[it.k];if(!d)return '';const p=[];if(d.heal)p.push(d.hpc?`+${d.heal} HP or ${Math.round(d.hpc*100)}%`:`+${d.heal} HP`);if(d.mana)p.push(`+${d.mana} MP`);if(d.stam)p.push(`+${d.stam} SP`);if(d.cure)p.push('cures poison');if(d.buff)p.push(STATUS[d.buff].n);if(d.escape)p.push('escape');if(d.bomb)p.push('fire damage');if(d.ret)p.push('teleport home');if(d.revive)p.push('revive ally');if(d.school)p.push('learn '+MASTERY[d.school].n);if(d.t==='mat')p.push('material');if(d.wellfed)p.push('well-fed');return p.join(', ');}
   const s=itemStats(it),b=ITEM_BASES[it.b];const p=[];if(s.atk>0.5)p.push(`ATK ${Math.round(s.atk)}`);if(s.matk>0.5)p.push(`MATK ${Math.round(s.matk)}`);if(s.def>0.5)p.push(`DEF ${Math.round(s.def)}`);if(s.mdef>0.5)p.push(`MDEF ${Math.round(s.mdef)}`);
   for(const k of ATTRS)if(s[k])p.push(`${k.toUpperCase()} +${s[k]}`);if(s.crit)p.push(`Crit +${s.crit.toFixed(1)}%`);if(s.spd)p.push(`Spd ${s.spd>0?'+':''}${s.spd}`);for(const e in s.el)p.push(`${U.cap(e)} dmg`);for(const e in s.res)p.push(`${U.cap(e)} res ${s.res[e]}%`);if(s.steal)p.push('Lifesteal');
   return `${b.t==='weapon'?U.cap(b.wt):b.ac?U.cap(b.ac):b.n} · ${p.join(' · ')}${b.two?' · two-handed':''}${b.reach?' · reach':''}${b.ranged?' · ranged':''}`;}
@@ -4944,7 +5156,7 @@ function guildHallView(){const P=S.P;let h='';const g=guild(P.guild);
   h+=`<div class="row">${btn('Quest board','svc','board')}</div>`;return h;}
 
 /* ---------------- map ---------------- */
-function renderMap(){const P=S.P;const vis=l=>!LOCS[l].hid||P.explored.includes(l)||P.flags['found_'+l];
+function renderMap(){const P=S.P;const vis=l=>locOpen(l)&&(!LOCS[l].hid||P.explored.includes(l)||P.flags['found_'+l]);
   const lines=ROUTES.filter(([a,b])=>vis(a)&&vis(b)).map(([a,b,h])=>`<line x1="${LOCS[a].x}" y1="${LOCS[a].y}" x2="${LOCS[b].x}" y2="${LOCS[b].y}" class="route ${a===P.loc||b===P.loc?'near':''}"/>`).join('');
   const regions=[['ALDMERE',230,470],['SYLVANETH',180,60],['KHAZ DURRIM',640,95],['GOR\'THAK WASTES',830,560],['FERAL COAST',650,690],['THE FREE LANDS',470,420],['THE TORN SKY',920,120]];
   const nodes=Object.keys(LOCS).filter(vis).map(l=>{const L=LOCS[l],ex=P.explored.includes(l);const t=isTown(l);const r=L.ty==='city'?9:t?7:6;
@@ -5038,6 +5250,7 @@ function factionBoard(loc){const P=S.P;const fs=Object.entries(FACTION_CHAINS).f
   return fs.map(([f,C_])=>{const i=(P.fchains||{})[f];const done=i!=null&&i>=C_.steps.length;const st=i!=null&&!done?C_.steps[i]:null;const rep=P.rep[f]||0;
     return `<section class="fchain"><h3>${icon('castle')} ${E(C_.n)} <small>${E(FACTIONS[f].n)}</small></h3>${done?'<p class="good">Completed. The realm remembers.</p>':i==null?`<p>${E(C_.steps[0].d)}</p><p class="hint">${C_.steps.length} steps · Reward ${U.fmt(C_.reward.gold)}g, reputation${C_.reward.uniq?', '+UNIQUES[C_.reward.uniq].n:''}${C_.reward.set?', a '+SETS[C_.reward.set].n+' set piece':''}${rep<-11?' · They don\'t trust you yet.':''}</p>${rep>=-11?btn('Take the oath','faccept',f,'gilt tiny'):''}`
       :`<p><b>Step ${i+1}/${C_.steps.length}: ${E(st.n)}</b> — ${E(st.d)} ${st.type==='kill'?`(${P.fprog[f]||0}/${st.qty})`:st.type==='gather'?`(${invCount(P,st.item)}/${st.qty})`:''}</p><p class="hint">Where: ${E(LOCS[st.loc].n)}</p>`}</section>`;}).join('');}
+if(typeof winterActs==='function')winterActs();
 Object.assign(ACT,{
   faccept(f){factionAccept(f);refreshModal();},
   sinfo(i){const it=specialStock(S.P.loc).items[+i];if(it)openModal(itemInfoFor(it),'item');},
@@ -5513,7 +5726,7 @@ async function showTitle(){UI.started=false;document.body.classList.remove('inga
   $('#app').hidden=false;$('#app').innerHTML=`<button class="tsnd ${AUD.on?'on':''}" id="tsnd" data-a="sound" aria-label="${AUD.on?'Music on':'Music off'}"><i></i><i></i><i></i><i></i></button><div class="tart" aria-hidden="true"></div><canvas class="titlebg" id="titlebg" aria-hidden="true"></canvas><canvas class="tembers" id="tembers" aria-hidden="true"></canvas><div class="vignette" aria-hidden="true"></div>
    <div class="title t2">
     <div class="crest" aria-hidden="true"><span class="crest-ring"></span>${icon('swords')}</div>
-    <div class="thead"><p class="pre">A living dark-fantasy MMORPG</p><h1 class="logo"><span>Eternal</span><span>Realms</span></h1><div class="orn" aria-hidden="true"><i></i><b>◆</b><i></i></div>
+    <div class="thead">${typeof winterOn==='function'&&winterOn()?`<p class="wribbon">❄ The Long Night festival · until 6 January</p>`:''}<p class="pre">A living dark-fantasy MMORPG</p><h1 class="logo"><span>Eternal</span><span>Realms</span></h1><div class="orn" aria-hidden="true"><i></i><b>◆</b><i></i></div>
     <p class="tag">The sun is broken and the old kingdoms are falling. Your legend begins in the ashes.</p></div><div class="tbody">
     <div class="ticker" role="status"><span>${icon('clock')}Day ${day}</span>${LAUNCH.open?(NET.peers?`<span>${icon('online')}${NET.peers+1} players online</span>`:''):`<span class="bad">${icon('online')}Servers offline</span>`}${boss?`<span class="bad">${icon('skull')}${E(boss)} awakens</span>`:''}${head?`<span class="news">${E(head[1])}</span>`:''}</div>
     ${authHtml()}${!LAUNCH.open?`<div class="tmenu prelaunch"><div class="soon"><small>Servers status</small><b>${icon('clock')} Opening soon</b><p>The Realms are not open yet. No accounts or characters exist until launch day. Check back soon.</p></div>

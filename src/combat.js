@@ -18,7 +18,7 @@ function compActor(c){const m=compStats(c);m.side='a';m.row='front';m.fx={};m.cd
 function startEncounter(loc,opts={}){
   const L=LOCS[loc];if(!L.mon.length){log('Nothing to fight here.');return;}
   const P=S.P,dm=DIFFS[P.diff].m;
-  let id=U.pick(L.mon);let n=1;const M=MONSTERS[id];
+  let id=U.pick(L.mon);if(typeof winterSwap==='function')id=winterSwap(loc,id);let n=1;const M=MONSTERS[id];
   const lowLv=P.level<6;if((M.b||[]).includes('pack'))n=lowLv?U.ri(1,2):U.ri(2,3);else if(U.chance(lowLv?0.15:0.3))n=2;if(L.ty==='dungeon'&&U.chance(0.5))n++;
   n=Math.min(n,2+partyMembers().length);
   // monsters scale within the zone's range toward your level (a zone above you stays dangerous)
@@ -213,7 +213,7 @@ function playerAction(act,arg,tIdx){
     case 'skill':used=useSkill(a,arg,tIdx!=null?tIdx:C.target);break;
     case 'item':{const P=S.P;const it=P.inv[arg];if(!it){used=false;break;}const d=ITEMS[it.k];
       if(d.escape){invRemove(P,it.k);clog('You vanish in a cloud of smoke!','buff');finishCombat('fled');return;}
-      if(d.bomb){invRemove(P,it.k);vfx('cast',a,{n:d.n,k:'item',e:it.k==='frost_bomb'?'frost':it.k==='thunder_bomb'?'lightning':it.k==='venom_flask'?'poison':'fire',all:1});for(const e of foes){const r=Math.round(d.dmg*(1+P.level*0.25));e.hp-=r;vfx('hit',e,{s:a,e:it.k==='frost_bomb'?'frost':it.k==='thunder_bomb'?'lightning':it.k==='venom_flask'?'poison':'fire',crit:false,melee:false,thrown:1});floatFx(e,''+r,'dmg');clog(`${e.name} is engulfed in flames for ${r}!`,'hit');if(e.hp<=0)die(e,a);}break;}
+      if(d.bomb){invRemove(P,it.k);vfx('cast',a,{n:d.n,k:'item',e:d.e||'fire',all:1});for(const e of foes){const r=Math.round(d.dmg*(1+P.level*0.25));e.hp-=r;vfx('hit',e,{s:a,e:d.e||'fire',crit:false,melee:false,thrown:1});floatFx(e,''+r,'dmg');clog(`${e.name} is engulfed in flames for ${r}!`,'hit');if(e.hp<=0)die(e,a);}break;}
       if(d.buff){invRemove(P,it.k);a.fx[d.buff]={d:4};vfx('drink',a,{c:'#ffd36a'});vfx('buff',a);clog(`${a.name} drinks ${d.n}.`,'buff');break;}
       if(d.revive){const dead=C.allies.find(x=>x.hp<=0&&!x.isPlayer);if(!dead){clog('No fallen ally to revive.','bad');used=false;break;}invRemove(P,it.k);dead.hp=Math.round(dead.mhp*0.4);vfx('revive',dead);clog(`${dead.name} is revived!`,'heal');break;}
       P.hp=a.hp;P.mp=a.mp;P.sp=a.sp;if(!useItem(arg,true)){used=false;break;}const hp0=a.hp;a.hp=Math.min(a.mhp,P.hp);a.mp=Math.min(a.mmp,P.mp);a.sp=Math.min(a.msp,P.sp);if(d.cure)for(const k of ['poison','burn','bleed'])delete a.fx[k];vfx('drink',a,{c:d.mana?'#6aa8ff':'#ff6a6a'});if(a.hp>hp0){vfx('heal',a);floatFx(a,'+'+(a.hp-hp0),'heal');}clog(`${a.name} uses ${d.n}${a.hp>hp0?` (+${a.hp-hp0} HP)`:''}.`,'heal');break;}
@@ -357,7 +357,7 @@ function pvpEnd(result){const P=S.P,o=C.opts,n=o.opp;C.summary=[];
 /* dungeons */
 function enterDungeon(){const P=S.P,L=LOCS[P.loc];P.dungeon={loc:P.loc,floor:1,floors:L.floors||3};log(`You descend into ${L.n}. (${P.dungeon.floors} floors and a boss)`,'head');dungeonFloor();}
 function dungeonFloor(){const P=S.P,D=P.dungeon;if(!D)return;const L=LOCS[D.loc];const dm=DIFFS[P.diff].m;
-  if(D.floor>D.floors){if(L.boss==='b_shattered'){startFinalBattle(true);return;}const b=makeMonster(L.boss,L.lv[1]+2,{diff:dm});startCombat([b],{type:'pve',dungeon:true,boss:true,loc:D.loc,title:`BOSS: ${b.name}`});return;}
+  if(D.floor>D.floors){if(L.boss==='b_shattered'){startFinalBattle(true);return;}const b=makeMonster(L.boss,L.scale?U.clamp(S.P.level+2,L.lv[0],L.lv[1]+2):L.lv[1]+2,{diff:dm});startCombat([b],{type:'pve',dungeon:true,boss:true,loc:D.loc,title:`BOSS: ${b.name}`});return;}
   const n=U.ri(2,3);const en=[];for(let i=0;i<n;i++)en.push(makeMonster(U.pick(L.mon),U.ri(L.lv[0],L.lv[1])+D.floor-1,{diff:dm}));
   startCombat(en,{type:'pve',dungeon:true,loc:D.loc,title:`${L.n} — Floor ${D.floor}/${D.floors}`});}
 function dungeonProgress(){const P=S.P,D=P.dungeon;if(!D)return;

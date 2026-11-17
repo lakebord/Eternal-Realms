@@ -112,7 +112,7 @@ function sfx(name,opt={}){if(!AUD.on||!AUD.ctx)return;const C_=AUD.ctx,t=C_.curr
   }}
 /* moods follow what you're doing */
 function audPickMood(){if(typeof FIN!=='undefined'&&FIN.ending)return 'title';if(!S||!S.P||!UI.started)return 'title';if(C&&C.opts&&C.opts.final&&!C.closed){return C.cinema?(C.cineMusic?'final2':'silence'):C.finalPhase===2?'final2':'final1';}if(UI.inCombat()&&C&&!C.ended){return C.enemies.some(e=>e.boss)||['tourney','trial'].includes(C.opts.type)?'boss':'combat';}
-  const L=LOCS[S.P.loc];if(S.P.dungeon||L.ty==='dungeon'||L.ty==='lair')return 'dungeon';if(isTown(S.P.loc))return T.isNight(S.time)?'night':'town';return T.isNight(S.time)?'night':'wild';}
+  const L=LOCS[S.P.loc];if(S.P.dungeon||L.ty==='dungeon'||L.ty==='lair')return 'dungeon';if(L.ev)return 'winter';if(isTown(S.P.loc))return T.isNight(S.time)?'night':'town';return T.isNight(S.time)?'night':'wild';}
 setInterval(()=>{if(AUD.on)audMood(audPickMood());},800);
 
 function playSeq(M,st,t,s16){const o=audBus(),i=st%16,bar=Math.floor(st/16);const v=0.5;const root=M.roots[bar%4];

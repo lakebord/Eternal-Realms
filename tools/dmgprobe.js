@@ -1,7 +1,7 @@
 // Damage probe: for each level, how many basic hits a hero needs to kill a zone mob / dungeon boss,
 // and how many of their hits the hero survives. "built" = points spent + level gear, "casual" = points unspent, gear 60% of level.
 const fs=require('fs'),vm=require('vm'),path=require('path');
-const files=['data','expansion','classes2','engine','sim','player','combat','chat','chat2','events','net'];
+const files=['data','expansion','classes2','winter','engine','sim','player','combat','chat','chat2','events','net'];
 const src=files.map(f=>fs.readFileSync(path.join(__dirname,'../src',f+'.js'),'utf8')).join('\n;\n');
 const ctx={performance,console,Math,Date,JSON,Object,Array,String,Number,Set,Map,Promise,setTimeout};vm.createContext(ctx);
 vm.runInContext(src+`\n;if(typeof rarityName==='undefined')var rarityName=()=>'';if(typeof E==='undefined')var E=s=>String(s);\n;this.G={newWorld,createPlayer,setP:p=>S.P=p,stats,makeMonster,makeGear,CLASSES,CLASS_PRIO,ITEM_BASES,LOCS,MONSTERS,dirty:p=>p._st=null,actorFromChar,actorFromMon,damage,kConst};`,ctx);

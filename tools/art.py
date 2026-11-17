@@ -26,4 +26,6 @@ def atlas(name, cell, padf=0.07):
     o.save(os.path.join(out, name + '.webp'), 'WEBP', quality=82, method=6); return o
 for n in ['items%02d' % i for i in range(1, 7)] + ['gear01', 'gear02']: atlas(n, 128)
 for n in ['mon%02d' % i for i in range(1, 7)] + ['class01', 'class02', 'class03']: atlas(n, 192)
+for n,c in (('xmon',192),('xitems',128),('xgear',128)):
+    if os.path.exists(os.path.join(src, n + '.png')): atlas(n, c)
 print('atlases written to', os.path.abspath(out))
