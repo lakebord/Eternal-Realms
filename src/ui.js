@@ -201,7 +201,7 @@ document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.tar
 document.addEventListener('submit',e=>{const f=e.target.closest('[data-form]');if(!f)return;e.preventDefault();const fd=Object.fromEntries(new FormData(f).entries());act('form_'+f.dataset.form,fd,f);});
 function needIdle(){if(UI.inCombat()){UI.toast('You are in combat!','bad');return false;}return true;}
 Object.assign(ACT,{
-  sound(){if(AUD.on){audStop();AUD.declined=true;}else{AUD.declined=false;audStart();}UI.dirty=true;const b=document.getElementById('tsound');if(b)b.textContent=AUD.on?'♪ Music on':'♪ Play music';},
+  sound(){if(AUD.on){audStop();AUD.declined=true;}else{AUD.declined=false;audStart();if(!UI.started)audMood('title');trkKick();}UI.dirty=true;titleSoundBtn();},
   dismissres(){UI.lastResult=null;},
   hidetips(){S.P.flags.hideTips=1;},
   tiertrial(t){closeModal();startTierTrial(+t);},

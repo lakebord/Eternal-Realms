@@ -419,7 +419,7 @@ Object.assign(ACT,{authmode(){UI.authMode=UI.authMode==='signup'?'signin':'signu
 async function showTitle(){UI.started=false;document.body.classList.remove('ingame');$('#game').hidden=true;$('#combat').hidden=true;
   const local=await loadLocal();const cloud=await peekCloud();UI.localSave=local;const LP=local&&local.obj&&local.obj.P;
   const W=S||{};const day=W.time?T.day(W.time):1;const on=W.npcs?W.npcs.filter(n=>!n.retired&&online(n)).length:0;const head=(W.news||[])[0];const boss=W.boss?MONSTERS[W.boss.id].n:null;
-  $('#app').hidden=false;$('#app').innerHTML=`<div class="tart" aria-hidden="true"></div><canvas class="titlebg" id="titlebg" aria-hidden="true"></canvas><canvas class="tembers" id="tembers" aria-hidden="true"></canvas><div class="vignette" aria-hidden="true"></div>
+  $('#app').hidden=false;$('#app').innerHTML=`<button class="tsnd ${AUD.on?'on':''}" id="tsnd" data-a="sound" aria-label="${AUD.on?'Music on':'Music off'}"><i></i><i></i><i></i><i></i></button><div class="tart" aria-hidden="true"></div><canvas class="titlebg" id="titlebg" aria-hidden="true"></canvas><canvas class="tembers" id="tembers" aria-hidden="true"></canvas><div class="vignette" aria-hidden="true"></div>
    <div class="title t2">
     <div class="crest" aria-hidden="true"><span class="crest-ring"></span>${icon('swords')}</div>
     <div class="thead"><p class="pre">A living dark-fantasy MMORPG</p><h1 class="logo"><span>Eternal</span><span>Realms</span></h1><div class="orn" aria-hidden="true"><i></i><b>◆</b><i></i></div>
@@ -432,7 +432,7 @@ async function showTitle(){UI.started=false;document.body.classList.remove('inga
      <button class="tp ${LP?'':'prime'}" data-a="newchar"><i>${icon('swords')}</i><span><b>${LP?'New character':'Begin your adventure'}</b><small>${LP?'Start over with a new hero':'Create your hero and enter the Realms'}</small></span></button>
      <div class="row tsub"><button class="b ghost" data-a="help">${icon('codex')} How to play</button><button class="b ghost" data-a="importask">${icon('bag')} Import save</button><button class="b ghost" data-a="sound" id="tsound">${AUD.on?'♪ Music on':'♪ Play music'}</button></div></div>
     <div class="tmenu tapk"><a class="tp apk" id="apkbtn" href="eternal-realms.apk" download="eternal-realms.apk" hidden><i>${icon('download')}</i><span><b>Get the Android app</b><small>Download the game for your phone (APK)</small></span></a></div>
-    <p class="tfoot">${LAUNCH.open?E(NET.status)+' · ':''}v1.1</p></div></div>`;requestAnimationFrame(()=>{startTitleScene(document.getElementById('titlebg'));startEmbers(document.getElementById('tembers'));});apkCheck();
+    <p class="tfoot">${LAUNCH.open?E(NET.status)+' · ':''}v1.1</p></div></div>`;requestAnimationFrame(()=>{startTitleScene(document.getElementById('titlebg'));startEmbers(document.getElementById('tembers'));});apkCheck();trkTryAutoplay();
   if(AUD.on)audMood('title');}
 async function startGame(){if(!LAUNCH.open){showTitle();return;}if(!S.P){renderCreate();return;}$('#app').hidden=true;document.body.classList.add('ingame');
   // the world keeps moving: adopt the newest shared world, then fast-forward through the time nobody was watching
@@ -451,7 +451,7 @@ function wasPlaying(){try{const t=+localStorage.getItem('er_inplay')||0;return D
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&S.P){saveAll();if(NET.isHost&&Date.now()-(NET.lastUpload||0)>60000)uploadWorld();}});
 document.addEventListener('input',e=>{const v=e.target.dataset&&e.target.dataset.vol;if(!v)return;if(!AUD.on)audStart();audSetVol(v==='m'?e.target.value/100:null,v==='s'?e.target.value/100:null);});
 // music starts with the first tap (browsers require a gesture), unless the player turned it off
-document.addEventListener('pointerdown',e=>{if(e.target.closest&&e.target.closest('[data-a=sound]'))return;if(!AUD.on&&!AUD.declined){let pref=null;try{pref=localStorage.getItem('er_sound');}catch(e){}if(pref!=='0')audStart();else AUD.declined=true;const b=document.getElementById('tsound');if(b)b.textContent=AUD.on?'♪ Music on':'♪ Play music';}},{once:false,capture:true});
+document.addEventListener('pointerdown',e=>{if(e.target.closest&&e.target.closest('[data-a=sound]'))return;if(!AUD.on&&!AUD.declined){let pref=null;try{pref=localStorage.getItem('er_sound');}catch(e){}if(pref!=='0'){audStart();if(!UI.started)audMood('title');trkKick();}else AUD.declined=true;titleSoundBtn();}},{once:false,capture:true});
 async function boot(){try{FX.on=localStorage.getItem('er_fx')!=='0';const vv=JSON.parse(localStorage.getItem('er_vol')||'null');if(vv){AUD.music=vv[0];AUD.sfx=vv[1];}}catch(e){}try{UI.theme=localStorage.getItem('er_theme')||'system';UI.rate=localStorage.getItem('er_rate')||'normal';AI.enabled=localStorage.getItem('er_ai')==='1';}catch(e){}applyTheme();
   const local=await loadLocal();if(local&&local.obj&&local.obj.npcs)hydrate(local.obj);else newWorld(20261104);
   if(LAUNCH.open&&S&&S.P&&wasPlaying()){try{await startGame();UI.toast('Welcome back. Picked up right where you left off.');}catch(e){console.warn('resume failed',e);await showTitle();}}else await showTitle();setInterval(loop,500);

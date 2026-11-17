@@ -680,6 +680,16 @@ html.art .vignette{background:radial-gradient(ellipse at 50% 42%,transparent 45%
 .ccnav .b.gilt{flex:1;box-shadow:inset 0 1px 0 #ffe9a840,0 3px 0 #0e0b05}.ccnav .b.gilt.big{flex:2;font-size:1.15rem}
 #ccerr:empty{display:none}#ccerr{margin:0;font-size:.88rem}
 @media (max-width:520px){.pks.art{grid-template-columns:repeat(2,1fr)}.pks{grid-template-columns:1fr}.pk .pkp{width:46px;height:46px}.ccsteps span{font-size:.62rem}}
+/* title: music toggle, top right; the bars dance while music plays */
+.tsnd{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));right:12px;z-index:5;width:46px;height:46px;border-radius:50%;display:flex;align-items:flex-end;justify-content:center;gap:3px;padding:0 0 14px;cursor:pointer;
+  background:radial-gradient(circle at 50% 35%,#2a2418,#0c0d11 75%);border:1px solid #6e5a2c;box-shadow:0 0 0 2px #0b0c0f,0 4px 14px #000a}
+.tsnd i{display:block;width:3px;height:5px;border-radius:2px;background:#8a7c5e}
+.tsnd.on{border-color:var(--gilt);box-shadow:0 0 0 2px #0b0c0f,0 0 16px -2px var(--gilt)}
+.tsnd.on i{background:var(--gilt);animation:eq 1s ease-in-out infinite}.tsnd.on i:nth-child(2){animation-delay:-.4s}.tsnd.on i:nth-child(3){animation-delay:-.7s}.tsnd.on i:nth-child(4){animation-delay:-.2s}
+@keyframes eq{0%,100%{height:5px}50%{height:17px}}
+.tsnd:not(.on)::after{content:"";position:absolute;width:30px;height:2px;background:#c0503a;transform:rotate(-45deg);top:22px;left:8px;border-radius:2px}
+body.ingame .tsnd{display:none}
+@media (prefers-reduced-motion:reduce){.tsnd.on i{animation:none;height:11px}}
 
 </style>
 <div id="app" aria-live="polite"><div class="title"><h1>Eternal Realms</h1><p class="tag">The Realms are waking…</p></div></div>
@@ -4381,6 +4391,12 @@ function trkTick(){const want=AUD.on?(TRK.map[AUD.want]||null):null;const k=want
   const cur=TRK.cur&&TRK.el[TRK.cur];AUD.rec=!!(cur&&!cur.paused&&cur.readyState>=2);
   if(AUD.mus&&AUD.ctx){const g=AUD.rec?0.0001:AUD.music*0.5;if(TRK.synthG!==g){TRK.synthG=g;try{AUD.mus.gain.setTargetAtTime(g,AUD.ctx.currentTime,0.25);}catch(e){}}}}
 setInterval(trkTick,120);
+// Start the right track *inside* the tap that turned sound on: phones only allow audio to begin during a user gesture.
+function trkKick(){if(!AUD.on)return;const k=TRK.map[AUD.want]||TRK.map[audPickMood&&audPickMood()];if(!k||TRK.bad[k])return;const a=trkEl(k);if(!a)return;TRK.cur=k;try{const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{});}catch(e){}}
+// Returning players (and desktop browsers that allow it) get the title theme straight away; everyone else on their first tap.
+function trkTryAutoplay(){let pref=null;try{pref=localStorage.getItem('er_sound');}catch(e){}if(pref==='0'||AUD.on)return;
+  const a=trkEl('title');if(!a)return;try{const pr=a.play();if(pr&&pr.then)pr.then(()=>{if(!AUD.on){audStart();audMood('title');TRK.cur='title';titleSoundBtn();}}).catch(()=>{});}catch(e){}}
+function titleSoundBtn(){const b=document.getElementById('tsnd');if(b){b.classList.toggle('on',!!AUD.on);b.setAttribute('aria-label',AUD.on?'Music on':'Music off');}const t=document.getElementById('tsound');if(t)t.textContent=AUD.on?'♪ Music on':'♪ Play music';}
 
 /* ---- fx.js ---- */
 /* ETERNAL REALMS — visual effects: particle layer, combat VFX, animated HP bars, ambient weather, animated title scene */
@@ -4932,7 +4948,7 @@ document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.tar
 document.addEventListener('submit',e=>{const f=e.target.closest('[data-form]');if(!f)return;e.preventDefault();const fd=Object.fromEntries(new FormData(f).entries());act('form_'+f.dataset.form,fd,f);});
 function needIdle(){if(UI.inCombat()){UI.toast('You are in combat!','bad');return false;}return true;}
 Object.assign(ACT,{
-  sound(){if(AUD.on){audStop();AUD.declined=true;}else{AUD.declined=false;audStart();}UI.dirty=true;const b=document.getElementById('tsound');if(b)b.textContent=AUD.on?'♪ Music on':'♪ Play music';},
+  sound(){if(AUD.on){audStop();AUD.declined=true;}else{AUD.declined=false;audStart();if(!UI.started)audMood('title');trkKick();}UI.dirty=true;titleSoundBtn();},
   dismissres(){UI.lastResult=null;},
   hidetips(){S.P.flags.hideTips=1;},
   tiertrial(t){closeModal();startTierTrial(+t);},
@@ -5473,7 +5489,7 @@ Object.assign(ACT,{authmode(){UI.authMode=UI.authMode==='signup'?'signin':'signu
 async function showTitle(){UI.started=false;document.body.classList.remove('ingame');$('#game').hidden=true;$('#combat').hidden=true;
   const local=await loadLocal();const cloud=await peekCloud();UI.localSave=local;const LP=local&&local.obj&&local.obj.P;
   const W=S||{};const day=W.time?T.day(W.time):1;const on=W.npcs?W.npcs.filter(n=>!n.retired&&online(n)).length:0;const head=(W.news||[])[0];const boss=W.boss?MONSTERS[W.boss.id].n:null;
-  $('#app').hidden=false;$('#app').innerHTML=`<div class="tart" aria-hidden="true"></div><canvas class="titlebg" id="titlebg" aria-hidden="true"></canvas><canvas class="tembers" id="tembers" aria-hidden="true"></canvas><div class="vignette" aria-hidden="true"></div>
+  $('#app').hidden=false;$('#app').innerHTML=`<button class="tsnd ${AUD.on?'on':''}" id="tsnd" data-a="sound" aria-label="${AUD.on?'Music on':'Music off'}"><i></i><i></i><i></i><i></i></button><div class="tart" aria-hidden="true"></div><canvas class="titlebg" id="titlebg" aria-hidden="true"></canvas><canvas class="tembers" id="tembers" aria-hidden="true"></canvas><div class="vignette" aria-hidden="true"></div>
    <div class="title t2">
     <div class="crest" aria-hidden="true"><span class="crest-ring"></span>${icon('swords')}</div>
     <div class="thead"><p class="pre">A living dark-fantasy MMORPG</p><h1 class="logo"><span>Eternal</span><span>Realms</span></h1><div class="orn" aria-hidden="true"><i></i><b>◆</b><i></i></div>
@@ -5486,7 +5502,7 @@ async function showTitle(){UI.started=false;document.body.classList.remove('inga
      <button class="tp ${LP?'':'prime'}" data-a="newchar"><i>${icon('swords')}</i><span><b>${LP?'New character':'Begin your adventure'}</b><small>${LP?'Start over with a new hero':'Create your hero and enter the Realms'}</small></span></button>
      <div class="row tsub"><button class="b ghost" data-a="help">${icon('codex')} How to play</button><button class="b ghost" data-a="importask">${icon('bag')} Import save</button><button class="b ghost" data-a="sound" id="tsound">${AUD.on?'♪ Music on':'♪ Play music'}</button></div></div>
     <div class="tmenu tapk"><a class="tp apk" id="apkbtn" href="eternal-realms.apk" download="eternal-realms.apk" hidden><i>${icon('download')}</i><span><b>Get the Android app</b><small>Download the game for your phone (APK)</small></span></a></div>
-    <p class="tfoot">${LAUNCH.open?E(NET.status)+' · ':''}v1.1</p></div></div>`;requestAnimationFrame(()=>{startTitleScene(document.getElementById('titlebg'));startEmbers(document.getElementById('tembers'));});apkCheck();
+    <p class="tfoot">${LAUNCH.open?E(NET.status)+' · ':''}v1.1</p></div></div>`;requestAnimationFrame(()=>{startTitleScene(document.getElementById('titlebg'));startEmbers(document.getElementById('tembers'));});apkCheck();trkTryAutoplay();
   if(AUD.on)audMood('title');}
 async function startGame(){if(!LAUNCH.open){showTitle();return;}if(!S.P){renderCreate();return;}$('#app').hidden=true;document.body.classList.add('ingame');
   // the world keeps moving: adopt the newest shared world, then fast-forward through the time nobody was watching
@@ -5505,7 +5521,7 @@ function wasPlaying(){try{const t=+localStorage.getItem('er_inplay')||0;return D
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&S.P){saveAll();if(NET.isHost&&Date.now()-(NET.lastUpload||0)>60000)uploadWorld();}});
 document.addEventListener('input',e=>{const v=e.target.dataset&&e.target.dataset.vol;if(!v)return;if(!AUD.on)audStart();audSetVol(v==='m'?e.target.value/100:null,v==='s'?e.target.value/100:null);});
 // music starts with the first tap (browsers require a gesture), unless the player turned it off
-document.addEventListener('pointerdown',e=>{if(e.target.closest&&e.target.closest('[data-a=sound]'))return;if(!AUD.on&&!AUD.declined){let pref=null;try{pref=localStorage.getItem('er_sound');}catch(e){}if(pref!=='0')audStart();else AUD.declined=true;const b=document.getElementById('tsound');if(b)b.textContent=AUD.on?'♪ Music on':'♪ Play music';}},{once:false,capture:true});
+document.addEventListener('pointerdown',e=>{if(e.target.closest&&e.target.closest('[data-a=sound]'))return;if(!AUD.on&&!AUD.declined){let pref=null;try{pref=localStorage.getItem('er_sound');}catch(e){}if(pref!=='0'){audStart();if(!UI.started)audMood('title');trkKick();}else AUD.declined=true;titleSoundBtn();}},{once:false,capture:true});
 async function boot(){try{FX.on=localStorage.getItem('er_fx')!=='0';const vv=JSON.parse(localStorage.getItem('er_vol')||'null');if(vv){AUD.music=vv[0];AUD.sfx=vv[1];}}catch(e){}try{UI.theme=localStorage.getItem('er_theme')||'system';UI.rate=localStorage.getItem('er_rate')||'normal';AI.enabled=localStorage.getItem('er_ai')==='1';}catch(e){}applyTheme();
   const local=await loadLocal();if(local&&local.obj&&local.obj.npcs)hydrate(local.obj);else newWorld(20261104);
   if(LAUNCH.open&&S&&S.P&&wasPlaying()){try{await startGame();UI.toast('Welcome back. Picked up right where you left off.');}catch(e){console.warn('resume failed',e);await showTitle();}}else await showTitle();setInterval(loop,500);

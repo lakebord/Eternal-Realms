@@ -11,3 +11,9 @@ function trkTick(){const want=AUD.on?(TRK.map[AUD.want]||null):null;const k=want
   const cur=TRK.cur&&TRK.el[TRK.cur];AUD.rec=!!(cur&&!cur.paused&&cur.readyState>=2);
   if(AUD.mus&&AUD.ctx){const g=AUD.rec?0.0001:AUD.music*0.5;if(TRK.synthG!==g){TRK.synthG=g;try{AUD.mus.gain.setTargetAtTime(g,AUD.ctx.currentTime,0.25);}catch(e){}}}}
 setInterval(trkTick,120);
+// Start the right track *inside* the tap that turned sound on: phones only allow audio to begin during a user gesture.
+function trkKick(){if(!AUD.on)return;const k=TRK.map[AUD.want]||TRK.map[audPickMood&&audPickMood()];if(!k||TRK.bad[k])return;const a=trkEl(k);if(!a)return;TRK.cur=k;try{const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{});}catch(e){}}
+// Returning players (and desktop browsers that allow it) get the title theme straight away; everyone else on their first tap.
+function trkTryAutoplay(){let pref=null;try{pref=localStorage.getItem('er_sound');}catch(e){}if(pref==='0'||AUD.on)return;
+  const a=trkEl('title');if(!a)return;try{const pr=a.play();if(pr&&pr.then)pr.then(()=>{if(!AUD.on){audStart();audMood('title');TRK.cur='title';titleSoundBtn();}}).catch(()=>{});}catch(e){}}
+function titleSoundBtn(){const b=document.getElementById('tsnd');if(b){b.classList.toggle('on',!!AUD.on);b.setAttribute('aria-label',AUD.on?'Music on':'Music off');}const t=document.getElementById('tsound');if(t)t.textContent=AUD.on?'♪ Music on':'♪ Play music';}
