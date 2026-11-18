@@ -471,23 +471,35 @@ boot();
 
 
 /* ---------------- character profile: hollow paper doll + records ---------------- */
-// The body is drawn filled, then an SVG filter keeps only its glowing edge, so it reads as a hollow outline.
-const DOLL_SVG=`<svg class="doll-body" viewBox="0 0 200 280" aria-hidden="true"><defs><filter id="dollEdge" x="-10%" y="-10%" width="120%" height="120%"><feMorphology in="SourceAlpha" operator="dilate" radius="1.6" result="d"/><feComposite in="d" in2="SourceAlpha" operator="out" result="o"/><feFlood flood-color="#e8c27a"/><feComposite in2="o" operator="in" result="line"/><feGaussianBlur in="line" stdDeviation="2.2" result="glow"/><feFlood flood-color="#e8c27a" flood-opacity=".07"/><feComposite in2="SourceAlpha" operator="in" result="fill"/><feMerge><feMergeNode in="fill"/><feMergeNode in="glow"/><feMergeNode in="line"/></feMerge></filter></defs>
-<g filter="url(#dollEdge)" fill="#fff"><ellipse cx="100" cy="30" rx="16" ry="19"/><rect x="92" y="45" width="16" height="14"/><path d="M68 62Q100 52 132 62L138 80L129 140L71 140L62 80Z"/><path d="M71 136L129 136L134 162L66 162Z"/>
-<path d="M64 64L78 74L62 122L52 166L39 164L46 119Z"/><ellipse cx="45" cy="176" rx="8" ry="11"/><path d="M136 64L122 74L138 122L148 166L161 164L154 119Z"/><ellipse cx="155" cy="176" rx="8" ry="11"/>
-<path d="M67 158L99 158L96 212L93 258L76 258L73 212Z"/><path d="M133 158L101 158L104 212L107 258L124 258L127 212Z"/><ellipse cx="83" cy="264" rx="13" ry="6"/><ellipse cx="117" cy="264" rx="13" ry="6"/></g></svg>`;
-// where each slot sits on the body (viewBox units 200×280)
-const DOLL_POS={head:[100,28,'Head'],amulet:[100,62,'Neck'],chest:[100,102,'Chest'],legs:[100,196,'Legs'],feet:[100,258,'Feet'],hands:[38,184,'Hands'],ring:[162,184,'Ring'],weapon:[178,128,'Weapon'],offhand:[22,128,'Off-hand']};
-function renderDoll(P){const st=stats(P);
-  const slots=EQUIP_SLOTS.map(sl=>{const it=P.equip[sl];const [x,y,lab]=DOLL_POS[sl]||[100,140,sl];const pos=`left:${x/2}%;top:${y/2.8}%`;
-    return it?`<button class="dslot full r${it.r||0}" style="${pos}" data-a="iteminfo" data-v="e:${sl}" title="${E(lab)}: ${E(rarityName(it).replace(/<[^>]*>/g,''))}">${ptItem(it,'dic')||`<span class="dtxt">${E(lab)}</span>`}</button>`
-      :`<button class="dslot" style="${pos}" data-a="tab" data-v="bag" title="${E(lab)}: empty"><span class="dtxt">${E(lab)}</span></button>`;}).join('');
-  const lines=EQUIP_SLOTS.filter(sl=>sl==='weapon'||sl==='offhand').map(sl=>{const [x,y]=DOLL_POS[sl];const hx=sl==='weapon'?155:45;return `<line x1="${x}" y1="${y+12}" x2="${hx}" y2="168"/>`;}).join('');
+// The body is one smooth outline (right half written out, left half mirrored), drawn filled; an SVG filter keeps only
+// its glowing edge so it reads as a hollow figure. Gear sits in two columns, each linked to the spot it is worn.
+const DOLL_HALF=[['L',108,44],['Q',109,54,113,57],['Q',131,60,141,68],['Q',149,75,149,88],['Q',151,105,155,123],['Q',159,142,162,160],['Q',169,171,164,183],['Q',158,189,153,180],['Q',151,171,150,162],['Q',146,143,142,125],['Q',138,110,134,99],['Q',129,114,128,131],['Q',127,144,133,160],['Q',135,189,129,215],['Q',125,237,124,254],['Q',139,262,137,269],['Q',122,273,110,269],['Q',107,263,108,254],['Q',106,233,106,215],['Q',104,190,100,173]];
+const DOLL_PATH=(()=>{const H=DOLL_HALF;let d='M100 44 ';for(const s of H)d+=s[0]==='L'?`L${s[1]} ${s[2]} `:`Q${s[1]} ${s[2]} ${s[3]} ${s[4]} `;
+  const end=k=>k<0?[100,44]:H[k][0]==='L'?[H[k][1],H[k][2]]:[H[k][3],H[k][4]];
+  for(let k=H.length-1;k>=0;k--){const [ex,ey]=end(k-1);const s=H[k];d+=s[0]==='L'?`L${200-ex} ${ey} `:`Q${200-s[1]} ${s[2]} ${200-ex} ${ey} `;}return d+'Z';})();
+const DOLL_OX=80,DOLL_OY=32,DOLL_W=360,DOLL_H=346;
+// slot: [column side, row y, body point x,y (body units), label]
+const DOLL_POS={head:['l',36,100,24,'Head'],amulet:['l',106,100,52,'Neck'],chest:['l',176,100,100,'Chest'],hands:['l',246,42,178,'Hands'],offhand:['l',316,46,192,'Off-hand'],
+  weapon:['r',76,156,192,'Weapon'],ring:['r',156,160,176,'Ring'],legs:['r',246,116,210,'Legs'],feet:['r',316,118,262,'Feet']};
+const RAR_COL=['#b8b0a0','#6fae5a','#5a9ad8','#b070e8','#e8a23a','#ff5a6a'];
+function renderDoll(P){const st=stats(P);const S_=52;let marks='',slots='';
+  for(const sl of EQUIP_SLOTS){const it=P.equip[sl];const [side,sy,bx,by,lab]=DOLL_POS[sl];const tx=bx+DOLL_OX,ty=by+DOLL_OY;const sx=side==='l'?30:DOLL_W-30;const col=it?RAR_COL[it.r||0]||RAR_COL[0]:'#e8c27a';
+    const ex=side==='l'?sx+S_/2+2:sx-S_/2-2,kx=side==='l'?Math.min(tx-18,ex+26):Math.max(tx+18,ex-26);
+    marks+=`<polyline class="dl ${it?'on':''}" points="${ex},${sy} ${kx},${sy} ${tx},${ty}" style="--c:${col}"/>`+(it?`<circle cx="${tx}" cy="${ty}" r="15" fill="${col}" opacity=".22" filter="url(#dollBlur)"/>`:'')+`<circle class="dp ${it?'on':''}" cx="${tx}" cy="${ty}" r="${it?3.6:2.6}" style="--c:${col}"/>`;
+    const pos=`left:${sx/DOLL_W*100}%;top:${sy/DOLL_H*100}%`;
+    slots+=it?`<button class="dslot full r${it.r||0}" style="${pos}" data-a="iteminfo" data-v="e:${sl}" title="${E(lab)}">${ptItem(it,'dic')||''}<span class="dlab">${E(lab)}</span></button>`
+      :`<button class="dslot" style="${pos}" data-a="tab" data-v="bag" title="${E(lab)}: empty"><span class="dplus">+</span><span class="dlab">${E(lab)}</span></button>`;}
+  const svg=`<svg class="doll-svg" viewBox="0 0 ${DOLL_W} ${DOLL_H}" preserveAspectRatio="none" aria-hidden="true"><defs>
+    <filter id="dollEdge" x="-10%" y="-10%" width="120%" height="120%"><feMorphology in="SourceAlpha" operator="dilate" radius="1.4" result="d"/><feComposite in="d" in2="SourceAlpha" operator="out" result="o"/><feFlood flood-color="#e8c27a"/><feComposite in2="o" operator="in" result="line"/><feGaussianBlur in="line" stdDeviation="2.4" result="glow"/><feFlood flood-color="#e8c27a" flood-opacity=".06"/><feComposite in2="SourceAlpha" operator="in" result="fill"/><feMerge><feMergeNode in="fill"/><feMergeNode in="glow"/><feMergeNode in="line"/></feMerge></filter>
+    <filter id="dollBlur"><feGaussianBlur stdDeviation="5"/></filter><radialGradient id="dollHalo"><stop offset="0" stop-color="#e8c27a" stop-opacity=".14"/><stop offset="1" stop-color="#e8c27a" stop-opacity="0"/></radialGradient></defs>
+    <ellipse cx="${DOLL_OX+100}" cy="${DOLL_OY+140}" rx="120" ry="150" fill="url(#dollHalo)"/><ellipse cx="${DOLL_OX+100}" cy="${DOLL_OY+272}" rx="58" ry="7" fill="#000" opacity=".35"/>
+    <g transform="translate(${DOLL_OX} ${DOLL_OY})"><g filter="url(#dollEdge)" fill="#fff"><ellipse cx="100" cy="24" rx="14.5" ry="17.5"/><path d="${DOLL_PATH}"/></g>
+      <g class="dinner"><path d="M86 62 Q100 72 114 62"/><path d="M100 72 L100 132"/><path d="M78 136 Q100 142 122 136"/><path d="M84 94 Q92 100 100 96 Q108 100 116 94"/><path d="M114 212 Q117 218 114 224 M86 212 Q83 218 86 224"/></g></g>${marks}</svg>`;
   const worn=EQUIP_SLOTS.filter(sl=>P.equip[sl]).length;
-  return `<section class="panel profile"><h3>Character</h3><div class="doll-wrap"><div class="doll">${DOLL_SVG}<svg class="doll-lines" viewBox="0 0 200 280" aria-hidden="true">${lines}</svg>${slots}</div>
+  return `<section class="panel profile"><h3>Character <small>${E(className(P))} · Lv.${P.level}</small></h3><div class="doll" style="aspect-ratio:${DOLL_W}/${DOLL_H}">${svg}${slots}</div>
     <div class="doll-side"><div class="dstat"><span>Combat Power</span><b>${U.fmt(st.power)}</b></div><div class="dstat"><span>Gear Score</span><b>${U.fmt(st.gs)}</b></div><div class="dstat"><span>Equipped</span><b>${worn}/${EQUIP_SLOTS.length}</b></div>
-    <div class="dstat"><span>Attack</span><b>${U.fmt(Math.max(st.patk,st.matk))}</b></div><div class="dstat"><span>Defense</span><b>${U.fmt(st.pdef)}</b></div><div class="dstat"><span>HP</span><b>${U.fmt(st.mhp)}</b></div>
-    <p class="hint">Tap a piece to inspect it. Tap an empty slot to open your bag.</p></div></div></section>`;}
+    <div class="dstat"><span>Attack</span><b>${U.fmt(Math.max(st.patk,st.matk))}</b></div><div class="dstat"><span>Defense</span><b>${U.fmt(st.pdef)}</b></div><div class="dstat"><span>Max HP</span><b>${U.fmt(st.mhp)}</b></div>
+    <p class="hint">Tap a piece to inspect it. Tap an empty slot to open your bag.</p></div></section>`;}
 function renderRecords(P){const s=P.stats||{};const kills=P.kills||{};const fav=Object.entries(kills).filter(([id])=>MONSTERS[id]).sort((a,b)=>b[1]-a[1])[0];
   const species=Object.keys(kills).filter(id=>MONSTERS[id]&&kills[id]>0).length;const all=Object.keys(MONSTERS).filter(k=>!MONSTERS[k].ev).length;
   const groups=[
