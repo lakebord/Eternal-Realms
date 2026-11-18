@@ -5,6 +5,7 @@ function renderChar(){const P=S.P,st=stats(P),a=st.attr;const R=RACES[P.race];
   let h=`<section class="panel hero"><div class="vista sm ${vistaCls(S.time)}" style="${vistaStyle(P.loc,S.time)}"></div><div class="phead">${(()=>{const pc=ptClass(P.cls,P.gender,P.name);return `<span class="portrait lg ${pc?'hasp':''}" style="--ac:${CLS_HUE[P.cls]}">${pc||icon(CLS_ICON[P.cls])}<b>${P.level}</b></span>`;})()}<div><h2>${E(P.name)} <small>“${E(P.user)}”</small></h2></div></div><p class="desc">A ${E(desc)}</p>
     <p><b>Lv.${P.level} ${E(className(P))}</b> · ${R.name} · ${BACKGROUNDS[P.bg].name}${P.guild?` · ${E(guild(P.guild).name)}`:''} · Fame ${U.fmt(P.fame)}</p>
     <p class="hint">${E(R.perk)} <span class="bad">${E(R.flaw)}</span></p></section>`;
+  h+=renderDoll(P)+renderRecords(P);
   h+=`<section class="panel"><h3>Attributes ${P.pts?`<span class="gilt-t">${P.pts} unspent points</span> ${btn('Auto-assign','autoalloc','','tiny gilt')}`:''}</h3><div class="attrs">${ATTRS.map(k=>`<div class="attr"><span title="${ATTR_NAMES[k]}">${k.toUpperCase()}</span><b>${a[k]}</b>${P.pts?btn('+','alloc',k,'tiny'):''}</div>`).join('')}</div>
     <div class="derived">${[['Max HP',st.mhp],['Max MP',st.mmp],['Max SP',st.msp],['Phys. Attack',st.patk],['Magic Attack',st.matk],['Phys. Defense',st.pdef],['Magic Defense',st.mdef],['Accuracy',st.acc],['Evasion',st.eva.toFixed(1)+'%'],['Critical',st.crit.toFixed(1)+'%'],['Crit Damage',Math.round(st.critDmg)+'%'],['Speed',st.spd],['Gear Score',st.gs],['Combat Power',st.power]].map(([k,v])=>`<div><span>${k}</span><b>${typeof v==='number'?U.fmt(v):v}</b></div>`).join('')}</div>
     ${Object.keys(st.sets||{}).length?`<p class="good">Sets: ${Object.entries(st.sets).map(([k,n])=>`${SETS[k].n} ${n}/4`).join(' · ')}</p>`:''}
@@ -21,7 +22,6 @@ function renderChar(){const P=S.P,st=stats(P),a=st.attr;const R=RACES[P.race];
   if(P.comps.length||canTame())h+=`<section class="panel"><h3>Companions <small>${P.comps.length}/8</small></h3>${canTame()?'<p class="hint">In combat, use Bond on a beast, spirit or elemental below 30% HP.</p>':''}<div class="list">${P.comps.map(c=>{const sp=SPECIES[c.sp];return `<div class="li"><span><b>${E(c.name)}</b> <small>Lv.${c.level} ${E(sp.n)}${sp.evo?` · evolves at ${sp.evo[0]} → ${SPECIES[sp.evo[1]].n}`:' · final form'}</small></span>${P.activeComp===c.id?'<small>Active</small>':btn('Set active','compact',c.id,'tiny')}${btn('Release','comprel',c.id,'tiny ghost')}</div>`;}).join('')}</div></section>`;
   h+=`<section class="panel"><h3>Reputation</h3><div class="list">${KINGDOMS.map(f=>{const v=P.rep[f]||0;return `<div class="li"><span>${E(FACTIONS[f].n)}</span><span class="${v>=12?'good':v<=-12?'bad':''}">${repTitle(v)} (${v})</span></div>`;}).join('')}</div></section>`;
   h+=`<section class="panel"><h3>Achievements <small>${P.ach.length}/${Object.keys(ACHIEVEMENTS).length}</small></h3><div class="achs">${Object.entries(ACHIEVEMENTS).map(([id,A])=>`<div class="ach ${P.ach.includes(id)?'got':''} ${ART.ok?'hasic':''}" title="${E(A.d)}">${ptAch(id,A)}<span><b>${E(A.n)}</b><small>${E(A.d)}</small></span></div>`).join('')}</div></section>`;
-  h+=`<section class="panel"><h3>Record</h3><div class="derived">${[['Monsters slain',P.stats.kills],['Dungeons cleared',P.stats.dungeons],['Bosses',P.stats.bosses],['World bosses',P.stats.worldBoss],['PvP',`${P.pvp.w}W/${P.pvp.l}L (${P.pvp.r})`],['Quests',P.stats.quests||0],['Crafted',P.stats.crafted],['Explored',`${P.explored.length}/${Object.keys(LOCS).length}`],['Deaths',P.stats.deaths]].map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join('')}</div></section>`;
   return h;}
 Object.assign(ACT,{alloc(k){allocate(k);},
   // spends every unspent point the way the class is meant to be built: main stat, second stat, and some vitality
@@ -454,10 +454,48 @@ function wasPlaying(){try{const t=+localStorage.getItem('er_inplay')||0;return D
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&S.P){saveAll();if(NET.isHost&&Date.now()-(NET.lastUpload||0)>60000)uploadWorld();}});
 document.addEventListener('input',e=>{const v=e.target.dataset&&e.target.dataset.vol;if(!v)return;if(!AUD.on)audStart();audSetVol(v==='m'?e.target.value/100:null,v==='s'?e.target.value/100:null);});
 // music starts with the first tap (browsers require a gesture), unless the player turned it off
-document.addEventListener('pointerdown',e=>{if(e.target.closest&&e.target.closest('[data-a=sound]'))return;if(!AUD.on&&!AUD.declined){let pref=null;try{pref=localStorage.getItem('er_sound');}catch(e){}if(pref!=='0'){audStart();if(!UI.started)audMood('title');trkKick();}else AUD.declined=true;titleSoundBtn();}},{once:false,capture:true});
+// Phones only count finger-UP / tap as a gesture that may start audio (pointerdown from a touch does not), so the
+// unlock runs on every kind of gesture and keeps retrying until the audio context and the current track really play.
+function audGesture(e){if(e&&e.target&&e.target.closest&&e.target.closest('[data-a=sound]'))return;
+  if(!AUD.on&&!AUD.declined){let pref=null;try{pref=localStorage.getItem('er_sound');}catch(x){}if(pref!=='0'){audStart();if(!UI.started)audMood('title');}else AUD.declined=true;titleSoundBtn();}
+  audUnlock();}
+function audUnlock(){if(!AUD.on)return;try{if(AUD.ctx&&AUD.ctx.state!=='running')AUD.ctx.resume();}catch(x){}
+  const k=TRK.map[AUD.want]||TRK.cur;if(k&&!TRK.bad[k]){const a=trkEl(k);if(a&&a.paused){TRK.cur=k;try{const pr=a.play();if(pr&&pr.catch)pr.catch(()=>{});}catch(x){}}}}
+for(const ev of ['pointerdown','pointerup','touchend','click','keydown'])document.addEventListener(ev,audGesture,{capture:true,passive:true});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){for(const n in TRK.el)try{TRK.el[n].pause();}catch(x){}}else audUnlock();});
 async function boot(){try{FX.on=localStorage.getItem('er_fx')!=='0';const vv=JSON.parse(localStorage.getItem('er_vol')||'null');if(vv){AUD.music=vv[0];AUD.sfx=vv[1];}}catch(e){}try{UI.theme=localStorage.getItem('er_theme')||'system';UI.rate=localStorage.getItem('er_rate')||'normal';AI.enabled=localStorage.getItem('er_ai')==='1';}catch(e){}applyTheme();
   const local=await loadLocal();if(local&&local.obj&&local.obj.npcs)hydrate(local.obj);else newWorld(20261104);
   if(LAUNCH.open&&S&&S.P&&wasPlaying()){try{await startGame();UI.toast('Welcome back. Picked up right where you left off.');}catch(e){console.warn('resume failed',e);await showTitle();}}else await showTitle();setInterval(loop,500);
   netInit().then(async()=>{if(!UI.started)await showTitle();});}
 boot();
 
+
+/* ---------------- character profile: hollow paper doll + records ---------------- */
+// The body is drawn filled, then an SVG filter keeps only its glowing edge, so it reads as a hollow outline.
+const DOLL_SVG=`<svg class="doll-body" viewBox="0 0 200 280" aria-hidden="true"><defs><filter id="dollEdge" x="-10%" y="-10%" width="120%" height="120%"><feMorphology in="SourceAlpha" operator="dilate" radius="1.6" result="d"/><feComposite in="d" in2="SourceAlpha" operator="out" result="o"/><feFlood flood-color="#e8c27a"/><feComposite in2="o" operator="in" result="line"/><feGaussianBlur in="line" stdDeviation="2.2" result="glow"/><feFlood flood-color="#e8c27a" flood-opacity=".07"/><feComposite in2="SourceAlpha" operator="in" result="fill"/><feMerge><feMergeNode in="fill"/><feMergeNode in="glow"/><feMergeNode in="line"/></feMerge></filter></defs>
+<g filter="url(#dollEdge)" fill="#fff"><ellipse cx="100" cy="30" rx="16" ry="19"/><rect x="92" y="45" width="16" height="14"/><path d="M68 62Q100 52 132 62L138 80L129 140L71 140L62 80Z"/><path d="M71 136L129 136L134 162L66 162Z"/>
+<path d="M64 64L78 74L62 122L52 166L39 164L46 119Z"/><ellipse cx="45" cy="176" rx="8" ry="11"/><path d="M136 64L122 74L138 122L148 166L161 164L154 119Z"/><ellipse cx="155" cy="176" rx="8" ry="11"/>
+<path d="M67 158L99 158L96 212L93 258L76 258L73 212Z"/><path d="M133 158L101 158L104 212L107 258L124 258L127 212Z"/><ellipse cx="83" cy="264" rx="13" ry="6"/><ellipse cx="117" cy="264" rx="13" ry="6"/></g></svg>`;
+// where each slot sits on the body (viewBox units 200×280)
+const DOLL_POS={head:[100,28,'Head'],amulet:[100,62,'Neck'],chest:[100,102,'Chest'],legs:[100,196,'Legs'],feet:[100,258,'Feet'],hands:[38,184,'Hands'],ring:[162,184,'Ring'],weapon:[178,128,'Weapon'],offhand:[22,128,'Off-hand']};
+function renderDoll(P){const st=stats(P);
+  const slots=EQUIP_SLOTS.map(sl=>{const it=P.equip[sl];const [x,y,lab]=DOLL_POS[sl]||[100,140,sl];const pos=`left:${x/2}%;top:${y/2.8}%`;
+    return it?`<button class="dslot full r${it.r||0}" style="${pos}" data-a="iteminfo" data-v="e:${sl}" title="${E(lab)}: ${E(rarityName(it).replace(/<[^>]*>/g,''))}">${ptItem(it,'dic')||`<span class="dtxt">${E(lab)}</span>`}</button>`
+      :`<button class="dslot" style="${pos}" data-a="tab" data-v="bag" title="${E(lab)}: empty"><span class="dtxt">${E(lab)}</span></button>`;}).join('');
+  const lines=EQUIP_SLOTS.filter(sl=>sl==='weapon'||sl==='offhand').map(sl=>{const [x,y]=DOLL_POS[sl];const hx=sl==='weapon'?155:45;return `<line x1="${x}" y1="${y+12}" x2="${hx}" y2="168"/>`;}).join('');
+  const worn=EQUIP_SLOTS.filter(sl=>P.equip[sl]).length;
+  return `<section class="panel profile"><h3>Character</h3><div class="doll-wrap"><div class="doll">${DOLL_SVG}<svg class="doll-lines" viewBox="0 0 200 280" aria-hidden="true">${lines}</svg>${slots}</div>
+    <div class="doll-side"><div class="dstat"><span>Combat Power</span><b>${U.fmt(st.power)}</b></div><div class="dstat"><span>Gear Score</span><b>${U.fmt(st.gs)}</b></div><div class="dstat"><span>Equipped</span><b>${worn}/${EQUIP_SLOTS.length}</b></div>
+    <div class="dstat"><span>Attack</span><b>${U.fmt(Math.max(st.patk,st.matk))}</b></div><div class="dstat"><span>Defense</span><b>${U.fmt(st.pdef)}</b></div><div class="dstat"><span>HP</span><b>${U.fmt(st.mhp)}</b></div>
+    <p class="hint">Tap a piece to inspect it. Tap an empty slot to open your bag.</p></div></div></section>`;}
+function renderRecords(P){const s=P.stats||{};const kills=P.kills||{};const fav=Object.entries(kills).filter(([id])=>MONSTERS[id]).sort((a,b)=>b[1]-a[1])[0];
+  const species=Object.keys(kills).filter(id=>MONSTERS[id]&&kills[id]>0).length;const all=Object.keys(MONSTERS).filter(k=>!MONSTERS[k].ev).length;
+  const groups=[
+    ['Combat',[['Monsters slain',U.fmt(s.kills||0)],['Bosses defeated',U.fmt(s.bosses||0)],['World bosses',U.fmt(s.worldBoss||0)],['Dungeons cleared',U.fmt(s.dungeons||0)],['Highest hit',U.fmt(s.maxHit||0)],['Highest crit',U.fmt(s.maxCrit||0)],['Total damage dealt',U.fmt(s.dmg||0)],['Deaths',U.fmt(s.deaths||0)]]],
+    ['PvP',[['PvP kills',U.fmt(P.pvp.w)],['PvP losses',U.fmt(P.pvp.l)],['Win rate',P.pvp.w+P.pvp.l?Math.round(P.pvp.w*100/(P.pvp.w+P.pvp.l))+'%':'—'],['PvP rating',U.fmt(P.pvp.r)],['Tournament wins',U.fmt(s.tourneyWins||0)]]],
+    ['Adventure',[['Quests completed',U.fmt(s.quests||0)],['Places discovered',`${P.explored.length}/${Object.keys(LOCS).filter(l=>!LOCS[l].ev).length}`],['Hidden places',U.fmt(s.hidden||0)],['Treasures found',U.fmt(s.treasure||0)],['Explorations',U.fmt(s.explores||0)],['Requests helped',U.fmt(s.requests||0)],['Town defenses',U.fmt(s.defended||0)]]],
+    ['Craft & trade',[['Items crafted',U.fmt(s.crafted||0)],['Resources gathered',U.fmt(s.gathered||0)],['Items sold',U.fmt(s.sold||0)],['Gold',U.fmt(P.gold)+'g'],['Fame',U.fmt(P.fame)]]],
+    ['Collection',[['Achievements',`${P.ach.length}/${Object.keys(ACHIEVEMENTS).length}`],['Bestiary',`${species}/${all}`],['Lore discovered',`${P.codex.length}/${Object.keys(LORE).length}`],['Companions',U.fmt(P.comps.length)],['Most hunted',fav?`${E(MONSTERS[fav[0]].n)} ×${U.fmt(fav[1])}`:'—']]]];
+  const recent=P.ach.slice(-4).reverse().filter(id=>ACHIEVEMENTS[id]);
+  return `<section class="panel records"><h3>Records</h3>${groups.map(([g,rows])=>`<h4>${g}</h4><div class="derived">${rows.map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>`).join('')}
+    ${recent.length?`<h4>Latest achievements</h4><div class="achs recent">${recent.map(id=>{const A=ACHIEVEMENTS[id];return `<div class="ach got ${ART.ok?'hasic':''}" title="${E(A.d)}">${ptAch(id,A)}<span><b>${E(A.n)}</b><small>${E(A.d)}</small></span></div>`;}).join('')}</div>`:''}</section>`;}

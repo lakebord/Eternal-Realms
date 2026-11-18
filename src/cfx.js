@@ -128,14 +128,14 @@ function cfxCast(root,el,v,sp){const [x,y,r]=cfxPt(el);const kind=v.k==='heal'?'
   if(v.n)cfxDom('callout e-'+kind,`<span>${E(v.n)}</span>`,Math.min(innerWidth-110,Math.max(110,x)),Math.max(30,r.top-6),1150);}
 
 /* ---------- queue consumer (called after every combat render) ---------- */
-function combatVfx(root){CFX.imp={};if(!C||!C.vfx||!C.vfx.length)return;const q=C.vfx.splice(0);const sp=cfxSp();let lead=0,n=0;const last={};
+function combatVfx(root){CFX.imp={};if(!C||!C.vfx||!C.vfx.length)return;const q=C.vfx.splice(0);const sp=cfxSp();let lead=0,n=0;const last={};let qsig=null,qv=null;
   for(const v of q){const el=cfxCard(root,v.a);if(!el)continue;const key=v.a._k;
     switch(v.t){
-      case 'cast':cfxCast(root,el,v,sp);lead=250*sp;break;
-      case 'hit':{const at=cfxAttack(root,cfxCard(root,v.s),el,v,lead+Math.min(n++,5)*120*sp,sp);(CFX.imp[key]=CFX.imp[key]||[]).push(at);last[key]=Math.max(last[key]||0,at);break;}
+      case 'cast':cfxCast(root,el,v,sp);lead=250*sp;qsig=typeof sigOf==='function'?sigOf(v.id,v.n,true):null;qv=v;if(qsig==='roar'||qsig==='transform')sigAid(root,el,qsig,lead-120,v);break;
+      case 'hit':{const at=cfxAttack(root,cfxCard(root,v.s),el,v,lead+Math.min(n++,5)*120*sp,sp);(CFX.imp[key]=CFX.imp[key]||[]).push(at);last[key]=Math.max(last[key]||0,at);if(typeof sigHit==='function'){if(v.sk)sigHit(root,cfxCard(root,v.s),el,v,at,sp);else sigBasic(root,el,v,at);}break;}
       case 'death':cfxDeathSeq(root,el,v,(last[key]||lead)+150*sp);break;
-      case 'heal':{const [x,y,r]=cfxPt(el);cfxLater(lead,()=>{fxHeal(el);sfx('heal');});if(v.soft){(CFX.imp[key]=CFX.imp[key]||[]).push(lead+80);break;}cfxPillar(x,r.bottom,'#b8f09a',lead,r.width*0.5,r.height+40);cfxGlyphs(x,y,r,'#c8ffb0',lead,true,'plus');cfxAnim(el,[{filter:'brightness(1)'},{filter:'brightness(1.5) saturate(1.3)',offset:0.4},{filter:'brightness(1)'}],{duration:600,delay:lead});(CFX.imp[key]=CFX.imp[key]||[]).push(lead+80);break;}
-      case 'buff':{const [x,y,r]=cfxPt(el);cfxLater(lead,()=>{fxBuff(el,false);sfx('buff');});cfxGlyphs(x,y,r,'#ffd36a',lead,true,'chev');cfxAnim(el,[{transform:'none'},{transform:'translateY(-4px) scale(1.02)',offset:0.4},{transform:'none'}],{duration:480,delay:lead});break;}
+      case 'heal':{if(qsig&&!v.soft&&qsig!=='roar'&&qsig!=='transform')sigAid(root,el,qsig,lead,qv);const [x,y,r]=cfxPt(el);cfxLater(lead,()=>{fxHeal(el);sfx('heal');});if(v.soft){(CFX.imp[key]=CFX.imp[key]||[]).push(lead+80);break;}cfxPillar(x,r.bottom,'#b8f09a',lead,r.width*0.5,r.height+40);cfxGlyphs(x,y,r,'#c8ffb0',lead,true,'plus');cfxAnim(el,[{filter:'brightness(1)'},{filter:'brightness(1.5) saturate(1.3)',offset:0.4},{filter:'brightness(1)'}],{duration:600,delay:lead});(CFX.imp[key]=CFX.imp[key]||[]).push(lead+80);break;}
+      case 'buff':{if(qsig&&qsig!=='roar'&&qsig!=='transform')sigAid(root,el,qsig,lead,qv);const [x,y,r]=cfxPt(el);cfxLater(lead,()=>{fxBuff(el,false);sfx('buff');});cfxGlyphs(x,y,r,'#ffd36a',lead,true,'chev');cfxAnim(el,[{transform:'none'},{transform:'translateY(-4px) scale(1.02)',offset:0.4},{transform:'none'}],{duration:480,delay:lead});break;}
       case 'debuff':{const [x,y,r]=cfxPt(el);const d=(last[key]||lead)+60;cfxLater(d,()=>{if(el.isConnected){fxBuff(el,true);sfx('debuff');}});cfxGlyphs(x,y,r,'#c08cff',d,false,'chev');break;}
       case 'miss':{const d=lead+120*sp;const s=Math.random()<0.5?-1:1;cfxLater(d,()=>{fxMiss(el);sfx('miss');});cfxAnim(el,[{transform:'none',opacity:1},{transform:`translateX(${s*26}px) skewX(${-s*8}deg)`,opacity:.55,offset:0.35},{transform:`translateX(${s*20}px)`,opacity:.8,offset:0.6},{transform:'none',opacity:1}],{duration:460*Math.max(0.6,sp),delay:d-60});(CFX.imp[key]=CFX.imp[key]||[]).push(d);break;}
       case 'summon':fxSummon(el);sfx('summon');el.classList.add('ascend');break;

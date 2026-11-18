@@ -133,8 +133,8 @@ function damage(att,def,opts={}){
 }
 function floatFx(a,txt,kind){if(!C)return;(C.floats=C.floats||[]).push({a,txt,kind});if(kind==='miss')vfx('miss',a);}
 function vfx(t,a,x){if(!C)return;(C.vfx=C.vfx||[]).push(Object.assign({t,a},x||{}));}
-function applyHit(att,def,r,label){if(att.finalBoss&&def.side!==att.side)r.d=Math.max(1,Math.round(r.d*FINAL_DMG));def.hp-=r.d;
-  if(def.finalBoss&&!C.reborn&&def.hp<def.mhp*0.5){def.hp=Math.round(def.mhp*0.5);if(!def.floored){def.floored=1;clog(`${def.name} reels, then lifts its hands to the broken sun. The sky begins to burn white.`,'boss');vfx('phase',def);}}vfx('hit',def,{s:att,e:r.e||'phys',crit:r.crit,melee:!att.ranged,wt:att.mon?null:att.wt,cat:att.mon?att.cat:null,mode:att._mode,big:!!att.boss});floatFx(def,(r.crit?'✦':'')+r.d,r.crit?'crit':'dmg');C.dmgDealt+=att.side==='a'?r.d:0;if(att.isPlayer)C.dmgByP+=r.d;
+function applyHit(att,def,r,label){if(att.finalBoss&&def.side!==att.side)r.d=Math.max(1,Math.round(r.d*FINAL_DMG));def.hp-=r.d;if(att.isPlayer&&S.P&&S.P.stats){const st=S.P.stats;st.dmg=(st.dmg||0)+r.d;if(r.d>(st.maxHit||0))st.maxHit=r.d;if(r.crit&&r.d>(st.maxCrit||0))st.maxCrit=r.d;}
+  if(def.finalBoss&&!C.reborn&&def.hp<def.mhp*0.5){def.hp=Math.round(def.mhp*0.5);if(!def.floored){def.floored=1;clog(`${def.name} reels, then lifts its hands to the broken sun. The sky begins to burn white.`,'boss');vfx('phase',def);}}vfx('hit',def,{s:att,sk:att._sk||null,e:r.e||'phys',crit:r.crit,melee:!att.ranged,wt:att.mon?null:att.wt,cat:att.mon?att.cat:null,mode:att._mode,big:!!att.boss});floatFx(def,(r.crit?'✦':'')+r.d,r.crit?'crit':'dmg');C.dmgDealt+=att.side==='a'?r.d:0;if(att.isPlayer)C.dmgByP+=r.d;
   clog(`${att.name} ${label} ${def.name} for ${r.d}${r.crit?' CRITICAL':''}${r.tag}.`,att.side==='a'?(r.crit?'crit':'hit'):'hurt');
   if(att.steal||hasFx(att,'lifesteal')){const h=Math.round(r.d*((att.steal||0)+(hasFx(att,'lifesteal')?0.3:0)));if(h>0){att.hp=Math.min(att.mhp,att.hp+h);}}
   if(def.hp<=0)die(def,att);
@@ -153,7 +153,7 @@ function costOk(a,sk){const [mp,sp]=sk.c||[0,0];if(a.mp<mp||a.sp<sp)return false
 function payCost(a,sk){const [mp,sp]=sk.c||[0,0];a.mp-=mp;a.sp-=sp;a.cd[sk.id]=(sk.cd||0)+1;if(sk.gold&&a.isPlayer)S.P.gold-=sk.gold;}
 function basicAttack(a,t,mode){
   const magBasic=MAGIC_WT.includes(a.wt)&&a.matk>a.patk&&!a.mon;let power=1,acc=0,crit=0,sp=0,label='attacks';
-  a._mode=mode||null;
+  a._mode=mode||null;a._sk=null;
   if(mode==='heavy'){power=1.6;acc=-15;sp=8;label='slams';a.heavyNext=1;}if(mode==='quick'){power=0.7;acc=15;crit=5;sp=3;label='quickly strikes';a.quickNext=1;}
   if(a.sp<sp){power=1;acc=0;}else a.sp-=sp;
   if(!hitRoll(a,t,magBasic?'mag':'phys',acc)){clog(`${a.name} ${label} ${t.name} but misses.`,'miss');return;}
@@ -170,7 +170,7 @@ function useSkill(a,id,tIdx){
   else if(sk.tg==='pet'){const pet=friends.find(f=>f.isComp);if(!pet){clog('You have no summon in battle.','bad');a.mp+=sk.c[0];a.sp+=sk.c[1];a.cd[id]=0;return false;}targets=[pet];}
   else if(sk.tg==='dead')targets=C.allies.filter(x=>x.hp<=0).slice(0,1);
   targets=targets.filter(Boolean);
-  clog(`${a.name} uses ${sk.n}!`,'skill');vfx('cast',a,{n:sk.n,k:sk.k,e:sk.e||(sk.k==='mag'?'arcane':null),all:sk.tg==='all',side:a.side});a._mode=sk.k==='phys'?(sk.hits>1?'flurry':'skill'):sk.k==='mag'?'spell':null;
+  a._sk=sk.id||null;clog(`${a.name} uses ${sk.n}!`,'skill');vfx('cast',a,{id:sk.id||null,n:sk.n,k:sk.k,e:sk.e||(sk.k==='mag'?'arcane':null),all:sk.tg==='all',side:a.side});a._mode=sk.k==='phys'?(sk.hits>1?'flurry':'skill'):sk.k==='mag'?'spell':null;
   if(sk.m&&a.isPlayer)gainMastery(sk.m,sk.k==='mag'||sk.k==='heal'?5:4);else if(a.isPlayer&&(sk.k==='phys'))gainMastery(a.wt,4);
   if(sk.k==='phys'||sk.k==='mag'){
     for(const t of targets){const hits=sk.hits||1;for(let i=0;i<hits&&t.hp>0;i++){
@@ -286,7 +286,7 @@ function enemyAI(a){
   monsterAttack(a,t);
 }
 function monsterAttack(a,t){
-  const b=a.b||[];let power=1,label='attacks';a._mode=null;
+  const b=a.b||[];let power=1,label='attacks';a._mode=null;a._sk=null;
   if(b.includes('brute')&&U.chance(0.3)){power=1.6;label='smashes';a._mode='heavy';}
   if(b.includes('pack')){const n=alive(a.side==='e'?C.enemies:C.allies).filter(x=>x.id===a.id).length;power*=1+(n-1)*0.1;}
   if(hasFx(a,'ambusher'))label='ambushes';
