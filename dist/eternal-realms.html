@@ -786,8 +786,8 @@ body.ingame .tsnd{display:none}
 .chtabs .ct>.pt.bdic{width:22px;height:22px;border-radius:5px;margin-right:.35em;vertical-align:middle;display:inline-block}
 .li.q:has(>.pt.qic){display:grid!important;grid-template-columns:auto minmax(0,1fr);column-gap:.65em;row-gap:.35em;align-items:start}.li.q>.pt.qic{grid-row:1/span 3}.li.q:has(>.pt.qic)>.b{grid-column:2;justify-self:start}
 /* character profile — hollow paper doll */
-.doll{position:relative;width:100%;max-width:440px;margin:.2em auto .8em}
-.doll-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.doll{position:relative;width:100%;max-width:330px;aspect-ratio:224/304;margin:.2em auto .8em}
+.doll-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}.doll-svg .dg{cursor:pointer}.doll-svg .dg:hover{filter:brightness(1.25)}
 .doll-svg .dinner path{fill:none;stroke:#e8c27a;stroke-width:.8;opacity:.28;stroke-linecap:round}
 .doll-svg .dl{fill:none;stroke:color-mix(in srgb,var(--c) 45%,transparent);stroke-width:1;stroke-dasharray:3 3}
 .doll-svg .dl.on{stroke:var(--c);stroke-dasharray:none;stroke-width:1.2;opacity:.85;filter:drop-shadow(0 0 3px var(--c))}
@@ -6176,29 +6176,82 @@ const DOLL_HALF=[['L',108,44],['Q',109,54,113,57],['Q',131,60,141,68],['Q',149,7
 const DOLL_PATH=(()=>{const H=DOLL_HALF;let d='M100 44 ';for(const s of H)d+=s[0]==='L'?`L${s[1]} ${s[2]} `:`Q${s[1]} ${s[2]} ${s[3]} ${s[4]} `;
   const end=k=>k<0?[100,44]:H[k][0]==='L'?[H[k][1],H[k][2]]:[H[k][3],H[k][4]];
   for(let k=H.length-1;k>=0;k--){const [ex,ey]=end(k-1);const s=H[k];d+=s[0]==='L'?`L${200-ex} ${ey} `:`Q${200-s[1]} ${s[2]} ${200-ex} ${ey} `;}return d+'Z';})();
-const DOLL_OX=80,DOLL_OY=32,DOLL_W=360,DOLL_H=346;
-// slot: [column side, row y, body point x,y (body units), label]
-const DOLL_POS={head:['l',36,100,24,'Head'],amulet:['l',106,100,52,'Neck'],chest:['l',176,100,100,'Chest'],hands:['l',246,42,178,'Hands'],offhand:['l',316,46,192,'Off-hand'],
-  weapon:['r',76,156,192,'Weapon'],ring:['r',156,160,176,'Ring'],legs:['r',246,116,210,'Legs'],feet:['r',316,118,262,'Feet']};
 const RAR_COL=['#b8b0a0','#6fae5a','#5a9ad8','#b070e8','#e8a23a','#ff5a6a'];
-function renderDoll(P){const st=stats(P);const S_=52;let marks='',slots='';
-  for(const sl of EQUIP_SLOTS){const it=P.equip[sl];const [side,sy,bx,by,lab]=DOLL_POS[sl];const tx=bx+DOLL_OX,ty=by+DOLL_OY;const sx=side==='l'?30:DOLL_W-30;const col=it?RAR_COL[it.r||0]||RAR_COL[0]:'#e8c27a';
-    const ex=side==='l'?sx+S_/2+2:sx-S_/2-2,kx=side==='l'?Math.min(tx-18,ex+26):Math.max(tx+18,ex-26);
-    marks+=`<polyline class="dl ${it?'on':''}" points="${ex},${sy} ${kx},${sy} ${tx},${ty}" style="--c:${col}"/>`+(it?`<circle cx="${tx}" cy="${ty}" r="15" fill="${col}" opacity=".22" filter="url(#dollBlur)"/>`:'')+`<circle class="dp ${it?'on':''}" cx="${tx}" cy="${ty}" r="${it?3.6:2.6}" style="--c:${col}"/>`;
-    const pos=`left:${sx/DOLL_W*100}%;top:${sy/DOLL_H*100}%`;
-    slots+=it?`<button class="dslot full r${it.r||0}" style="${pos}" data-a="iteminfo" data-v="e:${sl}" title="${E(lab)}">${ptItem(it,'dic')||''}<span class="dlab">${E(lab)}</span></button>`
-      :`<button class="dslot" style="${pos}" data-a="tab" data-v="bag" title="${E(lab)}: empty"><span class="dplus">+</span><span class="dlab">${E(lab)}</span></button>`;}
-  const svg=`<svg class="doll-svg" viewBox="0 0 ${DOLL_W} ${DOLL_H}" preserveAspectRatio="none" aria-hidden="true"><defs>
+/* ---- worn equipment drawn onto the hollow figure (body units 200×272; right side written, left mirrored) ---- */
+const dMir=d=>d.replace(/(-?\d+(?:\.\d+)?)[ ,](-?\d+(?:\.\d+)?)/g,(m,x,y)=>`${+(200-x).toFixed(1)} ${y}`);
+const dBoth=d=>d+' '+dMir(d);
+const CLOTH_COL=['#6a5e4e','#3e6a3a','#2e4e7a','#5a2e7a','#8a641e','#7a1e2a'];
+function dMat(it){const m=(it.b.split('_')[1])||'cloth';const rc=RAR_COL[it.r||0]||RAR_COL[0];
+  if(m==='plate')return {m,a:'#c9d0d9',b:'#5c6470',ln:'#2a3038',tr:rc};
+  if(m==='leather')return {m,a:'#9a6a40',b:'#4e301a',ln:'#2a180c',tr:rc};
+  const c=CLOTH_COL[it.r||0]||CLOTH_COL[0];return {m:'cloth',a:c,b:'#1a1612',ln:'#0e0b08',tr:rc};}
+function dGrad(id,M,vert){return `<linearGradient id="${id}" x1="0" y1="0" x2="${vert?0:1}" y2="${vert?1:0}"><stop offset="0" stop-color="${M.a}"/><stop offset=".55" stop-color="${M.a}" stop-opacity=".92"/><stop offset="1" stop-color="${M.b}"/></linearGradient>`;}
+function dPiece(sl,it,defs){if(!it||!ITEM_BASES[it.b])return '';const M=dMat(it);const g=`dg_${sl}`;defs.push(dGrad(g,M,true));const F=`fill="url(#${g})" stroke="${M.ln}" stroke-width="1.2" stroke-linejoin="round"`;
+  const T=`fill="none" stroke="${M.tr}" stroke-width="1.6" stroke-linecap="round"`;let s='';
+  switch(sl){
+    case 'legs':s=`<path ${F} d="${dBoth('M100 158 L134 157 Q137 189 131 215 Q127 236 127 252 L107 252 Q105 234 105 215 Q103 190 100 174 Z')}"/>`;
+      if(M.m==='plate')s+=`<g ${F}>${[0,1].map(k=>{const x=k?83:117;return `<ellipse cx="${x}" cy="214" rx="9" ry="8"/>`;}).join('')}</g><path fill="none" stroke="${M.ln}" stroke-width="1" d="${dBoth('M106 232 L128 232 M106 242 L127 242 M104 192 L134 192')}"/>`;
+      else if(M.m==='leather')s+=`<path fill="none" stroke="${M.ln}" stroke-width="1" stroke-dasharray="2 2" d="${dBoth('M118 162 Q120 200 117 250')}"/><g fill="${M.b}">${[0,1].map(k=>`<rect x="${k?76:110}" y="207" width="14" height="13" rx="3"/>`).join('')}</g>`;
+      else s+=`<path fill="none" stroke="${M.ln}" stroke-width=".8" opacity=".6" d="${dBoth('M116 165 Q119 205 116 248')}"/>`;break;
+    case 'feet':{const top=M.m==='cloth'?250:M.m==='leather'?226:232;s=`<path ${F} d="${dBoth(`M106 ${top} L128 ${top} Q128 252 130 257 Q141 261 139 270 L106 270 Q105 256 106 ${top} Z`)}"/>`;
+      if(M.m==='leather')s+=`<path fill="${M.b}" stroke="${M.ln}" d="${dBoth(`M105 ${top} L129 ${top} L129 ${top+7} L105 ${top+7} Z`)}"/>`;
+      if(M.m==='plate')s+=`<path fill="none" stroke="${M.ln}" d="${dBoth('M106 250 L129 250 M107 258 L131 258 M108 264 L137 264')}"/>`;break;}
+    case 'chest':
+      if(M.m==='cloth'){s=`<path ${F} d="${dBoth('M100 54 L113 56 Q132 60 142 69 Q150 77 151 94 L161 150 L148 156 L141 124 L135 102 Q131 120 130 136 Q135 176 142 230 Q121 238 100 236 Z')}"/>`+
+        `<path fill="none" stroke="${M.ln}" stroke-width=".9" opacity=".7" d="${dBoth('M116 140 Q122 186 128 232 M147 108 L153 146')}"/><path ${T} d="${dBoth('M100 70 L112 58 M149 150 L160 147 M100 236 Q121 238 142 230')}"/><rect x="71" y="131" width="58" height="7" rx="2" fill="${M.b}" stroke="${M.tr}" stroke-width="1"/>`;}
+      else if(M.m==='leather'){s=`<path ${F} d="${dBoth('M100 54 L113 56 Q132 60 142 69 Q150 77 150 91 L146 105 L136 101 Q130 117 129 133 Q132 150 134 166 L100 170 Z')}"/>`+
+        `<path fill="none" stroke="${M.ln}" stroke-width="1" stroke-dasharray="2.5 2" d="${dBoth('M100 60 L100 165 M126 70 Q118 100 104 108')}"/><rect x="69" y="142" width="62" height="8" rx="2" fill="${M.b}" stroke="${M.ln}"/><rect x="95" y="141" width="10" height="10" rx="1.5" fill="none" stroke="${M.tr}" stroke-width="1.8"/>`;}
+      else{s=`<path ${F} d="${dBoth('M100 150 L131 148 L137 174 L103 178 Z')}"/><path ${F} d="${dBoth('M100 55 L113 57 Q131 62 137 73 L134 101 Q129 119 129 134 L131 151 L100 156 Z')}"/>`+
+        `<path ${F} d="${dBoth('M127 61 Q151 56 157 80 Q152 93 139 91 Q133 77 127 61 Z')}"/><path fill="none" stroke="${M.ln}" stroke-width="1" d="${dBoth('M100 58 L100 154 M106 98 Q120 104 132 96 M131 160 L135 172')}"/><path ${T} d="${dBoth('M129 64 Q148 60 154 79')}"/>`;}
+      break;
+    case 'hands':s=`<path ${F} d="${dBoth(M.m==='cloth'?'M150 150 L162 147 Q165 160 166 168 Q170 180 163 186 Q155 190 151 181 Q150 166 150 150 Z':'M146 136 L161 133 Q164 156 166 168 Q170 180 163 186 Q155 190 151 181 Q149 164 146 148 Z')}"/>`;
+      if(M.m==='plate')s+=`<path fill="none" stroke="${M.ln}" d="${dBoth('M147 146 L162 143 M150 160 L164 158 M152 176 L166 174')}"/>`;
+      else if(M.m==='leather')s+=`<path fill="${M.b}" stroke="${M.ln}" d="${dBoth('M145 133 L162 130 L163 140 L146 143 Z')}"/>`;
+      else s+=`<path fill="none" stroke="${M.ln}" stroke-width=".8" d="${dBoth('M151 156 L164 153 M151 163 L165 160 M151 170 L166 167')}"/>`;break;
+    case 'head':
+      if(M.m==='cloth')s=`<path ${F} fill-rule="evenodd" d="M100 0 Q122 2 123 28 Q123 50 114 60 L86 60 Q77 50 77 28 Q78 2 100 0 Z M100 13 Q111 14 111 28 Q111 42 100 44 Q89 42 89 28 Q89 14 100 13 Z"/><path fill="#000" opacity=".45" d="M89 26 Q90 14 100 13 Q110 14 111 26 Q100 20 89 26 Z"/><path ${T} d="M86 60 Q100 66 114 60"/>`;
+      else if(M.m==='leather')s=`<path ${F} d="M84 25 Q84 4 100 4 Q116 4 116 25 Q108 19 100 19 Q92 19 84 25 Z"/><path fill="${M.b}" stroke="${M.ln}" d="M83 22 Q100 15 117 22 L117 27 Q100 21 83 27 Z"/><path fill="none" stroke="${M.ln}" stroke-dasharray="2 2" d="M100 5 L100 18"/>`;
+      else s=`<path ${F} d="M83 30 Q82 3 100 3 Q118 3 117 30 Q117 44 109 47 L91 47 Q83 44 83 30 Z"/><path fill="#0a0c10" d="M87 24 L113 24 L112 29 L88 29 Z"/><path fill="none" stroke="${M.ln}" d="M100 4 L100 24 M100 29 L100 46 M86 36 L114 36"/>`+((it.r||0)>=3?`<path fill="${M.tr}" stroke="${M.ln}" d="M97 3 Q100 -14 112 -18 Q106 -6 103 4 Z"/>`:'');
+      break;
+    case 'amulet':s=`<path fill="none" stroke="#d8b25a" stroke-width="1.3" d="M90 55 Q93 74 100 80 Q107 74 110 55"/><circle cx="100" cy="83" r="5" fill="${M.tr}" stroke="#f3d488" stroke-width="1.4"/><circle cx="98.5" cy="81.5" r="1.4" fill="#fff" opacity=".8"/>`;break;
+    case 'ring':s=`<circle cx="163" cy="181" r="3.6" fill="none" stroke="#e8c27a" stroke-width="2"/><circle cx="163" cy="177.6" r="2" fill="${M.tr}"/>`;break;
+  }
+  return s;}
+function dWeapon(it,left){if(!it||!ITEM_BASES[it.b])return '';const B=ITEM_BASES[it.b];const t=B.wt||it.b;const rc=RAR_COL[it.r||0]||RAR_COL[0];const st='#c9d0d9',sd='#5c6470',wd='#6a4424',gd='#d8b25a',ln='#1a1410';
+  const hx=left?42:158,hy=178,rot=left?-14:14;let s='';const blade=(L,W)=>`<path fill="${st}" stroke="${ln}" d="M${-W} -8 L${W} -8 L${W*0.8} ${-L} L0 ${-L-W*3} L${-W*0.8} ${-L} Z"/><path stroke="${sd}" d="M0 -10 L0 ${-L+2}"/><rect x="${-W*4}" y="-11" width="${W*8}" height="4" rx="1.5" fill="${gd}" stroke="${ln}"/><rect x="-2" y="-8" width="4" height="16" fill="${wd}" stroke="${ln}"/><circle cy="10" r="3" fill="${gd}" stroke="${ln}"/>`;
+  switch(t){
+    case 'sword':s=blade(72,3);break;case 'greatsword':s=blade(104,4.6);break;case 'dagger':s=blade(36,2.6);break;
+    case 'axe':case 'greataxe':{const k=t==='axe'?1:1.35;s=`<rect x="-2" y="${-84*k}" width="4" height="${96*k}" fill="${wd}" stroke="${ln}"/><path fill="${st}" stroke="${ln}" d="M2 ${-80*k} Q${26*k} ${-88*k} ${30*k} ${-64*k} Q${26*k} ${-48*k} 2 ${-56*k} Z"/>`+(t==='greataxe'?`<path fill="${st}" stroke="${ln}" d="M-2 ${-80*k} Q${-26*k} ${-88*k} ${-30*k} ${-64*k} Q${-26*k} ${-48*k} -2 ${-56*k} Z"/>`:'');break;}
+    case 'mace':case 'warhammer':s=`<rect x="-2" y="-70" width="4" height="82" fill="${wd}" stroke="${ln}"/>`+(t==='mace'?`<circle cy="-74" r="10" fill="${st}" stroke="${ln}"/><path fill="${sd}" stroke="${ln}" d="M0 -90 L4 -82 L-4 -82 Z M0 -58 L4 -66 L-4 -66 Z M-16 -74 L-8 -70 L-8 -78 Z M16 -74 L8 -70 L8 -78 Z"/>`:`<rect x="-16" y="-86" width="32" height="18" rx="2" fill="${st}" stroke="${ln}"/>`);break;
+    case 'spear':case 'halberd':case 'scythe':s=`<rect x="-1.6" y="-128" width="3.2" height="150" fill="${wd}" stroke="${ln}"/>`+(t==='scythe'?`<path fill="${st}" stroke="${ln}" d="M0 -126 Q-40 -132 -54 -104 Q-36 -120 0 -116 Z"/>`:`<path fill="${st}" stroke="${ln}" d="M0 -150 L5 -128 L-5 -128 Z"/>`)+(t==='halberd'?`<path fill="${st}" stroke="${ln}" d="M2 -124 Q22 -128 24 -110 Q20 -100 2 -104 Z"/>`:'');break;
+    case 'staff':case 'totem':s=`<rect x="-2" y="-118" width="4" height="146" rx="2" fill="${wd}" stroke="${ln}"/><circle cy="-126" r="11" fill="${rc}" opacity=".35"/><path fill="${rc}" stroke="#fff" stroke-width=".8" d="M0 -138 L6 -126 L0 -114 L-6 -126 Z"/>`;break;
+    case 'bow':case 'crossbow':return `<g transform="translate(${hx} ${hy})"><path fill="none" stroke="${wd}" stroke-width="4" stroke-linecap="round" d="M0 -70 Q${left?-30:30} 0 0 70"/><path stroke="#ddd" stroke-width=".8" d="M0 -70 L0 70"/><rect x="-3" y="-8" width="6" height="16" fill="${gd}" stroke="${ln}"/></g>`;
+    case 'orb':return `<g transform="translate(${hx} ${hy-20})"><circle r="16" fill="${rc}" opacity=".25"/><circle r="10" fill="${rc}" stroke="#fff" stroke-width="1"/><circle cx="-3" cy="-3" r="3" fill="#fff" opacity=".7"/></g>`;
+    case 'tome':return `<g transform="translate(${hx} ${hy-6}) rotate(${left?-8:8})"><rect x="-12" y="-16" width="24" height="30" rx="2" fill="#5a2a1a" stroke="${ln}"/><rect x="-9" y="-13" width="18" height="24" fill="none" stroke="${gd}"/><circle r="4" fill="${rc}"/></g>`;
+    case 'lute':return `<g transform="translate(${hx} ${hy-14}) rotate(${left?-30:30})"><ellipse rx="13" ry="17" fill="${wd}" stroke="${ln}"/><circle r="4" fill="#1a0e06"/><rect x="-2" y="-52" width="4" height="36" fill="#4a2e18" stroke="${ln}"/></g>`;
+    case 'fist':return [0,1].map(k=>`<rect x="${(k?42:158)-7}" y="171" width="14" height="8" rx="2" fill="${st}" stroke="${ln}"/>`).join('');
+    case 'shield':return `<g transform="translate(${left?40:160} 150)"><path fill="url(#dg_shield)" stroke="${gd}" stroke-width="2" d="M0 -38 L28 -31 Q28 8 0 30 Q-28 8 -28 -31 Z"/><path fill="${rc}" stroke="${ln}" d="M0 -18 L10 -6 L0 12 L-10 -6 Z"/></g>`;
+    case 'cloak':return '';
+    default:s=blade(60,3);}
+  return `<g transform="translate(${hx} ${hy}) rotate(${rot})">${s}</g>`;}
+function dollGear(P){const defs=[];const eq=P.equip||{};let out='';
+  for(const sl of ['legs','feet','chest','hands','head','amulet','ring']){const it=eq[sl];if(!it)continue;const glow=(it.r||0)>=3?` style="filter:drop-shadow(0 0 3px ${RAR_COL[it.r]})"`:'';out+=`<g class="dg" data-a="iteminfo" data-v="e:${sl}"${glow}>${dPiece(sl,it,defs)}</g>`;}
+  defs.push(`<linearGradient id="dg_shield" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a96a4"/><stop offset="1" stop-color="#3a424c"/></linearGradient>`);
+  for(const [sl,left] of [['offhand',true],['weapon',false]]){const it=eq[sl];if(!it)continue;const glow=(it.r||0)>=3?` style="filter:drop-shadow(0 0 4px ${RAR_COL[it.r]})"`:'';out+=`<g class="dg" data-a="iteminfo" data-v="e:${sl}"${glow}>${dWeapon(it,left)}</g>`;}
+  return {defs:defs.join(''),svg:out};}
+
+function renderDoll(P){const st=stats(P);const G=dollGear(P);const worn=EQUIP_SLOTS.filter(sl=>P.equip[sl]).length;
+  const svg=`<svg class="doll-svg" viewBox="-12 -26 224 304" aria-label="${E(P.name)} wearing ${worn} pieces of equipment"><defs>
     <filter id="dollEdge" x="-10%" y="-10%" width="120%" height="120%"><feMorphology in="SourceAlpha" operator="dilate" radius="1.4" result="d"/><feComposite in="d" in2="SourceAlpha" operator="out" result="o"/><feFlood flood-color="#e8c27a"/><feComposite in2="o" operator="in" result="line"/><feGaussianBlur in="line" stdDeviation="2.4" result="glow"/><feFlood flood-color="#e8c27a" flood-opacity=".06"/><feComposite in2="SourceAlpha" operator="in" result="fill"/><feMerge><feMergeNode in="fill"/><feMergeNode in="glow"/><feMergeNode in="line"/></feMerge></filter>
-    <filter id="dollBlur"><feGaussianBlur stdDeviation="5"/></filter><radialGradient id="dollHalo"><stop offset="0" stop-color="#e8c27a" stop-opacity=".14"/><stop offset="1" stop-color="#e8c27a" stop-opacity="0"/></radialGradient></defs>
-    <ellipse cx="${DOLL_OX+100}" cy="${DOLL_OY+140}" rx="120" ry="150" fill="url(#dollHalo)"/><ellipse cx="${DOLL_OX+100}" cy="${DOLL_OY+272}" rx="58" ry="7" fill="#000" opacity=".35"/>
-    <g transform="translate(${DOLL_OX} ${DOLL_OY})"><g filter="url(#dollEdge)" fill="#fff"><ellipse cx="100" cy="24" rx="14.5" ry="17.5"/><path d="${DOLL_PATH}"/></g>
-      <g class="dinner"><path d="M86 62 Q100 72 114 62"/><path d="M100 72 L100 132"/><path d="M78 136 Q100 142 122 136"/><path d="M84 94 Q92 100 100 96 Q108 100 116 94"/><path d="M114 212 Q117 218 114 224 M86 212 Q83 218 86 224"/></g></g>${marks}</svg>`;
-  const worn=EQUIP_SLOTS.filter(sl=>P.equip[sl]).length;
-  return `<section class="panel profile"><h3>Character <small>${E(className(P))} · Lv.${P.level}</small></h3><div class="doll" style="aspect-ratio:${DOLL_W}/${DOLL_H}">${svg}${slots}</div>
+    <radialGradient id="dollHalo"><stop offset="0" stop-color="#e8c27a" stop-opacity=".13"/><stop offset="1" stop-color="#e8c27a" stop-opacity="0"/></radialGradient>${G.defs}</defs>
+    <ellipse cx="100" cy="130" rx="118" ry="150" fill="url(#dollHalo)"/><ellipse cx="100" cy="270" rx="56" ry="7" fill="#000" opacity=".35"/>
+    <g filter="url(#dollEdge)" fill="#fff"><ellipse cx="100" cy="24" rx="14.5" ry="17.5"/><path d="${DOLL_PATH}"/></g>
+    <g class="dinner"><path d="M86 62 Q100 72 114 62"/><path d="M100 72 L100 132"/><path d="M78 136 Q100 142 122 136"/><path d="M84 94 Q92 100 100 96 Q108 100 116 94"/></g>
+    ${G.svg}</svg>`;
+  return `<section class="panel profile"><h3>Character <small>${E(className(P))} · Lv.${P.level}</small></h3><div class="doll">${svg}</div>
     <div class="doll-side"><div class="dstat"><span>Combat Power</span><b>${U.fmt(st.power)}</b></div><div class="dstat"><span>Gear Score</span><b>${U.fmt(st.gs)}</b></div><div class="dstat"><span>Equipped</span><b>${worn}/${EQUIP_SLOTS.length}</b></div>
     <div class="dstat"><span>Attack</span><b>${U.fmt(Math.max(st.patk,st.matk))}</b></div><div class="dstat"><span>Defense</span><b>${U.fmt(st.pdef)}</b></div><div class="dstat"><span>Max HP</span><b>${U.fmt(st.mhp)}</b></div>
-    <p class="hint">Tap a piece to inspect it. Tap an empty slot to open your bag.</p></div></section>`;}
+    <p class="hint">Tap a piece on your hero to inspect it. Change gear in your Bag.</p></div></section>`;}
 function renderRecords(P){const s=P.stats||{};const kills=P.kills||{};const fav=Object.entries(kills).filter(([id])=>MONSTERS[id]).sort((a,b)=>b[1]-a[1])[0];
   const species=Object.keys(kills).filter(id=>MONSTERS[id]&&kills[id]>0).length;const all=Object.keys(MONSTERS).filter(k=>!MONSTERS[k].ev).length;
   const groups=[
