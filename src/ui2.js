@@ -218,7 +218,7 @@ function renderCodex(){const P=S.P;const cats={};for(const id of P.codex){const 
 
 /* ---------------- menu ---------------- */
 function renderMenu(){const st=NET.status;
-  return `<section class="panel"><h2>Menu</h2><p>${E(st)}</p><div class="grid-btn">${btn('Save now','save','','gilt')}${btn('Export save','export')}${btn('Import save','importask')}${btn('How to play','help')}</div>
+  return `<section class="panel"><h2>Menu</h2><p>${E(st)}</p><div class="grid-btn">${btn('Save now','save','','gilt')}${btn('Export save','export')}${btn('Import save','importask')}${btn('How to play','help')}${btn('Report a bug / Suggest','report','bug')}</div>
   <h3>Settings</h3><div class="list"><div class="li"><span>AI narration & smarter replies <small>${NET.sample?'Uses Claude for freeform actions and some direct conversations. Everything else is rule-based.':'Needs the claude.ai artifact runtime.'}</small></span>${NET.sample?btn(AI.enabled?'On':'Off','toggleai','',AI.enabled?'gilt tiny':'tiny ghost'):''}</div>
   <div class="li"><span>Chat activity <small>How often simulated adventurers talk</small></span>${['quiet','normal','busy'].map(x=>btn(U.cap(x),'chatrate',x,(UI.rate||'normal')===x?'tiny gilt':'tiny ghost')).join('')}</div>
   <div class="li"><span>Music <small>Generated live: calm in towns, tense in dungeons, drums in battle</small></span>${btn(AUD.on?'On':'Off','sound','',AUD.on?'tiny gilt':'tiny ghost')}<label class="vol">Music<input type="range" min="0" max="100" value="${Math.round(AUD.music*100)}" data-vol="m" aria-label="Music volume"></label><label class="vol">Effects<input type="range" min="0" max="100" value="${Math.round(AUD.sfx*100)}" data-vol="s" aria-label="Sound effects volume"></label></div>

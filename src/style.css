@@ -794,3 +794,5 @@ body.ingame .tsnd{display:none}
 .dstat{background:var(--panel2);border-radius:var(--rad-s);padding:.35em .55em;display:flex;flex-direction:column;min-width:0}.dstat span{font-size:.64rem;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dstat b{font-family:var(--mono);font-size:1rem;color:var(--gilt)}
 .records h4{margin:.9em 0 .35em;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;color:var(--gilt2)}.records h4:first-of-type{margin-top:.2em}
 .achs.recent{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+
+.report textarea{width:100%;min-height:8em;margin:.6em 0;resize:vertical}.report .chtabs label.ct{cursor:pointer}.report .chtabs input{position:absolute;opacity:0;pointer-events:none}.report label.row{gap:.5em;align-items:center;font-size:.88rem;color:var(--ink2);margin-bottom:.6em}.report .row{justify-content:flex-end;gap:.5em}.report label.row{justify-content:flex-start}
