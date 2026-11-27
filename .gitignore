@@ -1,7 +1,5 @@
 node_modules/
 *.png
-!assets/*.png
+!game/*.png
 !tools/android/**/*.png
-public/
-undefined/
-index.ad.html
+game/eternal-realms.apk
