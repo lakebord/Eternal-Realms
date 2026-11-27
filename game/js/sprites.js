@@ -99,6 +99,12 @@ function drawHat(g,h,hx,hy,dir){if(!h)return;const side=dir===1;
       if(dir!==2){ell(g,hx-6,hy-26,2,3,'#2a1a2a',null);ell(g,hx+6,hy-26,2,3,'#2a1a2a',null);}ell(g,hx-9,hy-34,3,2,'rgba(255,255,255,.7)',null);break;
     case 'halo':g.strokeStyle='#f8d86a';g.lineWidth=3.5;g.shadowColor='#fff4b0';g.shadowBlur=8;g.beginPath();g.ellipse(hx,hy-30,14,4,0,0,7);g.stroke();g.shadowBlur=0;break;
     case 'kingcrown':poly(g,[[hx-16,hy-16],[hx-18,hy-34],[hx-9,hy-24],[hx,hy-38],[hx+9,hy-24],[hx+18,hy-34],[hx+16,hy-16]],'#f8c84a');ell(g,hx,hy-21,3,3,'#e84a5a',OL,1.2);break;
+    case 'holly':{g.save();g.translate(hx,hy-14);if(side)g.scale(1,1);poly(g,[[-22,2],[22,2],[14,-16],[2,-28],[-14,-18]],'#d83a3a');poly(g,[[2,-28],[20,-24],[26,-12],[16,-16]],'#d83a3a');rrect(g,-24,-2,48,9,4,'#fbf8f4');ell(g,27,-11,5.5,5.5,'#fbf8f4');
+      ell(g,-10,0,3,2,'#3a8a3a',null);ell(g,-5,1,3,2,'#3a8a3a',null);ell(g,-7,-2,2,2,'#e83a3a',null);g.restore();break;}
+    case 'antler':for(const k of side?[1]:[-1,1]){g.strokeStyle='#8a5a2a';g.lineWidth=4;g.lineCap='round';g.beginPath();g.moveTo(hx+k*10,hy-16);g.lineTo(hx+k*18,hy-36);g.moveTo(hx+k*15,hy-28);g.lineTo(hx+k*24,hy-32);g.moveTo(hx+k*17,hy-34);g.lineTo(hx+k*12,hy-42);g.stroke();}
+      rrect(g,hx-18,hy-20,36,4,2,'#5a3a1a',OL,1.2);if(dir===0){ell(g,hx,hy+7,3.5,3,'#e83a3a',OL,1.2);}break;
+    case 'snowtiara':poly(g,[[hx-16,hy-15],[hx-12,hy-24],[hx-6,hy-18],[hx,hy-30],[hx+6,hy-18],[hx+12,hy-24],[hx+16,hy-15]],'#d8f0ff');g.strokeStyle='#fff';g.lineWidth=1.5;for(const [x,y] of [[0,-24],[-11,-19],[11,-19]]){for(let k=0;k<3;k++){g.beginPath();g.moveTo(hx+x-Math.cos(k*1.05)*4,hy+y-Math.sin(k*1.05)*4);g.lineTo(hx+x+Math.cos(k*1.05)*4,hy+y+Math.sin(k*1.05)*4);g.stroke();}}break;
+    case 'tophat':rrect(g,hx-24,hy-18,48,6,3,'#2a2a30');rrect(g,hx-14,hy-46,28,30,3,'#2a2a30');rrect(g,hx-14,hy-24,28,5,1,'#c83a3a',null);ell(g,hx+10,hy-22,3,3,'#3a8a3a',null);break;
     case 'beret':ell(g,hx+4,hy-18,22,8,'#c84a3a',OL,2,-.15);ell(g,hx+4,hy-26,2,3,'#c84a3a');break;
   }}
 
@@ -141,6 +147,19 @@ const MON_DRAW={
     if(dir!==2){ell(g,-14,-3,3,4,'#1a1018',null);ell(g,-15,-4.5,1,1.2,'#fff',null);if(dir===0)ell(g,-4,-3,3,4,'#1a1018',null);}g.restore();
     g.strokeStyle=OL;g.lineWidth=1.5;g.beginPath();g.moveTo(40,y-14);g.quadraticCurveTo(36,y-26,32,y-26);g.moveTo(52,y-14);g.quadraticCurveTo(56,y-26,60,y-26);g.stroke();},
 };
+Object.assign(MON_DRAW,{
+  frostlop:(g,v,f,dir)=>{const sq=[0,.6,-.4,1,-.6][f%5];blob(g,48,118,26,40,'#9fd8ff',sq,true,dir);const H=40*(1-sq*.18);g.beginPath();g.ellipse(48,118-H+6,20,9,0,Math.PI,0);g.fillStyle='#fbfcff';g.fill();g.strokeStyle=OL;g.lineWidth=2;g.stroke();for(const x of [34,44,56])ell(g,x,118-H+8,3,4,'#fbfcff',null);},
+  snowbunny:(g,v,f,dir)=>{MON_DRAW.lopkin(g,{col:'#ffffff'},f,dir);const hop=[0,-6,-10,-4,0][f%5];rrect(g,32,92+hop,32,7,3,'#d83a3a');if(dir!==2)poly(g,[[56,94+hop],[64,96+hop],[62,110+hop],[54,108+hop]],'#d83a3a');},
+  ginger:(g,v,f,dir)=>{const b=[0,-3,0,-3,0][f%5],sw=[0,.15,0,-.15,0][f%5];g.fillStyle='rgba(0,0,0,.25)';g.beginPath();g.ellipse(48,118,18,5,0,0,7);g.fill();const C='#c8803a';
+    g.save();g.translate(48,118+b);for(const k of [-1,1]){g.save();g.rotate(k*sw);rrect(g,k*6-5,-26,10,24,5,C);g.restore();}rrect(g,-14,-56,28,34,12,C);for(const k of [-1,1]){g.save();g.translate(k*12,-50);g.rotate(k*(1.1+sw));rrect(g,-4,0,8,20,4,C);g.restore();}
+    ell(g,0,-68,15,14,C);g.strokeStyle='#fff';g.lineWidth=2.2;g.beginPath();g.moveTo(-10,-30);g.quadraticCurveTo(0,-26,10,-30);g.moveTo(-12,-48);g.lineTo(-4,-48);g.moveTo(4,-48);g.lineTo(12,-48);g.stroke();
+    if(dir!==2){ell(g,-5,-70,2,2.4,'#2a1a10',null);ell(g,5,-70,2,2.4,'#2a1a10',null);g.beginPath();g.arc(0,-64,4,.2,Math.PI-.2);g.stroke();for(const y of [-44,-36])ell(g,0,y,2.6,2.6,['#e83a3a','#3a8a3a'][(y+44)/8],null);}g.restore();},
+  snowman:(g,v,f,dir)=>{const b=[0,-2,0,-2,0][f%5];g.fillStyle='rgba(0,0,0,.25)';g.beginPath();g.ellipse(48,120,30,6,0,0,7);g.fill();
+    ell(g,48,100+b,30,22,'#fbfcff');ell(g,48,66+b,22,18,'#fbfcff');ell(g,48,38+b,16,15,'#fbfcff');rrect(g,30,48+b,36,7,3,'#c83a3a');poly(g,[[56,52+b],[64,52+b],[62,70+b],[54,68+b]],'#c83a3a');
+    g.strokeStyle='#5a3a1a';g.lineWidth=3;g.beginPath();g.moveTo(28,64+b);g.lineTo(8,52+b+(f%2?-6:0));g.moveTo(68,64+b);g.lineTo(88,52+b-(f%2?-6:0));g.stroke();
+    if(dir!==2){ell(g,42,35+b,2.6,2.6,'#1a1a1a',null);ell(g,54,35+b,2.6,2.6,'#1a1a1a',null);poly(g,[[48,40+b],[dir===1?32:62,44+b],[48,44+b]],'#f08a2a',OL,1.2);for(const y of [62,72,84])ell(g,48,y+b,2.8,2.8,'#1a1a1a',null);}
+    rrect(g,32,20+b,32,6,3,'#2a2a30');rrect(g,38,0+b,20,22,3,'#2a2a30');rrect(g,38,16+b,20,4,1,'#3a8a3a',null);},
+});
 export const MON_ANIMS={idle:[0,2],walk:[0,5],attack:[5,2],hit:[7,1],dead:[8,1]};
 export function monsterSheet(kind,variant){const key=kind+JSON.stringify(variant);if(sheetCache.has(key))return sheetCache.get(key);const cols=9;
   const cv=document.createElement('canvas');cv.width=FW*cols;cv.height=FH*4;const g=cv.getContext('2d');const draw=MON_DRAW[kind];

@@ -15,7 +15,7 @@ window.__G=G;let P=null;   // the player's saved character
 let me=null;                 // the player's sprite actor
 
 /* ---------------- music ---------------- */
-const MUS={town:'assets/music/mus_town.mp3',wild:'assets/music/mus_wild.mp3',boss:'assets/music/mus_boss.mp3',title:'assets/music/mus_title.mp3'};const tracks={};let curTrack=null,musicOn=true,sfxOn=true;
+const MUS={winter:'assets/music/mus_winter.mp3',town:'assets/music/mus_town.mp3',wild:'assets/music/mus_wild.mp3',boss:'assets/music/mus_boss.mp3',title:'assets/music/mus_title.mp3'};const tracks={};let curTrack=null,musicOn=true,sfxOn=true;
 function music(k){curTrack=k;if(!musicOn)return;for(const n in tracks)if(n!==k)tracks[n].pause();let a=tracks[k];if(!a){a=tracks[k]=new Audio(MUS[k]);a.loop=true;a.volume=.45;}a.play().catch(()=>{});}
 let AC=null;function unlock(){try{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state!=='running')AC.resume();}catch(e){}if(musicOn&&curTrack&&tracks[curTrack]&&tracks[curTrack].paused)tracks[curTrack].play().catch(()=>{});}
 for(const ev of ['pointerup','touchend','keydown'])addEventListener(ev,unlock,{capture:true,passive:true});
@@ -79,10 +79,12 @@ function spawnMob(k,x,z,home){const d=MONSTERS[k];const u=new Unit(monsterSheet(
 /* ---------------- maps ---------------- */
 async function enterMap(id,x,z){G.state='loading';closeAllWindows();for(const m of G.mobs)m.dispose();for(const n of G.npcs)n.dispose();for(const d of G.drops)scene.remove(d.obj);G.mobs=[];G.npcs=[];G.drops=[];setTarget(null);G.move=null;G.act=null;G.cast=null;
   if(G.world){scene.remove(G.world.root);for(const p of G.world.portals)if(p.el)p.el.remove();}const parts=await loadWorldParts();G.world=buildMap(scene,id,parts,SHADOWS);G.map=id;P.map=id;const M=MAPS[id];
-  for(const n of M.npcs||[]){const u=new Unit(heroSheet(n.look),1,ANIMS);u.pos.set(n.x,0,n.z);u.face=Math.atan2(-n.x,-n.z);u.npc=n;G.npcs.push(u);G.world.colliders.push({x:n.x,z:n.z,r:.7});}
+  const festive=D.winterOn();const npcs=[...(M.npcs||[])];if(id==='town'&&festive)npcs.push({id:'holly',n:'Holly the Merrymaker',x:6,z:4,look:{job:'cleric',style:2,hair:'#e8c878',hat:'holly'}});
+  if(festive&&(id==='town'||M.winter))addSnow();else removeSnow();if(id==='town'&&festive)festivalTree(G.world.root,-7,-5,parts);
+  for(const n of npcs){const u=new Unit(heroSheet(n.look),1,ANIMS);u.pos.set(n.x,0,n.z);u.face=Math.atan2(-n.x,-n.z);u.npc=n;G.npcs.push(u);G.world.colliders.push({x:n.x,z:n.z,r:.7});}
   for(const g of M.mobs||[])for(let i=0;i<g.n;i++){const a=rand(0,6.28),r=Math.sqrt(Math.random())*g.r;spawnMob(g.k,g.x+Math.cos(a)*r,g.z+Math.sin(a)*r,[g.x,0,g.z]).range=g.r;}
   if(M.boss){G.boss.alive=false;G.boss.next=G.t+M.boss.first;}
-  me.pos.set(x??M.spawn[0],0,z??M.spawn[1]);me.dead=false;$('#mapname').textContent=M.n;music(M.music);chat(`You arrive at ${M.n}.`,'sys');G.state='play';save();}
+  me.pos.set(x??M.spawn[0],0,z??M.spawn[1]);me.dead=false;$('#mapname').textContent=M.n;music(festive&&id==='town'?'winter':M.music);chat(`You arrive at ${M.n}.`,'sys');G.state='play';save();}
 
 /* ---------------- targeting / input ---------------- */
 const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0),hitP=new THREE.Vector3(),pv=new THREE.Vector3();
@@ -129,7 +131,7 @@ function hurtMob(m,dmg,{crit=false,miss=false,el}={}){if(m.dead)return;const [x,
 function killMob(m){m.dead=true;m.hp=0;m.setAnim('dead',99);sfx(m.d.draw==='jellop'||m.d.draw==='king'?'squish':'die');if(G.target===m)setTarget(null);if(G.act&&G.act.u===m)G.act=null;
   const d=m.d;gainExp(d.exp[0],d.exp[1]);P.kills[m.kind]=(P.kills[m.kind]||0)+1;
   const luck=1+sk('lucky_find')*.06;for(const [id,ch] of d.drops)if(Math.random()<ch*luck)dropItem(id,m.pos);for(const it of m.looted)dropItem(it,m.pos);
-  if(m.boss){G.boss.alive=false;G.boss.next=G.t+MAPS[G.map].boss.every;banner('MVP!',`${P.name} defeated the Jellop King!`);chat(`[MVP] ${P.name} defeated the Jellop King! It will return in ${MAPS[G.map].boss.every/60|0} minutes.`,'mvp');music('wild');
+  if(m.boss){G.boss.alive=false;G.boss.next=G.t+MAPS[G.map].boss.every;banner('MVP!',`${P.name} defeated ${m.d.n}!`);chat(`[MVP] ${P.name} defeated ${m.d.n}! It will return in ${MAPS[G.map].boss.every/60|0} minutes.`,'mvp');music(MAPS[G.map].music);
     const bonus=mkItem(['orange_tonic','blue_draught','brightstone'][ri(0,2)],3);addItem(bonus);chat(`MVP reward: ${ITEMS[bonus.id].n} ×3`,'loot');}
   setTimeout(()=>{const i=G.mobs.indexOf(m);if(i<0)return;m.dispose();G.mobs.splice(i,1);if(!m.boss){const g=m.home;setTimeout(()=>{if(G.map==='field'&&G.state!=='loading'){const a=rand(0,6.28),r=Math.random()*(m.range||10);spawnMob(m.kind,g.x+Math.cos(a)*r,g.z+Math.sin(a)*r,[g.x,0,g.z]).range=m.range;}},rand(8000,16000));}},1600);}
 function heroHurt(m){if(me.dead)return;const d=m.d;if(Math.random()*100<ST.pdodge){floatTxt(me,'Lucky!','miss');return;}if(Math.random()*100>clamp(80+d.hit-ST.flee,5,95)){floatTxt(me,'Miss','miss');sfx('miss');return;}
@@ -187,6 +189,7 @@ function itemName(it){const d=ITEMS[it.id];return `${it.refine?'+'+it.refine+' '
 function useItem(idx){const it=P.inv[idx];if(!it)return;const d=ITEMS[it.id];if(me.dead)return;
   if(d.t==='use'){if(d.heal)healMe(d.heal*rand(.9,1.1)*(1+ST.s.vit/100));if(d.sp){P.sp=Math.min(ST.msp,P.sp+d.sp);floatTxt(me,'+'+d.sp+' SP','sp');}
     if(d.warp==='random'){removeItem(idx);const h=G.world.size/2-6;let x,z,k=0;do{x=rand(-h,h);z=rand(-h,h);k++;}while(k<20&&G.world.colliders.some(c=>Math.hypot(c.x-x,c.z-z)<c.r+1));me.pos.set(x,0,z);G.move=null;G.act=null;ringFx(me.pos,0x8ad8ff);renderHud();return;}
+    if(d.gift){removeItem(idx);const [gid,gn]=D.GIFTS[ri(0,D.GIFTS.length-1)];addItem(mkItem(gid,ITEMS[gid].t==='equip'?1:gn));if(Math.random()<.04){const h=['holly_cap','antler_band','snow_tiara'][ri(0,2)];addItem(mkItem(h));banner('LUCKY GIFT!',ITEMS[h].n);}chat(`The gift contained ${ITEMS[gid].n}${gn>1?' ×'+gn:''}!`,'loot');sfx('loot');renderHud();if(G.windows.has('inv'))renderInv();return;}
     if(d.warp==='save'){removeItem(idx);enterMap(P.save,...(P.save==='town'?[0,6]:[]));return;}removeItem(idx);renderHud();if(G.windows.has('inv'))renderInv();return;}
   if(d.t==='equip')equipItem(idx);if(d.t==='card')openCardSocket(idx);}
 function canEquip(d){if(d.jobs==='all'||!d.jobs){if(d.slot==='weapon'){return JOBS[P.job].wpn.includes(d.wt);}return true;}return d.jobs.includes(P.job);}
@@ -219,7 +222,7 @@ function mobAI(m,dt){if(m.dead)return;if(m.frozen&&m.frozen>G.t){m.actor.mat.col
   else{if(me.dead||Math.hypot(m.pos.x-m.home.x,m.pos.z-m.home.z)>(m.boss?40:26)){m.ai='return';return;}const reach=m.boss?2.4:1.5;
     if(d>reach){const dx=me.pos.x-m.pos.x,dz=me.pos.z-m.pos.z;m.pos.x+=dx/d*dt*spd;m.pos.z+=dz/d*dt*spd;m.face=Math.atan2(dx,dz);if(!m.lock)m.setAnim('walk');}
     else{m.face=Math.atan2(me.pos.x-m.pos.x,me.pos.z-m.pos.z);m.atkT-=dt;if(m.atkT<=0){m.atkT=m.d.aspd;m.setAnim('attack',.45);setTimeout(()=>{if(!m.dead&&dist(m,me)<reach+1)heroHurt(m);},220);}else if(!m.lock)m.setAnim('idle');}
-    if(m.boss){m.sumT=(m.sumT||12)-dt;if(m.sumT<=0){m.sumT=14;for(let i=0;i<3;i++){const a=rand(0,6.28);const s=spawnMob('jellop',m.pos.x+Math.cos(a)*3,m.pos.z+Math.sin(a)*3,[m.home.x,0,m.home.z]);s.ai='chase';s.hostile=true;s.summon=1;}chat('The Jellop King calls his subjects!','mvp');sfx('boss');}}}
+    if(m.boss){m.sumT=(m.sumT||12)-dt;if(m.sumT<=0){m.sumT=14;for(let i=0;i<3;i++){const a=rand(0,6.28);const s=spawnMob(m.d.summon||'jellop',m.pos.x+Math.cos(a)*3,m.pos.z+Math.sin(a)*3,[m.home.x,0,m.home.z]);s.ai='chase';s.hostile=true;s.summon=1;}chat(`${m.d.n} calls for help!`,'mvp');sfx('boss');}}}
   for(const o of G.mobs)if(o!==m&&!o.dead){const dx=m.pos.x-o.pos.x,dz=m.pos.z-o.pos.z,dd=Math.hypot(dx,dz),r=.55*(m.actor.scale+o.actor.scale);if(dd<r&&dd>1e-3){m.pos.x+=dx/dd*(r-dd)*.5;m.pos.z+=dz/dd*(r-dd)*.5;}}
   collide(m.pos,.4,G.world.colliders,G.world.size);}
 
@@ -323,7 +326,8 @@ function talk(n){const id=n.npc.id;me.face=Math.atan2(n.pos.x-me.pos.x,n.pos.z-m
   if(id==='tools')return shop('tools',name,'“Tonics, wings and apples! Everything an adventurer needs.”');
   if(id==='arms')return shop('arms',name,'“Steel, leather and hats. Fine quality, honest prices… mostly.”');
   if(id==='healer'){P.hp=ST.mhp;P.sp=ST.msp;healFx(me.pos);renderHud();bubble(n,'May the light keep you!');return say('“Rest a moment… there. You are healed, child. Come back whenever you are hurt.”');}
-  if(id==='warp')return say(`“The waystones hum today. Where shall I send you?” <br><small>Your save point: ${MAPS[P.save].n}</small>`,[['Greenmarch Meadows (free)',()=>{closeWindow('npc');enterMap('field');}],['Save my position here',()=>{P.save='town';save();say('“Your soul is bound to Valeria. You will return here if you fall.”');}],['Goodbye',()=>closeWindow('npc')]]);
+  if(id==='warp')return say(`“The waystones hum today. Where shall I send you?” <br><small>Your save point: ${MAPS[P.save].n}</small>`,[['Greenmarch Meadows (free)',()=>{closeWindow('npc');enterMap('field');}],...(D.winterOn()?[['❄ Frostfall Hollow (festival)',()=>{closeWindow('npc');enterMap('snow');}]]:[]),['Save my position here',()=>{P.save='town';save();say('“Your soul is bound to Valeria. You will return here if you fall.”');}],['Goodbye',()=>closeWindow('npc')]]);
+  if(id==='holly')return holly(name,n);
   if(id==='storage')return storage(name);
   if(id==='refine')return refiner(name);
   if(id==='job'){if(P.job!=='novice')return say(`“Ah, a ${JOBS[P.job].n}! Train hard. Second jobs will open to those who reach job level 40… in a future update.”`);
@@ -332,6 +336,13 @@ function talk(n){const id=n.npc.id;me.face=Math.atan2(n.pos.x-me.pos.x,n.pos.z-m
       el=>el.querySelectorAll('.job').forEach(b=>b.onclick=()=>{const j=b.dataset.j;if(!confirm(`Become a ${JOBS[j].n}?`))return;P.job=j;P.jobLv=1;P.jobExp=0;P.skillPts+=0;closeWindow('npc');refresh();P.hp=ST.mhp;P.sp=ST.msp;
         banner('JOB CHANGE!',`${P.name} is now a ${JOBS[j].n}!`);levelFx('JOB CHANGE!');chat(`You are now a ${JOBS[j].n}! New skills are in the Skills window.`,'lvl');
         const gift={warrior:'short_sword',mage:'rod',ranger:'short_bow',rogue:'cutter',cleric:'mace',trader:'hand_axe'}[j];addItem(mkItem(gift));chat(`Master Corwin gives you a ${ITEMS[gift].n}.`,'loot');save();}));}}
+function today(){const d=new Date();return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;}
+function holly(name,n){const tokens=(P.inv.find(x=>x.id==='snow_token')||{n:0}).n;const giftReady=P.giftDay!==today();
+  win('npc',name,`<p class="say">“Happy Frostlight, ${E(P.name)}! The snow brought monsters to <b>Frostfall Hollow</b> — ask Sela to send you there. Bring me their <b>Snowflake Tokens</b> and I'll trade you festival treasures. Limited time only!”</p>
+    <div class="list">${D.WINTER_SHOP.map(([id,c])=>`<div class="row item">${ic(id)}<span>${ITEMS[id].n}<small>${E(ITEMS[id].d)}</small></span><b>${c} ❄</b><button class="tiny" data-x="${id}" ${tokens>=c?'':'disabled'}>Trade</button></div>`).join('')}</div>
+    <p class="hint">You have <b>${tokens}</b> Snowflake Tokens.</p><div class="row gap"><button class="b gilt" id="hgift" ${giftReady?'':'disabled'}>${giftReady?'🎁 Daily gift':'Gift claimed today'}</button></div>`,
+    el=>{el.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{const [id,c]=D.WINTER_SHOP.find(x=>x[0]===b.dataset.x);const ti=P.inv.findIndex(x=>x.id==='snow_token');if(ti<0||P.inv[ti].n<c)return;removeItem(ti,c);addItem(mkItem(id));sfx('coin');chat(`Traded ${c} tokens for ${ITEMS[id].n}!`,'loot');if(ITEMS[id].limited)banner('LIMITED!',ITEMS[id].n);holly(name,n);save();});
+      el.querySelector('#hgift').onclick=()=>{if(P.giftDay===today())return;P.giftDay=today();addItem(mkItem('gift_box'));addItem(mkItem('snow_token',3));sfx('loot');bubble(n,'Merry Frostlight!');chat('Holly gives you a Festival Gift and 3 Snowflake Tokens.','loot');holly(name,n);save();};});}
 function shop(kind,name,greet){const haggle=sk('haggle')*.03;const price=id=>Math.round(ITEMS[id].price*(1-haggle));const sell=it=>Math.floor(ITEMS[it.id].price*(ITEMS[it.id].t==='etc'||ITEMS[it.id].t==='card'?1:.5)*(1+haggle)*(ITEMS[it.id].t==='etc'?1:.5));
   const tab=G.shopTab||'buy';
   win('npc',name,`<p class="say">${greet}</p><div class="tabs"><button class="tab ${tab==='buy'?'on':''}" data-t="buy">Buy</button><button class="tab ${tab==='sell'?'on':''}" data-t="sell">Sell</button></div>
@@ -360,8 +371,16 @@ function refiner(name){const cands=[];for(const sl in P.equip)cands.push({it:P.e
         refresh();refiner(name);save();},900);});});}
 
 /* ---------------- boss timer ---------------- */
-function bossTick(){const B=MAPS[G.map].boss;if(!B||G.boss.alive||G.t<G.boss.next)return;G.boss.alive=true;const k=spawnMob(B.k,B.x,B.z);k.range=8;sfx('boss');banner('WARNING','The ground wobbles… the Jellop King has appeared!');chat('[Boss] The Jellop King has appeared in Greenmarch Meadows!','mvp');music('boss');}
+function bossTick(){const B=MAPS[G.map].boss;if(!B||G.boss.alive||G.t<G.boss.next)return;G.boss.alive=true;const k=spawnMob(B.k,B.x,B.z);k.range=8;sfx('boss');const BN=MONSTERS[B.k].n;banner('WARNING',`${BN} has appeared!`);chat(`[Boss] ${BN} has appeared in ${MAPS[G.map].n}!`,'mvp');music('boss');}
 
+/* ---------------- festival visuals ---------------- */
+let SNOW=null;function addSnow(){if(SNOW)return;const n=MOBILE?700:1400;const g=new THREE.BufferGeometry();const p=new Float32Array(n*3);for(let i=0;i<n;i++){p[i*3]=rand(-30,30);p[i*3+1]=rand(0,24);p[i*3+2]=rand(-30,30);}g.setAttribute('position',new THREE.BufferAttribute(p,3));
+  SNOW=new THREE.Points(g,new THREE.PointsMaterial({map:glowTex(),color:0xffffff,size:.35,transparent:true,depthWrite:false,opacity:.9}));SNOW.frustumCulled=false;scene.add(SNOW);}
+function removeSnow(){if(SNOW){scene.remove(SNOW);SNOW=null;}}
+function snowTick(dt){if(!SNOW||!me)return;const a=SNOW.geometry.attributes.position;for(let i=0;i<a.count;i++){let y=a.getY(i)-dt*(2+(i%5)*.4);let x=a.getX(i)+Math.sin(G.t+i)*dt*.6;if(y<0){y=24;x=rand(-30,30);a.setZ(i,rand(-30,30));}a.setY(i,y);a.setX(i,x);}a.needsUpdate=true;SNOW.position.set(me.pos.x,0,me.pos.z);}
+function festivalTree(root,x,z,parts){const src=parts.tree_single_B||parts.tree_single_A;if(!src)return;const t=src.clone(true);t.position.set(x,0,z);t.scale.setScalar(9);root.add(t);G.world.colliders.push({x,z,r:2.6});
+  const cols=[0xff5a5a,0xffd36a,0x6ad8ff,0x9af07a,0xff8ad8];for(let i=0;i<34;i++){const h=1.5+i/34*8.5,r=(1-i/34)*3.4+.4,a=i*2.4;const s=gsprite(cols[i%5],.8);s.position.set(x+Math.cos(a)*r,h,z+Math.sin(a)*r);root.add(s);}
+  const star=gsprite(0xfff2a0,2.4);star.position.set(x,11,z);root.add(star);}
 /* ---------------- loop ---------------- */
 const clock=new THREE.Clock();let hudT=0,mmT=0;
 function updateWorld(dt){G.t+=dt;if(G.state!=='play')return;
@@ -384,7 +403,7 @@ function updateWorld(dt){G.t+=dt;if(G.state!=='play')return;
   me.update(dt);for(const n of G.npcs)n.update(dt);for(const m of G.mobs){mobAI(m,dt);m.update(dt);}
   bossTick();if(G.tring&&G.target){G.tring.position.set(G.target.pos.x,.06,G.target.pos.z);G.tring.scale.setScalar(G.target.actor.scale);}
   for(const p of G.world.portals){p.ring.rotation.z+=dt*1.5;}if(clickMark&&clickMark.visible){clickMark.userData.t-=dt;clickMark.material.opacity=Math.max(0,clickMark.userData.t);if(clickMark.userData.t<=0)clickMark.visible=false;}
-  fxUpdate(dt);}
+  fxUpdate(dt);snowTick(dt);}
 function tick(){requestAnimationFrame(tick);const dt=Math.min(.1,clock.getDelta());updateWorld(dt);
   if(me&&G.world){const c=G.cam,t=me.pos;const off=new THREE.Vector3(Math.sin(c.yaw)*Math.cos(c.pitch),Math.sin(c.pitch),Math.cos(c.yaw)*Math.cos(c.pitch)).multiplyScalar(c.dist);
     camera.position.lerp(t.clone().add(off),1-Math.pow(.001,dt));camera.lookAt(t.x,t.y+1,t.z);sun.position.set(t.x+30,60,t.z+20);sun.target.position.copy(t);}

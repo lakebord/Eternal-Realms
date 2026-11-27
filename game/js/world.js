@@ -11,7 +11,8 @@ let PARTS=null;export async function loadWorldParts(){if(PARTS)return PARTS;cons
 
 function hash(x,z){const s=Math.sin(x*127.1+z*311.7)*43758.5453;return s-Math.floor(s);}
 function tileTexture(kind){const S=256,cv=document.createElement('canvas');cv.width=cv.height=S;const g=cv.getContext('2d');
-  if(kind==='grass'){g.fillStyle='#6fa64a';g.fillRect(0,0,S,S);for(let i=0;i<2600;i++){const x=hash(i,1)*S,y=hash(i,2)*S,l=hash(i,3);g.fillStyle=l<.5?`rgba(60,110,40,${.25+l*.4})`:`rgba(150,200,90,${(l-.5)*.6})`;g.fillRect(x,y,2+l*3,2+l*2);}
+  if(kind==='snow'){g.fillStyle='#eef4fa';g.fillRect(0,0,S,S);for(let i=0;i<2200;i++){const l=hash(i,4);g.fillStyle=l<.5?`rgba(180,200,225,${.25*l})`:`rgba(255,255,255,${.6*(l-.5)})`;g.fillRect(hash(i,1)*S,hash(i,2)*S,2+l*3,2+l*2);}}
+  else if(kind==='grass'){g.fillStyle='#6fa64a';g.fillRect(0,0,S,S);for(let i=0;i<2600;i++){const x=hash(i,1)*S,y=hash(i,2)*S,l=hash(i,3);g.fillStyle=l<.5?`rgba(60,110,40,${.25+l*.4})`:`rgba(150,200,90,${(l-.5)*.6})`;g.fillRect(x,y,2+l*3,2+l*2);}
     for(let i=0;i<40;i++){const x=hash(i,5)*S,y=hash(i,6)*S;g.fillStyle=['#fff6f0','#f8e070','#f8a0c0','#b8d8ff'][i%4];for(let k=0;k<5;k++){g.beginPath();g.arc(x+Math.cos(k*1.26)*2.4,y+Math.sin(k*1.26)*2.4,1.6,0,7);g.fill();}g.fillStyle='#f8d050';g.beginPath();g.arc(x,y,1.2,0,7);g.fill();}}
   else if(kind==='stone'){g.fillStyle='#a8a090';g.fillRect(0,0,S,S);const n=8,w=S/n;for(let y=0;y<n;y++)for(let x=0;x<n;x++){const ox=(y%2)*w/2;const l=.85+hash(x,y)*.25;g.fillStyle=`rgb(${168*l|0},${160*l|0},${146*l|0})`;g.beginPath();g.roundRect(x*w+ox+2,y*w+2,w-4,w-4,6);g.fill();g.strokeStyle='rgba(70,60,50,.35)';g.lineWidth=2;g.stroke();}}
   else if(kind==='dirt'){g.fillStyle='#b89468';g.fillRect(0,0,S,S);for(let i=0;i<1800;i++){const l=hash(i,9);g.fillStyle=l<.5?`rgba(120,90,60,${.3*l})`:`rgba(220,190,140,${.3*(l-.5)})`;g.fillRect(hash(i,7)*S,hash(i,8)*S,3,3);}}
@@ -28,12 +29,19 @@ export const MAPS={
     boss:{k:'king',x:38,z:10,first:90,every:240}},
 };
 
+MAPS.snow={n:'Frostfall Hollow',size:104,music:'winter',spawn:[-44,0],winter:1,portals:[{x:-50,z:0,to:'town',tx:4,tz:8,label:'Valeria'}],
+  mobs:[{k:'frostlop',n:12,x:-24,z:4,r:18},{k:'snowbunny',n:10,x:2,z:24,r:16},{k:'ginger',n:9,x:4,z:-24,r:16},{k:'frostlop',n:6,x:18,z:6,r:10}],boss:{k:'frostmaw',x:32,z:-2,first:60,every:300}};
 export function buildMap(scene,id,parts,shadows){const M=MAPS[id];const root=new THREE.Group();scene.add(root);const S=M.size;const colliders=[];const statics=[];
   let seed=id==='town'?11:23;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
-  const tex=tileTexture('grass');tex.repeat.set(S/7,S/7);const ground=new THREE.Mesh(new THREE.PlaneGeometry(S*2.2,S*2.2),new THREE.MeshLambertMaterial({map:tex}));tex.repeat.set(S*2.2/7,S*2.2/7);ground.rotation.x=-Math.PI/2;ground.receiveShadow=shadows;root.add(ground);
+  const snowy=!!M.winter;const tex=tileTexture(snowy?'snow':'grass');tex.repeat.set(S/7,S/7);const ground=new THREE.Mesh(new THREE.PlaneGeometry(S*2.2,S*2.2),new THREE.MeshLambertMaterial({map:tex}));tex.repeat.set(S*2.2/7,S*2.2/7);ground.rotation.x=-Math.PI/2;ground.receiveShadow=shadows;root.add(ground);
   const flat=(geo,kind,rep)=>{const t=tileTexture(kind);t.repeat.set(rep,rep);const m=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({map:t,polygonOffset:true,polygonOffsetFactor:-1}));m.rotation.x=-Math.PI/2;m.position.y=.02;m.receiveShadow=shadows;root.add(m);return m;};
   const place=(name,x,z,s,ry=0,col=0)=>{const src=parts[name];if(!src)return;const o=src.clone(true);o.position.set(x,0,z);o.scale.setScalar(s);o.rotation.y=ry;o.updateMatrixWorld(true);o.traverse(m=>{if(m.isMesh)statics.push(m);});if(col)colliders.push({x,z,r:col});};
-  if(id==='town'){flat(new THREE.CircleGeometry(15,48),'stone',6);flat(new THREE.PlaneGeometry(44,6),'stone',8).position.set(14,.021,0);flat(new THREE.PlaneGeometry(5,30),'stone',6).position.set(0,.021,-14);
+  if(id==='snow'){const lake=new THREE.Mesh(new THREE.CircleGeometry(9,40),new THREE.MeshLambertMaterial({color:0xb8e0f4}));lake.rotation.x=-Math.PI/2;lake.position.set(10,.03,-6);root.add(lake);colliders.push({x:10,z:-6,r:8});
+    const clear=(x,z)=>Math.hypot(x+44,z)>9&&Math.hypot(x-32,z+2)>11&&Math.hypot(x-10,z+6)>11;
+    for(let i=0;i<220;i++){const x=(rnd()-.5)*S*1.15,z=(rnd()-.5)*S*1.15;if(!clear(x,z))continue;const edge=Math.max(Math.abs(x),Math.abs(z))>40;if(!edge&&rnd()<.62)continue;const k=['tree_single_A','tree_single_B','trees_A_small','trees_B_medium'][Math.floor(rnd()*4)];const s=k.startsWith('tree_single')?3.8+rnd()*2:3.2+rnd();place(k,x,z,s,rnd()*6,k.startsWith('tree_single')?1:2.4);}
+    for(let i=0;i<30;i++){const x=(rnd()-.5)*S,z=(rnd()-.5)*S;if(!clear(x,z))continue;const s=3+rnd()*4;place('rock_single_'+'ABCDE'[Math.floor(rnd()*5)],x,z,s,rnd()*6,s*.12);}
+    place('tent',-38,-9,4.5,.4,1.6);place('flag_red',-42,6,5,0,.3);}
+  else if(id==='town'){flat(new THREE.CircleGeometry(15,48),'stone',6);flat(new THREE.PlaneGeometry(44,6),'stone',8).position.set(14,.021,0);flat(new THREE.PlaneGeometry(5,30),'stone',6).position.set(0,.021,-14);
     place('building_well_blue',0,0,3.2,0,1.6);
     for(const [k,x,z,s,r] of [['building_church_blue',0,-26,5,0],['building_tavern_blue',16,14,4.4,Math.PI],['building_market_blue',18,-14,4.2,-1.2],['building_blacksmith_blue',-20,-2,4.2,1.57],['building_home_A_blue',-14,16,4,2.6],['building_home_B_blue',-22,14,4,2.2],
       ['building_home_A_blue',-22,-18,4,.7],['building_home_B_blue',-12,-22,4,.3],['building_windmill_blue',-26,26,4.5,.5],['building_tower_A_blue',24,-26,4.5,0],['building_castle_blue',0,-44,7,0],['building_home_B_blue',14,24,4,3]])place(k,x,z,s,r,s*.95);
@@ -52,7 +60,7 @@ export function buildMap(scene,id,parts,shadows){const M=MAPS[id];const root=new
     place('tent',-40,-10,4.5,.4,1.6);place('barrel',-38,-7,3,0,.6);place('flag_yellow',-44,6,5,0,.3);place('target',-36,12,3.2,1,.6);}
   // merge static meshes per material (few draw calls)
   const byMat=new Map();for(const m of statics){const key=m.material.uuid;if(!byMat.has(key))byMat.set(key,{mat:m.material,geos:[]});const g=m.geometry.clone();g.applyMatrix4(m.matrixWorld);for(const k of Object.keys(g.attributes))if(!['position','normal','uv'].includes(k))g.deleteAttribute(k);byMat.get(key).geos.push(g.index?g.toNonIndexed():g);}
-  for(const {mat,geos} of byMat.values()){const merged=mergeGeometries(geos,false);if(!merged)continue;const mesh=new THREE.Mesh(merged,mat);mesh.castShadow=shadows;mesh.receiveShadow=shadows;root.add(mesh);}
+  for(const {mat,geos} of byMat.values()){const merged=mergeGeometries(geos,false);if(!merged)continue;let mt=mat;if(snowy){mt=mat.clone();if(mt.color)mt.color.lerp(new THREE.Color(0xeaf2ff),.45);}const mesh=new THREE.Mesh(merged,mt);mesh.castShadow=shadows;mesh.receiveShadow=shadows;root.add(mesh);}
   // portals: swirling rings
   const portals=M.portals.map(p=>{const g=new THREE.Group();g.position.set(p.x,0,p.z);const ring=new THREE.Mesh(new THREE.TorusGeometry(1.6,.16,8,40),new THREE.MeshBasicMaterial({color:0x8ad8ff,transparent:true,opacity:.85}));ring.rotation.x=-Math.PI/2;ring.position.y=.2;g.add(ring);
     const disc=new THREE.Mesh(new THREE.CircleGeometry(1.5,32),new THREE.MeshBasicMaterial({color:0x6ac0ff,transparent:true,opacity:.35,blending:THREE.AdditiveBlending,depthWrite:false}));disc.rotation.x=-Math.PI/2;disc.position.y=.12;g.add(disc);
