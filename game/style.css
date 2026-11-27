@@ -88,3 +88,7 @@ body.touch #basic{width:min(206px,52vw);font-size:.74rem}body.touch .bi-top img{
 body.touch #mapbox{width:112px}body.touch #minimap{width:100px;height:100px}body.touch #tframe{top:auto;bottom:calc(68px + var(--sab))}
 @media (max-width:440px){.hk{width:40px;height:40px;font-size:1.25rem}.cols{grid-template-columns:1fr}.jobs{grid-template-columns:1fr}}
 .row.item>span.ic,.row.skill>span.ic,.iuse>span.ic,.row.slot>span.ic{flex:0 0 auto!important}
+.ic.art{background-image:url(assets/icons.webp);background-size:800% 1000%;background-repeat:no-repeat;border-color:#d8c49a}
+.hk .ic.art.hki{width:36px;height:36px;border:0;border-radius:6px;background-color:transparent}.pick .ic.art.pk{width:40px;height:40px}
+#loading,#title{background:linear-gradient(#0000 45%,#1a2a3acc),url(assets/title.webp) center/cover no-repeat,#6aa8e0}
+#title .logo h1{text-shadow:0 3px 0 #2a4a8a,0 6px 22px #000a}#title .hint{color:#fff;text-shadow:0 1px 3px #000}#title .hint a{color:#ffe08a}

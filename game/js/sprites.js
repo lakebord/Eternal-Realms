@@ -180,3 +180,20 @@ export class SpriteActor{
 }
 export function iconCanvas(drawFn,size=48){const cv=document.createElement('canvas');cv.width=cv.height=size;const g=cv.getContext('2d');drawFn(g,size);return cv.toDataURL();}
 export function heroPortrait(c){const sh=heroSheet(c);const cv=document.createElement('canvas');cv.width=64;cv.height=64;const g=cv.getContext('2d');g.drawImage(sh.tex.image,0,0,FW,FH*.62,0,-4,64*FW/(FH*.62)*.62,64*1.05);return cv.toDataURL();}
+
+/* ---------- painted (ForgeGUI) monster sprites, animated with squash / hop / lunge ---------- */
+const IMG={};export function loadImage(url){if(!IMG[url])IMG[url]=new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=url;});return IMG[url];}
+const TEX={};function texFor(url,img){if(!TEX[url]){const t=new THREE.Texture(img);t.colorSpace=THREE.SRGBColorSpace;t.needsUpdate=true;t.generateMipmaps=true;t.minFilter=THREE.LinearMipmapLinearFilter;TEX[url]=t;}return TEX[url];}
+export class ImgActor{
+  constructor(img,url,scale=1){this.isImg=true;this.tex=texFor(url,img).clone();this.tex.needsUpdate=true;this.mat=new THREE.SpriteMaterial({map:this.tex,transparent:true,alphaTest:.12,depthWrite:true});
+    this.sprite=new THREE.Sprite(this.mat);this.sprite.center.set(.5,.03);this.scale=scale;this.h=2.2*scale;this.w=this.h*img.width/img.height;this.flip=false;this.yOff=0;this.sprite.scale.set(this.w,this.h,1);}
+  setSheet(){}frame(){}
+  pose(anim,t,row,fly){const flip=row===3;if(flip!==this.flip){this.flip=flip;this.tex.repeat.x=flip?-1:1;this.tex.offset.x=flip?1:0;}
+    let sx=1,sy=1,y=0,op=1;
+    if(anim==='idle'){const s=Math.sin(t*4);sy=1+s*.045;sx=1-s*.035;}
+    else if(anim==='walk'){const p=Math.abs(Math.sin(t*8));y=fly?0:p*.32*this.scale;sy=1+(p-.5)*.08;sx=1-(p-.5)*.06;}
+    else if(anim==='attack'){const k=Math.min(1,t/.45);const l=Math.sin(k*Math.PI);sx=1+l*.18;sy=1-l*.08;y=l*.2*this.scale;}
+    else if(anim==='hit'){sx=1.08;sy=.9;}
+    else if(anim==='dead'){const k=Math.min(1,t/.5);sy=1-k*.7;sx=1+k*.35;op=Math.max(0,1-Math.max(0,t-.6)/.9);}
+    this.sprite.scale.set(this.w*sx,this.h*sy,1);this.mat.opacity=op;this.yOff=y;}
+}

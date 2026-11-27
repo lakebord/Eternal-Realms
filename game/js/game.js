@@ -2,7 +2,7 @@
 // items, cards, refining, NPC shops/storage/warps, a timed field boss, emotes and local saves.
 import * as THREE from 'three';
 import {createRenderer,loadWorldParts,buildMap,collide,sceneLights,MAPS,MOBILE} from './world.js';
-import {heroSheet,monsterSheet,SpriteActor,ANIMS,MON_ANIMS,HAIRS,heroPortrait,HATS} from './sprites.js';
+import {heroSheet,monsterSheet,SpriteActor,ImgActor,loadImage,ANIMS,MON_ANIMS,HAIRS,heroPortrait,HATS} from './sprites.js';
 import * as D from './data.js';
 const {STATS,JOBS,SKILLS,ITEMS,MONSTERS}=D;
 const $=s=>document.querySelector(s);const rand=(a,b)=>a+Math.random()*(b-a);const ri=(a,b)=>Math.floor(rand(a,b+1));const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -64,16 +64,16 @@ function lookCfg(){const w=P.equip.weapon?ITEMS[P.equip.weapon.id].wt:null;const
 function updateLook(){const key=JSON.stringify(lookCfg());if(me._look===key)return;me._look=key;me.actor.setSheet(heroSheet(lookCfg()));$('#bport').src=heroPortrait(lookCfg());}
 
 /* ---------------- actors on the map ---------------- */
-class Unit{constructor(sheet,scale,anims){this.actor=new SpriteActor(sheet,scale);this.pos=new THREE.Vector3();this.actor.sprite.position.copy(this.pos);scene.add(this.actor.sprite);this.face=0;this.anim='idle';this.animT=0;this.lock=0;this.anims=anims;this.dead=false;}
+class Unit{constructor(sheet,scale,anims,actor){this.actor=actor||new SpriteActor(sheet,scale);this.pos=new THREE.Vector3();this.actor.sprite.position.copy(this.pos);scene.add(this.actor.sprite);this.face=0;this.anim='idle';this.animT=0;this.lock=0;this.anims=anims;this.dead=false;}
   setAnim(a,lock=0){if(this.anim!==a||lock){this.anim=a;this.animT=0;}if(lock)this.lock=lock;}
   update(dt){this.animT+=dt;if(this.lock>0){this.lock-=dt;if(this.lock<=0&&!this.dead){this.lock=0;this.anim='idle';}}
     const [col,n]=this.anims[this.anim]||this.anims.idle;const speed=this.anim==='walk'?8:this.anim==='idle'?2:this.anim==='attack'?(3/Math.max(.25,this.atkDur||.5)):5;
     let f=Math.floor(this.animT*speed);f=this.anim==='attack'||this.anim==='hit'||this.anim==='dead'||this.anim==='sit'||this.anim==='cast'?Math.min(n-1,f):f%n;
     // pick the facing row relative to the camera: 0 front, 1 left, 2 back, 3 right
     const rel=Math.atan2(Math.sin(this.face-G.cam.yaw),Math.cos(this.face-G.cam.yaw));const a=Math.abs(rel);const row=a<Math.PI/4?0:a>Math.PI*3/4?2:rel>0?3:1;
-    this.actor.frame(col+f,row);this.actor.sprite.position.copy(this.pos);if(this.fly)this.actor.sprite.position.y+=.6+Math.sin(G.t*4)*.15;}
+    if(this.actor.isImg){this.actor.pose(this.anim,this.animT,row,this.fly);this.actor.sprite.position.copy(this.pos);this.actor.sprite.position.y+=this.actor.yOff;}else{this.actor.frame(col+f,row);this.actor.sprite.position.copy(this.pos);}if(this.fly)this.actor.sprite.position.y+=.6+Math.sin(G.t*4)*.15;}
   dispose(){scene.remove(this.actor.sprite);if(this.label)this.label.remove();if(this.bubble)this.bubble.remove();}}
-function spawnMob(k,x,z,home){const d=MONSTERS[k];const u=new Unit(monsterSheet(d.draw,d.v),d.scale,MON_ANIMS);u.kind=k;u.d=d;u.hp=d.hp;u.mhp=d.hp;u.pos.set(x,0,z);u.home=new THREE.Vector3(...(home||[x,0,z]));u.ai='idle';u.aiT=rand(1,4);u.atkT=0;u.fly=!!d.fly;u.face=rand(0,6.28);
+const MONART={};function spawnMob(k,x,z,home){const d=MONSTERS[k];const art=MONART[d.draw];const u=new Unit(art?null:monsterSheet(d.draw,d.v),d.scale,MON_ANIMS,art?new ImgActor(art.img,art.url,d.scale):null);u.kind=k;u.d=d;u.hp=d.hp;u.mhp=d.hp;u.pos.set(x,0,z);u.home=new THREE.Vector3(...(home||[x,0,z]));u.ai='idle';u.aiT=rand(1,4);u.atkT=0;u.fly=!!d.fly;u.face=rand(0,6.28);
   u.hostile=!!d.aggro;u.looted=[];u.boss=!!d.boss;G.mobs.push(u);return u;}
 
 /* ---------------- maps ---------------- */
@@ -197,7 +197,8 @@ function equipItem(idx){const it=P.inv[idx],d=ITEMS[it.id];if(!canEquip(d)){chat
   let sl=d.slot;if(sl==='acc')sl=!P.equip.acc1?'acc1':!P.equip.acc2?'acc2':'acc1';P.inv.splice(idx,1);if(P.equip[sl])P.inv.push(P.equip[sl]);P.equip[sl]=it;sfx('click');chat(`Equipped ${itemName(it)}.`,'sys');refresh();renderInv();renderEquip();}
 function unequip(sl){const it=P.equip[sl];if(!it)return;delete P.equip[sl];P.inv.push(it);sfx('click');refresh();renderInv();renderEquip();}
 function dropItem(id,pos){const d=ITEMS[id];const cv=document.createElement('canvas');cv.width=cv.height=64;const g=cv.getContext('2d');g.font='44px serif';g.textAlign='center';g.textBaseline='middle';
-  if(d.t==='card'){g.fillStyle='#f8f0d8';g.strokeStyle='#8a6a2a';g.lineWidth=3;g.beginPath();g.roundRect(14,6,36,52,5);g.fill();g.stroke();g.fillStyle='#c84a3a';g.font='26px serif';g.fillText('✦',32,32);}else g.fillText(d.ic||'📦',32,34);
+  const ii=D.iconIndex(id);if(ICON_IMG&&ii!=null){g.drawImage(ICON_IMG,(ii%8)*96,Math.floor(ii/8)*96,96,96,4,4,56,56);}
+  else if(d.t==='card'){g.fillStyle='#f8f0d8';g.strokeStyle='#8a6a2a';g.lineWidth=3;g.beginPath();g.roundRect(14,6,36,52,5);g.fill();g.stroke();g.fillStyle='#c84a3a';g.font='26px serif';g.fillText('✦',32,32);}else g.fillText(d.ic||'📦',32,34);
   const tex=new THREE.CanvasTexture(cv);tex.colorSpace=THREE.SRGBColorSpace;const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false}));s.scale.set(.9,.9,1);s.center.set(.5,0);
   const p=pos.clone().add(new THREE.Vector3(rand(-1.1,1.1),0,rand(-1.1,1.1)));s.position.copy(p);scene.add(s);const drop={id,pos:p,obj:s,t:G.t,rare:d.t==='card'||(d.price||0)>=3000};G.drops.push(drop);
   if(drop.rare){chat(`★ ${d.n} dropped!`,'loot');}setTimeout(()=>{const i=G.drops.indexOf(drop);if(i>=0){scene.remove(s);G.drops.splice(i,1);}},90000);}
@@ -276,13 +277,14 @@ function renderHud(){if(!P||!ST)return;const T=JOBS[P.job].tier;$('#bname').text
   const w=weight();$('#bweight').textContent=`Weight ${fmt(w/10)}/${fmt(ST.maxW/10)}`;$('#bweight').classList.toggle('bad',w>=ST.maxW*.5);$('#bzeny').textContent=`${fmt(P.zeny)} g`;
   $('#btn-stat').classList.toggle('dot',P.statPts>0);$('#btn-skill').classList.toggle('dot',P.skillPts>0);renderHot();
   if(G.target&&!G.target.dead){$('#tname').textContent=`${G.target.d.n}  Lv ${G.target.d.lv}`;$('#thp i').style.width=G.target.hp/G.target.mhp*100+'%';}else $('#tframe').hidden=true;}
-function ic(id){const d=ITEMS[id];return `<span class="ic ${d.t==='card'?'card':''}">${d.t==='card'?'✦':d.ic||'📦'}</span>`;}
-function renderHot(){const box=$('#hotbar');const n=MOBILE?6:8;box.innerHTML=P.hot.slice(0,n).map((h,i)=>{let inner='',cnt='';if(h&&h.t==='skill'){inner=SKILLS[h.id].ic;}else if(h&&h.t==='item'){const it=P.inv.find(x=>x.id===h.id);inner=ITEMS[h.id].ic;cnt=it?it.n:0;}
+function ic(id){const a=iconHTML(id);if(a)return a;const d=ITEMS[id];return `<span class="ic ${d.t==='card'?'card':''}">${d.t==='card'?'✦':d.ic||'📦'}</span>`;}
+function skIc(id){return iconHTML(id,'sk')||`<span class="ic">${SKILLS[id].ic}</span>`;}
+function renderHot(){const box=$('#hotbar');const n=MOBILE?6:8;box.innerHTML=P.hot.slice(0,n).map((h,i)=>{let inner='',cnt='';if(h&&h.t==='skill'){inner=iconHTML(h.id,'hki')||SKILLS[h.id].ic;}else if(h&&h.t==='item'){const it=P.inv.find(x=>x.id===h.id);inner=iconHTML(h.id,'hki')||ITEMS[h.id].ic;cnt=it?it.n:0;}
     return `<button class="hk ${h?'':'empty'}" data-i="${i}">${inner}${cnt!==''?`<small>${cnt}</small>`:''}<em>${MOBILE?'':'F'+(i+1)}</em></button>`;}).join('');
   box.querySelectorAll('.hk').forEach(b=>{b.onclick=()=>{const i=+b.dataset.i;if(P.hot[i])useHot(i);else assignHot(i);};b.oncontextmenu=e=>{e.preventDefault();assignHot(+b.dataset.i);};
     let lp;b.addEventListener('touchstart',()=>{lp=setTimeout(()=>{assignHot(+b.dataset.i);lp=null;},550);},{passive:true});b.addEventListener('touchend',()=>clearTimeout(lp));});}
 function assignHot(i){const skills=Object.keys(P.skills).filter(id=>SKILLS[id].t!=='passive'&&P.skills[id]>0);const items=[...new Set(P.inv.filter(it=>ITEMS[it.id].t==='use').map(it=>it.id))];
-  win('hot','Set hotkey '+(i+1),`<p class="hint">Pick a skill or item for this slot.</p><div class="grid">${skills.map(id=>`<button class="pick" data-t="skill" data-id="${id}">${SKILLS[id].ic}<small>${SKILLS[id].n}</small></button>`).join('')}${items.map(id=>`<button class="pick" data-t="item" data-id="${id}">${ITEMS[id].ic}<small>${ITEMS[id].n}</small></button>`).join('')}<button class="pick" data-t="clear">✖<small>Clear</small></button></div>`,
+  win('hot','Set hotkey '+(i+1),`<p class="hint">Pick a skill or item for this slot.</p><div class="grid">${skills.map(id=>`<button class="pick" data-t="skill" data-id="${id}">${iconHTML(id,'pk')||SKILLS[id].ic}<small>${SKILLS[id].n}</small></button>`).join('')}${items.map(id=>`<button class="pick" data-t="item" data-id="${id}">${iconHTML(id,'pk')||ITEMS[id].ic}<small>${ITEMS[id].n}</small></button>`).join('')}<button class="pick" data-t="clear">✖<small>Clear</small></button></div>`,
     el=>el.querySelectorAll('.pick').forEach(b=>b.onclick=()=>{P.hot[i]=b.dataset.t==='clear'?null:{t:b.dataset.t,id:b.dataset.id};closeWindow('hot');renderHot();}));}
 function win(id,title,html,bind){let el=document.getElementById('w-'+id);if(!el){el=document.createElement('div');el.id='w-'+id;el.className='win';$('#windows').appendChild(el);}
   el.innerHTML=`<header><b>${E(title)}</b><button class="x" aria-label="Close">✕</button></header><div class="wb">${html}</div>`;el.querySelector('.x').onclick=()=>closeWindow(id);G.windows.add(id);bind&&bind(el);return el;}
@@ -306,7 +308,7 @@ function renderEquip(){if(!G.windows.has('equip')&&arguments[0]!==true&&!documen
   win('equip','Equipment',`<div class="eqwrap"><img class="eqport" src="${heroPortrait(lookCfg())}" alt=""><div class="eq">${Object.keys(SLOT_NAMES).map(sl=>{const it=P.equip[sl];return `<button class="row slot" data-sl="${sl}"><small>${SLOT_NAMES[sl]}</small>${it?`${ic(it.id)}<span>${E(itemName(it))}${(it.cards||[]).length?`<small class="cards">${it.cards.map(c=>ITEMS[c].n).join(', ')}</small>`:''}</span>`:'<span class="empty">—</span>'}</button>`;}).join('')}</div></div><p class="hint">Tap a slot to take the item off. Headgear, weapons and shields show on your character.</p>`,
     el=>el.querySelectorAll('.slot').forEach(b=>b.onclick=()=>unequip(b.dataset.sl)));}
 function renderSkills(){const J=JOBS[P.job];const ids=J.skills;
-  win('skill',`${J.n} skills`,`<div class="list">${ids.map(id=>{const S=SKILLS[id],lv=sk(id);return `<div class="row skill"><span class="ic">${S.ic}</span><span><b>${S.n}</b> <small>Lv ${lv}/${S.max}${S.t==='passive'?' · passive':` · ${S.sp(Math.max(1,lv))} SP`}</small><small>${E(S.d)}</small></span><button class="plus" data-k="${id}" ${P.skillPts>0&&lv<S.max?'':'disabled'}>+</button>${lv&&S.t!=='passive'?`<button class="tiny" data-use="${id}">Use</button>`:''}</div>`;}).join('')}</div>
+  win('skill',`${J.n} skills`,`<div class="list">${ids.map(id=>{const S=SKILLS[id],lv=sk(id);return `<div class="row skill">${skIc(id)}<span><b>${S.n}</b> <small>Lv ${lv}/${S.max}${S.t==='passive'?' · passive':` · ${S.sp(Math.max(1,lv))} SP`}</small><small>${E(S.d)}</small></span><button class="plus" data-k="${id}" ${P.skillPts>0&&lv<S.max?'':'disabled'}>+</button>${lv&&S.t!=='passive'?`<button class="tiny" data-use="${id}">Use</button>`:''}</div>`;}).join('')}</div>
     <p class="pts">Skill points: <b>${P.skillPts}</b></p><p class="hint">${P.job==='novice'?'Reach job level 10, then talk to Master Corwin in Valeria to choose your job.':'Earn a skill point every job level. Put skills on your hotbar: tap an empty hotkey slot (or long-press a slot to change it).'}</p>`,
     el=>{el.querySelectorAll('.plus').forEach(b=>b.onclick=()=>{const id=b.dataset.k;if(P.skillPts<=0)return;P.skillPts--;P.skills[id]=sk(id)+1;sfx('click');
       if(SKILLS[id].t!=='passive'&&P.skills[id]===1){const free=P.hot.findIndex(h=>!h);if(free>=0)P.hot[free]={t:'skill',id};}refresh();renderSkills();});el.querySelectorAll('[data-use]').forEach(b=>b.onclick=()=>{closeWindow('skill');useSkill(b.dataset.use);});});}
@@ -416,6 +418,10 @@ function minimap(){const cv=$('#minimap'),g=cv.getContext('2d'),W=cv.width,S=G.w
   g.save();g.translate(X(me.pos.x),X(me.pos.z));g.rotate(-me.face+Math.PI);g.fillStyle='#fff';g.beginPath();g.moveTo(0,-5);g.lineTo(3.5,4);g.lineTo(-3.5,4);g.closePath();g.fill();g.restore();
   $('#coords').textContent=`${Math.round(me.pos.x)}, ${Math.round(me.pos.z)}`;}
 
+/* ---------------- ForgeGUI art ---------------- */
+let ICON_IMG=null;async function loadArt(){const jobs=Object.entries(D.MON_IMG).map(([k,f])=>{const url=`assets/mon/${f}.webp`;return loadImage(url).then(img=>{MONART[k]={img,url};}).catch(()=>{});});
+  jobs.push(loadImage('assets/icons.webp').then(i=>{ICON_IMG=i;}).catch(()=>{}));await Promise.all(jobs);}
+function iconHTML(id,cls=''){const i=D.iconIndex(id);if(i==null||!ICON_IMG)return null;return `<span class="ic art ${cls}" style="background-position:${(i%8)/7*100}% ${Math.floor(i/8)/9*100}%"></span>`;}
 /* ---------------- character creation & boot ---------------- */
 const CC={style:0,hair:HAIRS[0],eye:'#3a5a9a'};
 function ccPreview(){const c={job:'novice',style:CC.style,hair:CC.hair,eye:CC.eye,weapon:'dagger'};const sh=heroSheet(c);const cv=$('#ccprev'),g=cv.getContext('2d');g.clearRect(0,0,cv.width,cv.height);
@@ -426,7 +432,7 @@ function setupCC(){$('#ccstyles').innerHTML=[0,1,2,3].map(i=>`<button class="sw 
   $('#ccstyles').onclick=e=>{const b=e.target.closest('[data-s]');if(b){CC.style=+b.dataset.s;setupCC();}};$('#cchairs').onclick=e=>{const b=e.target.closest('[data-h]');if(b){CC.hair=b.dataset.h;setupCC();}};$('#cceyes').onclick=e=>{const b=e.target.closest('[data-e]');if(b){CC.eye=b.dataset.e;setupCC();}};}
 async function startPlay(){$('#title').hidden=true;$('#hud').hidden=false;me=new Unit(heroSheet(lookCfg()),1,ANIMS);me._look=JSON.stringify(lookCfg());$('#bport').src=heroPortrait(lookCfg());refresh();if(P.hp<=1){P.hp=ST.mhp;P.sp=ST.msp;}
   await enterMap(P.map||'town',P.x,P.z);chat('Welcome to Eternal Realms Online!','sys');if(P.baseLv===1&&P.baseExp===0){chat('Tip: tap the ground to walk. Go east through the gate to Greenmarch Meadows and tap a Jellop to attack.','sys');chat('Press the Stat button to spend your status points.','sys');}}
-(async()=>{try{await loadWorldParts();$('#loading').hidden=true;const saved=load();
+(async()=>{try{await Promise.all([loadWorldParts(),loadArt()]);$('#loading').hidden=true;const saved=load();
     if(saved){P=saved;$('#title').hidden=false;$('#cc').hidden=true;$('#cont').hidden=false;$('#contname').textContent=`${saved.name} · ${JOBS[saved.job].n} · Base Lv ${saved.baseLv} / Job Lv ${saved.jobLv}`;$('#contport').src=heroPortrait({job:saved.job,style:saved.look.style,hair:saved.look.hair,eye:saved.look.eye});}
     else{$('#title').hidden=false;$('#cont').hidden=true;}
     setupCC();G.state='title';music('title');(function pv(){if(G.state==='title'){ccPreview();G.t+=1/60;requestAnimationFrame(pv);}})();
