@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Eternal Realms Online</title><meta name="theme-color" content="#2a3a5a"><link rel="icon" href="icon-192.png"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js","three/addons/":"./vendor/addons/"}}</script>
+</head><body>
+<div id="view"></div><div id="labels"></div><div id="floats"></div>
+<div id="loading" class="screen"><h1>Eternal Realms <span>Online</span></h1><p id="ldtxt" class="hint">Loading the realm…</p></div>
+
+<div id="title" class="screen" hidden>
+  <div class="logo"><h1>Eternal Realms <span>Online</span></h1><p class="hint">A 2.5D fantasy MMORPG · <a href="eternal-realms.apk" download>Get the Android app</a></p></div>
+  <div id="cont" class="panel cc" hidden><img id="contport" class="cport" alt=""><div><b id="contname"></b><div class="row gap"><button class="b" id="newbtn">New character</button><button class="b gilt" id="contbtn">Continue</button></div></div></div>
+  <div id="cc" class="panel cc">
+    <canvas id="ccprev" width="144" height="192"></canvas>
+    <div class="ccf"><label>Name <input id="ccname" maxlength="16" placeholder="Your hero's name" autocomplete="off"></label>
+      <div><small>Hairstyle</small><div id="ccstyles" class="sws"></div></div><div><small>Hair colour</small><div id="cchairs" class="dots"></div></div><div><small>Eyes</small><div id="cceyes" class="dots"></div></div>
+      <button class="b gilt big" id="ccgo">Start your adventure</button><p class="hint">Everyone begins as a Novice in Valeria.</p></div>
+  </div>
+</div>
+
+<div id="hud" hidden>
+  <div id="basic" class="panel">
+    <div class="bi-top"><img id="bport" alt=""><div><b id="bname"></b><small id="bjob"></small></div></div>
+    <div class="bar hp" id="bhp"><i></i><span></span></div><div class="bar sp" id="bsp"><i></i><span></span></div>
+    <div class="bar xp" id="bbase"><i></i><span></span></div><div class="bar jx" id="bjobx"><i></i><span></span></div>
+    <div class="bi-foot"><small id="bweight"></small><small id="bzeny"></small></div>
+    <div class="menu"><button id="btn-stat" title="Status (Alt+S)">Stat</button><button id="btn-inv" title="Items (Alt+I)">Item</button><button id="btn-equip" title="Equip (Alt+E)">Equip</button><button id="btn-skill" title="Skills (Alt+K)">Skill</button><button id="btn-opt" title="Options">⚙</button></div>
+  </div>
+  <div id="mapbox" class="panel"><div class="mh"><b id="mapname"></b><small id="coords"></small></div><canvas id="minimap" width="140" height="140"></canvas></div>
+  <div id="tframe" hidden><b id="tname"></b><div class="bar enemy" id="thp"><i></i></div></div>
+  <div id="castbar" hidden><div class="bar cast"><i></i></div></div>
+  <div id="hint" hidden></div>
+  <div id="chat"><div id="chatlog"></div><div class="ci"><input id="chatin" maxlength="80" placeholder="Say something… (/heart /sit)" autocomplete="off"><button class="b" id="chatsend">Send</button></div></div>
+  <button id="chatbtn" class="round" aria-label="Chat">💬</button>
+  <div id="bottom"><button id="sitbtn" class="round" title="Sit (Insert)">🧘</button><div id="hotbar"></div></div>
+  <div id="windows"></div>
+  <div id="banner" hidden></div>
+</div>
+<div id="dead" class="screen dim" hidden><h2>You have fallen…</h2><p class="hint">Return to your save point to try again.</p><button class="b gilt big" id="respawn">Return to save point</button></div>
+<script type="module" src="js/game.js"></script>
+</body></html>

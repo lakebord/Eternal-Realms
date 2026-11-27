@@ -14,7 +14,7 @@ mkdir www
 # shown only if the phone is offline when the app opens
 cat > www/index.html <<HTML
 <!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<body style="margin:0;height:100vh;display:grid;place-items:center;background:#0b0d12;color:#e0b45e;font-family:serif;text-align:center">
+<body style="margin:0;height:100vh;display:grid;place-items:center;background:#2a3a5a;color:#ffe08a;font-family:serif;text-align:center">
 <div><h1 style="letter-spacing:.1em">Eternal Realms</h1><p style="color:#b9b2a0">The Realms can't be reached.<br>Check your connection.</p>
 <button onclick="location.href='$SITE_URL'" style="font:inherit;padding:.7em 1.6em;background:#2a2418;color:#e0b45e;border:1px solid #8a7030;border-radius:8px">Try again</button></div></body>
 HTML
@@ -29,10 +29,9 @@ rm -rf android/app/src/main/res/mipmap-anydpi-v26
 cp -r "$ROOT/tools/android/res/." android/app/src/main/res/
 for d in android/app/src/main/res/mipmap-*; do rm -f "$d/ic_launcher_foreground.png"; done
 # portrait only, version from the build number
-sed -i 's/<activity/<activity android:screenOrientation="portrait"/' android/app/src/main/AndroidManifest.xml
 sed -i "s/versionCode 1/versionCode $VERSION_CODE/; s/versionName \"1.0\"/versionName \"$VERSION_NAME\"/" android/app/build.gradle
 npx cap sync android >/dev/null
 ( cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon -q )
-mkdir -p "$ROOT/public"
-cp android/app/build/outputs/apk/debug/app-debug.apk "$ROOT/public/eternal-realms.apk"
-ls -la "$ROOT/public/eternal-realms.apk"
+OUT="$ROOT/${OUT_DIR:-game}"; mkdir -p "$OUT"
+cp android/app/build/outputs/apk/debug/app-debug.apk "$OUT/eternal-realms.apk"
+ls -la "$OUT/eternal-realms.apk"

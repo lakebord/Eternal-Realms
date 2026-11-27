@@ -1,4 +1,4 @@
-# Builds the game (and its Android app) and publishes it to Cloudflare Pages.
+# Publishes Eternal Realms Online (the game/ folder) and its Android app to Cloudflare Pages.
 # main = the live site, next = the test site (next.<project>.pages.dev).
 # Needs two repository secrets: CLOUDFLARE_API_TOKEN (Account → Cloudflare Pages → Edit) and CLOUDFLARE_ACCOUNT_ID.
 name: Deploy to Cloudflare Pages
@@ -22,8 +22,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Build the game
-        run: node tools/build.js
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -34,6 +32,7 @@ jobs:
           SITE_URL: ${{ github.ref_name == 'main' && 'https://eternal-realms-26r.pages.dev' || 'https://next.eternal-realms-26r.pages.dev' }}
           APP_ID: ${{ github.ref_name == 'main' && 'com.eternalrealms.game' || 'com.eternalrealms.game.test' }}
           APP_NAME: ${{ github.ref_name == 'main' && 'Eternal Realms' || 'Eternal Realms (test)' }}
+          OUT_DIR: game
           VERSION_CODE: ${{ github.run_number }}
         run: bash tools/build-apk.sh
       - name: Check the Cloudflare secrets are set
@@ -45,4 +44,4 @@ jobs:
       - name: Create the Pages project (first run only)
         run: npx --yes wrangler@3.99.0 pages project create eternal-realms --production-branch main || echo "Project already exists"
       - name: Publish
-        run: npx --yes wrangler@3.99.0 pages deploy public --project-name eternal-realms --branch ${{ github.ref_name }} --commit-dirty=true
+        run: npx --yes wrangler@3.99.0 pages deploy game --project-name eternal-realms --branch ${{ github.ref_name }} --commit-dirty=true
