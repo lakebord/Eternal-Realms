@@ -380,7 +380,7 @@ let SNOW=null;function addSnow(){if(SNOW)return;const n=MOBILE?700:1400;const g=
   SNOW=new THREE.Points(g,new THREE.PointsMaterial({map:glowTex(),color:0xffffff,size:.35,transparent:true,depthWrite:false,opacity:.9}));SNOW.frustumCulled=false;scene.add(SNOW);}
 function removeSnow(){if(SNOW){scene.remove(SNOW);SNOW=null;}}
 function snowTick(dt){if(!SNOW||!me)return;const a=SNOW.geometry.attributes.position;for(let i=0;i<a.count;i++){let y=a.getY(i)-dt*(2+(i%5)*.4);let x=a.getX(i)+Math.sin(G.t+i)*dt*.6;if(y<0){y=24;x=rand(-30,30);a.setZ(i,rand(-30,30));}a.setY(i,y);a.setX(i,x);}a.needsUpdate=true;SNOW.position.set(me.pos.x,0,me.pos.z);}
-function festivalTree(root,x,z,parts){const src=parts.tree_single_B||parts.tree_single_A;if(!src)return;const t=src.clone(true);t.position.set(x,0,z);t.scale.setScalar(9);root.add(t);G.world.colliders.push({x,z,r:2.6});
+function festivalTree(root,x,z,parts){const FT=parts.__deco&&parts.__deco.festtree;if(FT){const sp=new THREE.Sprite(FT.mat);sp.center.set(.5,.02);sp.scale.set(10*FT.aspect,10,1);sp.position.set(x,0,z);root.add(sp);G.world.colliders.push({x,z,r:2.4});const star=gsprite(0xfff2a0,2.6);star.position.set(x,9.6,z);root.add(star);return;}const src=parts.tree_single_B||parts.tree_single_A;if(!src)return;const t=src.clone(true);t.position.set(x,0,z);t.scale.setScalar(9);root.add(t);G.world.colliders.push({x,z,r:2.6});
   const cols=[0xff5a5a,0xffd36a,0x6ad8ff,0x9af07a,0xff8ad8];for(let i=0;i<34;i++){const h=1.5+i/34*8.5,r=(1-i/34)*3.4+.4,a=i*2.4;const s=gsprite(cols[i%5],.8);s.position.set(x+Math.cos(a)*r,h,z+Math.sin(a)*r);root.add(s);}
   const star=gsprite(0xfff2a0,2.4);star.position.set(x,11,z);root.add(star);}
 /* ---------------- loop ---------------- */
