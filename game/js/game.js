@@ -79,8 +79,8 @@ const MONART={};function spawnMob(k,x,z,home){const d=MONSTERS[k];const art=MONA
 /* ---------------- maps ---------------- */
 async function enterMap(id,x,z){G.state='loading';closeAllWindows();for(const m of G.mobs)m.dispose();for(const n of G.npcs)n.dispose();for(const d of G.drops)scene.remove(d.obj);G.mobs=[];G.npcs=[];G.drops=[];setTarget(null);G.move=null;G.act=null;G.cast=null;
   if(G.world){scene.remove(G.world.root);for(const p of G.world.portals)if(p.el)p.el.remove();}const parts=await loadWorldParts();G.world=buildMap(scene,id,parts,SHADOWS);G.map=id;P.map=id;const M=MAPS[id];
-  const festive=D.winterOn();const npcs=[...(M.npcs||[])];if(id==='town'&&festive)npcs.push({id:'holly',n:'Holly the Merrymaker',x:6,z:4,look:{job:'cleric',style:2,hair:'#e8c878',hat:'holly'}});
-  if(festive&&(id==='town'||M.winter))addSnow();else removeSnow();if(id==='town'&&festive)festivalTree(G.world.root,-7,-5,parts);
+  const festive=D.winterOn();const npcs=[...(M.npcs||[])];if(id==='town'&&festive)npcs.push({id:'holly',n:'Holly the Merrymaker',x:6.5,z:5.5,look:{job:'cleric',style:2,hair:'#e8c878',hat:'holly'}});
+  if(festive&&(id==='town'||M.winter))addSnow();else removeSnow();if(id==='town'&&festive)festivalTree(G.world.root,-8.5,-7.5,parts);
   for(const n of npcs){const u=new Unit(heroSheet(n.look),1,ANIMS);u.pos.set(n.x,0,n.z);u.face=Math.atan2(-n.x,-n.z);u.npc=n;G.npcs.push(u);G.world.colliders.push({x:n.x,z:n.z,r:.7});}
   for(const g of M.mobs||[])for(let i=0;i<g.n;i++){const a=rand(0,6.28),r=Math.sqrt(Math.random())*g.r;spawnMob(g.k,g.x+Math.cos(a)*r,g.z+Math.sin(a)*r,[g.x,0,g.z]).range=g.r;}
   if(M.boss){G.boss.alive=false;G.boss.next=G.t+M.boss.first;}
@@ -140,7 +140,7 @@ function heroHurt(m){if(me.dead)return;const d=m.d;if(Math.random()*100<ST.pdodg
 function heroDie(){P.hp=0;me.dead=true;me.setAnim('dead',999);G.act=null;G.move=null;G.cast=null;$('#castbar').hidden=true;sfx('die');
   if(P.job!=='novice'){const loss=Math.floor(D.BASE_NEXT(P.baseLv)*.01);P.baseExp=Math.max(0,P.baseExp-loss);chat(`You have fallen. Lost ${fmt(loss)} base EXP.`,'bad');}else chat('You have fallen. (Novices lose no EXP.)','bad');
   for(const m of G.mobs)if(m.ai==='chase'){m.ai='return';}setTimeout(()=>{$('#dead').hidden=false;},1200);}
-$('#respawn').onclick=()=>{$('#dead').hidden=true;P.hp=Math.round(ST.mhp*.5);P.sp=Math.round(ST.msp*.5);me.dead=false;me.lock=0;me.setAnim('idle');enterMap(P.save,...(P.save==='town'?[0,6]:[]));};
+$('#respawn').onclick=()=>{$('#dead').hidden=true;P.hp=Math.round(ST.mhp*.5);P.sp=Math.round(ST.msp*.5);me.dead=false;me.lock=0;me.setAnim('idle');enterMap(P.save,...(P.save==='town'?[4,8]:[]));};
 function gainExp(b,j){P.baseExp+=b;P.jobExp+=j;floatTxt(me,`+${b} / +${j} exp`,'exp');let up=false;
   while(P.baseLv<D.BASE_CAP&&P.baseExp>=D.BASE_NEXT(P.baseLv)){P.baseExp-=D.BASE_NEXT(P.baseLv);P.baseLv++;P.statPts+=D.statPointsForLevel(P.baseLv);up=true;levelFx('BASE LEVEL UP!');chat(`Base level up! You are now level ${P.baseLv}. (+${D.statPointsForLevel(P.baseLv)} stat points)`,'lvl');}
   const T=JOBS[P.job].tier;while(P.jobLv<D.JOB_CAP(T)&&P.jobExp>=D.JOB_NEXT(P.jobLv,T)){P.jobExp-=D.JOB_NEXT(P.jobLv,T);P.jobLv++;P.skillPts++;up=true;levelFx('JOB LEVEL UP!');chat(`Job level up! Job level ${P.jobLv}. (+1 skill point)`,'lvl');
@@ -190,7 +190,7 @@ function useItem(idx){const it=P.inv[idx];if(!it)return;const d=ITEMS[it.id];if(
   if(d.t==='use'){if(d.heal)healMe(d.heal*rand(.9,1.1)*(1+ST.s.vit/100));if(d.sp){P.sp=Math.min(ST.msp,P.sp+d.sp);floatTxt(me,'+'+d.sp+' SP','sp');}
     if(d.warp==='random'){removeItem(idx);const h=G.world.size/2-6;let x,z,k=0;do{x=rand(-h,h);z=rand(-h,h);k++;}while(k<20&&G.world.colliders.some(c=>Math.hypot(c.x-x,c.z-z)<c.r+1));me.pos.set(x,0,z);G.move=null;G.act=null;ringFx(me.pos,0x8ad8ff);renderHud();return;}
     if(d.gift){removeItem(idx);const [gid,gn]=D.GIFTS[ri(0,D.GIFTS.length-1)];addItem(mkItem(gid,ITEMS[gid].t==='equip'?1:gn));if(Math.random()<.04){const h=['holly_cap','antler_band','snow_tiara'][ri(0,2)];addItem(mkItem(h));banner('LUCKY GIFT!',ITEMS[h].n);}chat(`The gift contained ${ITEMS[gid].n}${gn>1?' ×'+gn:''}!`,'loot');sfx('loot');renderHud();if(G.windows.has('inv'))renderInv();return;}
-    if(d.warp==='save'){removeItem(idx);enterMap(P.save,...(P.save==='town'?[0,6]:[]));return;}removeItem(idx);renderHud();if(G.windows.has('inv'))renderInv();return;}
+    if(d.warp==='save'){removeItem(idx);enterMap(P.save,...(P.save==='town'?[4,8]:[]));return;}removeItem(idx);renderHud();if(G.windows.has('inv'))renderInv();return;}
   if(d.t==='equip')equipItem(idx);if(d.t==='card')openCardSocket(idx);}
 function canEquip(d){if(d.jobs==='all'||!d.jobs){if(d.slot==='weapon'){return JOBS[P.job].wpn.includes(d.wt);}return true;}return d.jobs.includes(P.job);}
 function equipItem(idx){const it=P.inv[idx],d=ITEMS[it.id];if(!canEquip(d)){chat(`${JOBS[P.job].n}s can't use ${d.n}.`,'bad');sfx('bad');return;}
