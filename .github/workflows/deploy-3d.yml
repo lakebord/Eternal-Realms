@@ -27,3 +27,14 @@ jobs:
         run: npx --yes wrangler@3.99.0 pages project create eternal-realms-3d --production-branch proto-3d || echo "Project already exists"
       - name: Publish
         run: npx --yes wrangler@3.99.0 pages deploy proto3d --project-name eternal-realms-3d --branch proto-3d --commit-dirty=true
+      # Eternal Realms Online (2.5D) — its own site. Shares three.js and the soundtrack with the 3D prototype.
+      - name: Prepare Eternal Realms Online
+        run: |
+          rm -rf proto25d/vendor proto25d/assets/music proto25d/tools proto25d/test.html
+          cp -r proto3d/vendor proto25d/vendor
+          mkdir -p proto25d/assets/music
+          cp proto3d/assets/music/mus_wild.mp3 proto3d/assets/music/mus_boss.mp3 proto3d/assets/music/mus_title.mp3 assets/mus_town.mp3 proto25d/assets/music/
+      - name: Create the Online project (first run only)
+        run: npx --yes wrangler@3.99.0 pages project create eternal-realms-online --production-branch proto-3d || echo "Project already exists"
+      - name: Publish Eternal Realms Online
+        run: npx --yes wrangler@3.99.0 pages deploy proto25d --project-name eternal-realms-online --branch proto-3d --commit-dirty=true
