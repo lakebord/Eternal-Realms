@@ -151,3 +151,13 @@ Object.assign(MONSTERS,{
 });
 export const WINTER_SHOP=[['candy_cane',2],['gift_box',6],['holly_cap',30],['antler_band',30],['snow_tiara',40]];
 export const GIFTS=[['red_tonic',5],['orange_tonic',2],['candy_cane',4],['blue_draught',1],['brightstone',1],['duskstone',1],['snow_token',5],['homing_feather',1]];
+
+/* ---------------- ForgeGUI art: icon atlas (8 columns × 96px) and monster sprites ---------------- */
+export const ICON_ORDER=['red_tonic','orange_tonic','blue_draught','apple','carrot','honey','waywing','homing_feather','jelly_goo','fluffy_tail','spore_cap','stinger','golden_jelly','brightstone','duskstone','snow_token',
+  'knife','cutter','short_sword','broadsword','hand_axe','mace','rod','short_bow','cotton_shirt','adventurer_suit','chain_vest','apprentice_robe','guard','hood','sandals','boots',
+  'ribbon','bandana','flower_crown','beret','wizard_hat','iron_sallet','lop_band','jellop_cap','king_crown','halo','holly_cap','antler_band','snow_tiara','frost_tophat','candy_cane','gift_box',
+  'first_aid','toughness','bash','flame_sweep','sword_mastery','iron_skin','fire_bolt','frost_bolt','thunder_bolt','mana_flow','twin_shot','arrow_shower','hawk_eye','quick_step','twin_blade','snatch',
+  'venom_strike','evasion','heal','blessing','swift_prayer','smite','coin_strike','haggle','pack_mule','lucky_find','clip','_card','_chest','_portal','_coins','_scroll'];
+export const ICON={};ICON_ORDER.forEach((k,i)=>ICON[k]=i);
+export function iconIndex(id){if(ICON[id]!=null)return ICON[id];if(ITEMS[id]&&ITEMS[id].t==='card')return ICON._card;return null;}
+export const MON_IMG={jellop:'jellop',lopkin:'lopkin',shroom:'shroom',bee:'bee',king:'king',frostlop:'frostlop',snowbunny:'snowbunny',ginger:'ginger',snowman:'snowman'};
