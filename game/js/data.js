@@ -124,3 +124,30 @@ export const SHOPS={
   refine:['brightstone','duskstone'],
 };
 export const REFINE_RATE=[1,1,1,1,.6,.5,.4,.3,.2,.1];   // chance to go from +n to +n+1
+
+/* ---------------- Frostlight Festival (Dec 1 – Jan 6) ---------------- */
+export const WINTER={start:[2026,11,1],end:[2027,0,6]};
+export function winterOn(){try{if(localStorage.getItem('ero_winter')==='1')return true;}catch(e){}
+  const n=new Date(),s=new Date(WINTER.start[0],WINTER.start[1],WINTER.start[2]),e=new Date(WINTER.end[0],WINTER.end[1],WINTER.end[2],23,59,59);return n>=s&&n<=e;}
+Object.assign(ITEMS,{
+  snow_token:{n:'Snowflake Token',t:'etc',price:2,w:0,ic:'❄️',d:'Festival currency. Trade them with Holly in Valeria.'},
+  candy_cane:{n:'Candy Cane',t:'use',heal:60,sp:10,price:20,w:2,ic:'🍬',d:'Restores 60 HP and 10 SP. Minty!'},
+  gift_box:{n:'Festival Gift',t:'use',gift:1,price:50,w:5,ic:'🎁',d:'Open it and see what is inside!'},
+  holly_cap:{n:'Holly Cap',t:'equip',slot:'head',hat:'holly',def:1,luk:2,cards:0,price:9000,w:10,ic:'🎅',jobs:'all',limited:1,d:'+2 LUK. Frostlight Festival limited headgear.'},
+  antler_band:{n:'Antler Band',t:'equip',slot:'head',hat:'antler',def:1,agi:2,cards:0,price:9000,w:10,ic:'🦌',jobs:'all',limited:1,d:'+2 AGI. Frostlight Festival limited headgear.'},
+  snow_tiara:{n:'Snowflake Tiara',t:'equip',slot:'head',hat:'snowtiara',def:0,mdef:5,int:2,cards:0,price:12000,w:5,ic:'👑',jobs:'all',limited:1,d:'+2 INT. Frostlight Festival limited headgear.'},
+  frost_tophat:{n:'Frostmaw Top Hat',t:'equip',slot:'head',hat:'tophat',def:3,allStats:1,cards:1,price:40000,w:20,ic:'🎩',jobs:'all',limited:1,d:'+1 all stats. Taken from Frostmaw the Snow Tyrant. Limited.'},
+  card_frostmaw:{n:'Frostmaw Card',t:'card',cardSlot:'garment',hp:200,flee:15,ic:'🎴',price:20,w:1,d:'Garment card: +200 Max HP, +15 FLEE.'},
+});
+Object.assign(MONSTERS,{
+  frostlop:{n:'Frostlop',draw:'frostlop',v:{},lv:6,hp:170,atk:[13,19],def:3,flee:8,hit:16,aspd:1.7,speed:1.6,exp:[42,30],el:'water',scale:.95,passive:1,looter:1,
+    drops:[['snow_token',.55],['candy_cane',.2],['jelly_goo',.3],['card_jellop',.02]]},
+  snowbunny:{n:'Snow Lopkin',draw:'snowbunny',v:{},lv:8,hp:200,atk:[16,22],def:2,flee:30,hit:20,aspd:1.4,speed:2.8,exp:[56,40],el:'water',scale:.85,passive:1,
+    drops:[['snow_token',.55],['fluffy_tail',.4],['candy_cane',.15],['antler_band',.004],['card_lopkin',.02]]},
+  ginger:{n:'Gingerling',draw:'ginger',v:{},lv:10,hp:260,atk:[22,30],def:5,flee:14,hit:28,aspd:1.5,speed:2.2,exp:[78,56],el:'earth',scale:.9,aggro:1,
+    drops:[['snow_token',.65],['candy_cane',.25],['gift_box',.04],['holly_cap',.004]]},
+  frostmaw:{n:'Frostmaw the Snow Tyrant',draw:'snowman',v:{},lv:18,hp:6200,atk:[48,72],def:12,flee:12,hit:50,aspd:1.6,speed:1.7,exp:[3200,2300],el:'water',scale:1.7,boss:1,summon:'frostlop',
+    drops:[['frost_tophat',.35],['card_frostmaw',.25],['gift_box',1],['gift_box',.6],['snow_token',1],['snow_token',1],['snow_token',1],['snow_token',1],['snow_token',1]]},
+});
+export const WINTER_SHOP=[['candy_cane',2],['gift_box',6],['holly_cap',30],['antler_band',30],['snow_tiara',40]];
+export const GIFTS=[['red_tonic',5],['orange_tonic',2],['candy_cane',4],['blue_draught',1],['brightstone',1],['duskstone',1],['snow_token',5],['homing_feather',1]];
