@@ -197,3 +197,33 @@ export class ImgActor{
     else if(anim==='dead'){const k=Math.min(1,t/.5);sy=1-k*.7;sx=1+k*.35;op=Math.max(0,1-Math.max(0,t-.6)/.9);}
     this.sprite.scale.set(this.w*sx,this.h*sy,1);this.mat.opacity=op;this.yOff=y;}
 }
+
+/* ---------- painted (ForgeGUI) heroes & townsfolk: front/back views, hats composited on the head ---------- */
+let CHAR_META=null;const HAT_FIT={ribbon:[.62,.24],bandana:[1.02,.44],flower:[.95,.42],beret:[.95,.36],wizard:[1.15,.3],helm:[1.05,.62],bunny:[.9,.34],jelly:[.85,.5],kingcrown:[.78,.36],halo:[.75,-.08],holly:[1.05,.42],antler:[1.1,.3],snowtiara:[.85,.34],tophat:[.8,.4]};
+export async function loadCharMeta(){if(!CHAR_META){try{CHAR_META=await (await fetch('assets/chars/meta.json')).json();}catch(e){CHAR_META={};}}return CHAR_META;}
+const COMP={};async function composite(key,hat){const ck=key+'|'+(hat||'');if(COMP[ck])return COMP[ck];
+  COMP[ck]=(async()=>{const im=await loadImage(`assets/chars/${key}.webp`);const m=(CHAR_META||{})[key]||{hx:.5,hy:.02};const pad=Math.round(im.height*.35);
+    const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height+pad;const g=cv.getContext('2d');g.drawImage(im,0,pad);
+    if(hat&&HAT_FIT[hat]){try{const h=await loadImage(`assets/hats/${hat}.webp`);const [f,sink]=HAT_FIT[hat];const w=.40*im.height*f,hh=w*h.height/h.width;
+        g.drawImage(h,m.hx*im.width-w/2,pad+m.hy*im.height+hh*sink-hh,w,hh);}catch(e){}}
+    const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;t.generateMipmaps=true;t.minFilter=THREE.LinearMipmapLinearFilter;return {tex:t,aspect:cv.width/cv.height,padFrac:pad/cv.height};})();return COMP[ck];}
+export class PaintedActor{
+  constructor(scale=1,height=3.5){this.isImg=true;this.isPainted=true;this.scale=scale;this.H=height*scale;this.mat=new THREE.SpriteMaterial({transparent:true,alphaTest:.12,depthWrite:true});this.sprite=new THREE.Sprite(this.mat);
+    this.sprite.center.set(.5,.02);this.views={};this.cur=null;this.flip=false;this.yOff=0;this.sprite.visible=false;}
+  async setLook(prefix,hat,frontOnly){const meta=await loadCharMeta();const f=await composite(prefix+'_f',hat);let b=f;if(!frontOnly&&meta[prefix+'_b'])b=await composite(prefix+'_b',hat);
+    this.views={front:f,back:b};this.cur=null;this.sprite.visible=true;}
+  _use(v,flip){const view=this.views[v];if(!view)return;if(this.cur!==view||this.flip!==flip){const t=view.tex.clone();t.needsUpdate=true;if(flip){t.repeat.x=-1;t.offset.x=1;}this.mat.map=t;this.mat.needsUpdate=true;this.cur=view;this.flip=flip;
+      this.h=this.H/(1-view.padFrac);this.w=this.h*view.aspect;}}
+  setSheet(){}frame(){}
+  pose(anim,t,row){this._use(row===2?'back':'front',row===3);if(!this.cur)return;let sx=1,sy=1,y=0,rot=0,op=1;
+    if(anim==='idle'){const s=Math.sin(t*3.2);sy=1+s*.018;sx=1-s*.012;}
+    else if(anim==='walk'){const p=Math.abs(Math.sin(t*8));y=p*.16*this.scale;sy=1+(p-.5)*.04;rot=Math.sin(t*8)*.035;}
+    else if(anim==='attack'){const k=Math.min(1,t/.42);const l=Math.sin(k*Math.PI);sx=1+l*.08;sy=1-l*.05;rot=-l*.14*(this.flip?-1:1);y=l*.12;}
+    else if(anim==='cast'){y=.12+Math.sin(t*6)*.05;sy=1.02;}
+    else if(anim==='hit'){sx=1.05;sy=.95;rot=.08;}
+    else if(anim==='sit'){sy=.78;sx=1.06;}
+    else if(anim==='dead'){rot=Math.min(1,t/.35)*Math.PI/2*(this.flip?-1:1);y=.1;op=1;}
+    this.mat.rotation=rot;this.sprite.center.set(.5,anim==='dead'?.5:.02);this.sprite.scale.set(this.w*sx,this.h*sy,1);this.mat.opacity=op;this.yOff=anim==='dead'?this.w*.18:y;}
+}
+export async function paintedPortrait(prefix,hat){try{const v=await composite(prefix+'_f',hat);const src=v.tex.image;const cv=document.createElement('canvas');cv.width=cv.height=96;const g=cv.getContext('2d');
+  const w=src.width,sh=src.height*.5;g.drawImage(src,w*.08,src.height*.12,w*.84,sh*.95,0,0,96,96*(sh*.95)/(w*.84));return cv.toDataURL();}catch(e){return null;}}
